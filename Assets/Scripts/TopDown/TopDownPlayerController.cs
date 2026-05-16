@@ -35,7 +35,8 @@ public sealed class TopDownPlayerController : MonoBehaviour
         body = GetComponent<Rigidbody>();
 
         body.useGravity = false;
-        body.isKinematic = true;
+        body.isKinematic = false;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         body.interpolation = RigidbodyInterpolation.Interpolate;
         body.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
@@ -61,7 +62,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
             movement.Normalize();
         }
 
-        body.MovePosition(body.position + movement * moveSpeed * Time.fixedDeltaTime);
+        body.linearVelocity = movement * moveSpeed;
 
         if (aimDirection.sqrMagnitude > aimDeadZone)
         {
