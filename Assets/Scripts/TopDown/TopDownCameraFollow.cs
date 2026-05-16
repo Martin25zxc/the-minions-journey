@@ -11,10 +11,20 @@ public sealed class TopDownCameraFollow : MonoBehaviour
     float rotationSensitivity = 0.25f;
 
     [SerializeField, Min(0.01f)]
+    float zoomSensitivity = 1.0f;
+
+    [SerializeField, Min(0.1f)]
+    float minZoomScale = 0.6f;
+
+    [SerializeField, Min(0.1f)]
+    float maxZoomScale = 1.6f;
+
+    [SerializeField, Min(0.01f)]
     float followSharpness = 12f;
 
     TopDownPlayerController target;
     float yaw;
+    float zoomScale = 1f;
 
     void Awake()
     {
@@ -34,10 +44,11 @@ public sealed class TopDownCameraFollow : MonoBehaviour
         }
 
         ReadOrbitInput();
+        ReadZoomInput();
 
         Vector3 targetPosition = target.transform.position;
         Quaternion orbitRotation = Quaternion.Euler(0f, yaw, 0f);
-        Vector3 desiredPosition = targetPosition + orbitRotation * offset;
+        Vector3 desiredPosition = targetPosition + orbitRotation * (offset * zoomScale);
         float smoothing = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
 
         transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothing);
@@ -59,5 +70,22 @@ public sealed class TopDownCameraFollow : MonoBehaviour
 
         Vector2 delta = mouse.delta.ReadValue();
         yaw += delta.x * rotationSensitivity;
+    }
+
+    void ReadZoomInput()
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null)
+        {
+            return;
+        }
+
+        float scrollDelta = mouse.scroll.ReadValue().y;
+        if (Mathf.Abs(scrollDelta) < 0.001f)
+        {
+            return;
+        }
+
+        zoomScale = Mathf.Clamp(zoomScale - scrollDelta * zoomSensitivity, minZoomScale, maxZoomScale);
     }
 }
