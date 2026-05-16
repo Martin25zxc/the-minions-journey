@@ -225,7 +225,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownCameraFollow
   offset: {x: 0, y: 12, z: -10}
-  rotationEuler: {x: 55, y: 0, z: 0}
+  rotationSensitivity: 0.25
+  zoomSensitivity: 0.08
+  minZoomScale: 0.6
+  maxZoomScale: 1.6
   followSharpness: 12
 --- !u!1 &158720866
 GameObject:
@@ -958,14 +961,14 @@ MonoBehaviour:
   lightAttackArc: 95
   lightVisualDuration: 0.12
   lightVisualWidth: 0.18
-  lightSlashColor: {r: 1, g: 0.9, b: 0.6, a: 1}
+  lightSlashColor: {r: 1, g: 0, b: 0.0094127655, a: 1}
   heavyCooldown: 0.65
   heavyDamage: 2.25
   heavyAttackRange: 2.25
   heavyAttackArc: 120
   heavyVisualDuration: 0.16
   heavyVisualWidth: 0.24
-  heavySlashColor: {r: 1, g: 0.75, b: 0.35, a: 1}
+  heavySlashColor: {r: 0, g: 1, b: 0.052682877, a: 1}
   visualSegments: 18
   hitHeight: 1
   hittableLayers:
@@ -1014,7 +1017,7 @@ Rigidbody:
   m_UseGravity: 1
   m_IsKinematic: 0
   m_Interpolate: 0
-  m_Constraints: 0
+  m_Constraints: 112
   m_CollisionDetection: 0
 --- !u!23 &2027745017
 MeshRenderer:
@@ -1105,7 +1108,7 @@ Transform:
   m_GameObject: {fileID: 2027745012}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 0}
+  m_LocalPosition: {x: -0.02, y: 1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1126,6 +1129,24 @@ MonoBehaviour:
   equippedWeapon: {fileID: 0}
   powerQ: {fileID: 0}
   powerE: {fileID: 0}
+  comboHistoryWindow: 1.5
+  comboDefinitions:
+  - comboId: TripleSlash
+    sequence: 000000000000000001000000
+    maxGapSeconds: 0.4
+    maxSequenceAgeSeconds: 1.4
+    target: 0
+    consumeMatchedInput: 1
+    weaponAttackStyle: 1
+    damageMultiplier: 1.75
+    rangeMultiplier: 1.2
+    arcMultiplier: 1.15
+    cooldownMultiplier: 1.2
+    visualDurationMultiplier: 1.2
+    visualWidthMultiplier: 1.4
+    useSlashColorOverride: 1
+    slashColorOverride: {r: 1, g: 0.65, b: 0.25, a: 1}
+    priority: 10
 --- !u!1 &2085535768
 GameObject:
   m_ObjectHideFlags: 0
