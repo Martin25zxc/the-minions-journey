@@ -58,6 +58,7 @@ public sealed class TopDownSlashAttack : TopDownWeapon
 
     float nextLightAttackTime;
     float nextHeavyAttackTime;
+    float nextComboAttackTime;
 
     public override bool TryLightAttack(Vector3 facingDirection)
     {
@@ -67,6 +68,25 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     public override bool TryHeavyAttack(Vector3 facingDirection)
     {
         return TryAttack(ref nextHeavyAttackTime, facingDirection, heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
+    }
+
+    public override bool TryComboAttack(TopDownCombatComboDefinition combo, Vector3 facingDirection)
+    {
+        if (combo == null || combo.Target != TopDownCombatComboTarget.Weapon)
+        {
+            return false;
+        }
+
+        AttackProfile profile = combo.WeaponAttackStyle == TopDownCombatAttackStyle.Light ? CreateLightProfile() : CreateHeavyProfile();
+        float cooldown = profile.cooldown * combo.CooldownMultiplier;
+        float damage = profile.damage * combo.DamageMultiplier;
+        float attackRange = profile.attackRange * combo.RangeMultiplier;
+        float attackArc = profile.attackArc * combo.ArcMultiplier;
+        float visualDuration = profile.visualDuration * combo.VisualDurationMultiplier;
+        float visualWidth = profile.visualWidth * combo.VisualWidthMultiplier;
+        Color slashColor = combo.UseSlashColorOverride ? combo.SlashColorOverride : profile.slashColor;
+
+        return TryComboAttack(ref nextComboAttackTime, facingDirection, cooldown, damage, attackRange, attackArc, visualDuration, visualWidth, slashColor);
     }
 
     bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
@@ -82,6 +102,21 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         ApplyDamage(facingDirection, damage, attackRange, attackArc);
         StartCoroutine(PlaySlashVisual(facingDirection, attackRange, attackArc, visualDuration, visualWidth, slashColor));
         return true;
+    }
+
+    bool TryComboAttack(ref float nextAttackTime, Vector3 facingDirection, float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
+    {
+        return TryAttack(ref nextAttackTime, facingDirection, cooldown, damage, attackRange, attackArc, visualDuration, visualWidth, slashColor);
+    }
+
+    AttackProfile CreateLightProfile()
+    {
+        return new AttackProfile(lightCooldown, lightDamage, lightAttackRange, lightAttackArc, lightVisualDuration, lightVisualWidth, lightSlashColor);
+    }
+
+    AttackProfile CreateHeavyProfile()
+    {
+        return new AttackProfile(heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
     }
 
     void ApplyDamage(Vector3 facingDirection, float damage, float attackRange, float attackArc)
@@ -207,5 +242,33 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         };
 
         return lineMaterial;
+    }
+
+    readonly struct AttackProfile
+    {
+        public AttackProfile(float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
+        {
+            this.cooldown = cooldown;
+            this.damage = damage;
+            this.attackRange = attackRange;
+            this.attackArc = attackArc;
+            this.visualDuration = visualDuration;
+            this.visualWidth = visualWidth;
+            this.slashColor = slashColor;
+        }
+
+        public float cooldown { get; }
+
+        public float damage { get; }
+
+        public float attackRange { get; }
+
+        public float attackArc { get; }
+
+        public float visualDuration { get; }
+
+        public float visualWidth { get; }
+
+        public Color slashColor { get; }
     }
 }
