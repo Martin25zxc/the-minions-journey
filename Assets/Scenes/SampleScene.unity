@@ -916,6 +916,7 @@ GameObject:
   - component: {fileID: 2027745015}
   - component: {fileID: 2027745014}
   - component: {fileID: 2027745013}
+  - component: {fileID: 2027745021}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -951,14 +952,22 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e462f242806632a4a807edb5cd7200d0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownSlashAttack
-  cooldown: 0.35
-  damage: 1
-  attackRange: 1.8
-  attackArc: 100
+  lightCooldown: 0.25
+  lightDamage: 1
+  lightAttackRange: 1.8
+  lightAttackArc: 95
+  lightVisualDuration: 0.12
+  lightVisualWidth: 0.18
+  lightSlashColor: {r: 1, g: 0.9, b: 0.6, a: 1}
+  heavyCooldown: 0.65
+  heavyDamage: 2.25
+  heavyAttackRange: 2.25
+  heavyAttackArc: 120
+  heavyVisualDuration: 0.16
+  heavyVisualWidth: 0.24
+  heavySlashColor: {r: 1, g: 0.75, b: 0.35, a: 1}
   visualSegments: 18
-  visualDuration: 0.12
   hitHeight: 1
-  slashColor: {r: 1, g: 0.9, b: 0.6, a: 1}
   hittableLayers:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -1102,6 +1111,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2027745021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2027745012}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6444c5630ed81e441ad40599d5098d3d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TopDownPlayerCombatInput
+  equippedWeapon: {fileID: 0}
+  powerQ: {fileID: 0}
+  powerE: {fileID: 0}
 --- !u!1 &2085535768
 GameObject:
   m_ObjectHideFlags: 0

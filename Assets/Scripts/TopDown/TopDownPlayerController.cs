@@ -24,15 +24,15 @@ public sealed class TopDownPlayerController : MonoBehaviour
     Color facingIndicatorColor = new Color(0.95f, 0.95f, 0.95f, 1f);
 
     Rigidbody body;
-    TopDownSlashAttack slashAttack;
     LineRenderer facingIndicator;
     Vector2 moveInput;
     Vector3 aimDirection = Vector3.forward;
 
+    public Vector3 AimDirection => aimDirection;
+
     void Awake()
     {
         body = GetComponent<Rigidbody>();
-        slashAttack = GetComponent<TopDownSlashAttack>();
 
         body.useGravity = false;
         body.isKinematic = true;
@@ -51,11 +51,6 @@ public sealed class TopDownPlayerController : MonoBehaviour
     {
         moveInput = ReadMovementInput();
         aimDirection = ReadAimDirection();
-
-        if (Mouse.current?.leftButton.wasPressedThisFrame == true)
-        {
-            slashAttack?.TryAttack(aimDirection);
-        }
     }
 
     void FixedUpdate()
@@ -124,7 +119,12 @@ public sealed class TopDownPlayerController : MonoBehaviour
             return lineMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("TopDown/UnlitVertexColor");
+        if (shader == null)
+        {
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        }
+
         if (shader == null)
         {
             shader = Shader.Find("Sprites/Default");

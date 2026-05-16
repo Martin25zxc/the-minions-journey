@@ -3,60 +3,88 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public sealed class TopDownSlashAttack : MonoBehaviour
+public sealed class TopDownSlashAttack : TopDownWeapon
 {
     [SerializeField, Min(0.05f)]
-    float cooldown = 0.35f;
+    float lightCooldown = 0.25f;
 
     [SerializeField, Min(0.1f)]
-    float damage = 1f;
+    float lightDamage = 1f;
 
     [SerializeField, Min(0.1f)]
-    float attackRange = 1.8f;
+    float lightAttackRange = 1.8f;
 
     [SerializeField, Range(20f, 180f)]
-    float attackArc = 100f;
+    float lightAttackArc = 95f;
+
+    [SerializeField, Min(0.01f)]
+    float lightVisualDuration = 0.12f;
+
+    [SerializeField, Range(0.05f, 0.35f)]
+    float lightVisualWidth = 0.18f;
+
+    [SerializeField]
+    Color lightSlashColor = new Color(1f, 0.9f, 0.6f, 1f);
+
+    [SerializeField, Min(0.05f)]
+    float heavyCooldown = 0.65f;
+
+    [SerializeField, Min(0.1f)]
+    float heavyDamage = 2.25f;
+
+    [SerializeField, Min(0.1f)]
+    float heavyAttackRange = 2.25f;
+
+    [SerializeField, Range(20f, 180f)]
+    float heavyAttackArc = 120f;
+
+    [SerializeField, Min(0.01f)]
+    float heavyVisualDuration = 0.16f;
+
+    [SerializeField, Range(0.05f, 0.4f)]
+    float heavyVisualWidth = 0.24f;
+
+    [SerializeField]
+    Color heavySlashColor = new Color(1f, 0.75f, 0.35f, 1f);
 
     [SerializeField, Min(4)]
     int visualSegments = 18;
 
     [SerializeField, Min(0.01f)]
-    float visualDuration = 0.12f;
-
-    [SerializeField, Min(0.01f)]
     float hitHeight = 1f;
-
-    [SerializeField]
-    Color slashColor = new Color(1f, 0.9f, 0.6f, 1f);
 
     [SerializeField]
     LayerMask hittableLayers = ~0;
 
-    float nextAttackTime;
+    float nextLightAttackTime;
+    float nextHeavyAttackTime;
 
-    public bool TryAttack(Vector3 facingDirection)
+    public override bool TryLightAttack(Vector3 facingDirection)
+    {
+        return TryAttack(ref nextLightAttackTime, facingDirection, lightCooldown, lightDamage, lightAttackRange, lightAttackArc, lightVisualDuration, lightVisualWidth, lightSlashColor);
+    }
+
+    public override bool TryHeavyAttack(Vector3 facingDirection)
+    {
+        return TryAttack(ref nextHeavyAttackTime, facingDirection, heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
+    }
+
+    bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
     {
         if (Time.time < nextAttackTime)
         {
             return false;
         }
 
-        if (facingDirection.sqrMagnitude < 0.0001f)
-        {
-            facingDirection = transform.forward;
-        }
-
-        facingDirection.y = 0f;
-        facingDirection.Normalize();
-
+        facingDirection = NormalizeFacingDirection(facingDirection, transform.forward);
         nextAttackTime = Time.time + cooldown;
 
-        ApplyDamage(facingDirection);
-        StartCoroutine(PlaySlashVisual(facingDirection));
+        ApplyDamage(facingDirection, damage, attackRange, attackArc);
+        StartCoroutine(PlaySlashVisual(facingDirection, attackRange, attackArc, visualDuration, visualWidth, slashColor));
         return true;
     }
 
-    void ApplyDamage(Vector3 facingDirection)
+    void ApplyDamage(Vector3 facingDirection, float damage, float attackRange, float attackArc)
     {
         Vector3 center = transform.position + Vector3.up * hitHeight + facingDirection * (attackRange * 0.5f);
         Collider[] hits = Physics.OverlapSphere(center, attackRange * 0.75f, hittableLayers, QueryTriggerInteraction.Ignore);
@@ -101,7 +129,7 @@ public sealed class TopDownSlashAttack : MonoBehaviour
         }
     }
 
-    IEnumerator PlaySlashVisual(Vector3 facingDirection)
+    IEnumerator PlaySlashVisual(Vector3 facingDirection, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
     {
         GameObject visual = new GameObject("SlashVisual");
         visual.hideFlags = HideFlags.DontSave;
@@ -114,8 +142,8 @@ public sealed class TopDownSlashAttack : MonoBehaviour
         line.numCapVertices = 4;
         line.numCornerVertices = 4;
         line.positionCount = visualSegments;
-        line.startWidth = 0.18f;
-        line.endWidth = 0.02f;
+        line.startWidth = visualWidth;
+        line.endWidth = visualWidth * 0.15f;
         line.sharedMaterial = CreateLineMaterial();
         line.startColor = slashColor;
         line.endColor = new Color(slashColor.r, slashColor.g, slashColor.b, 0f);
@@ -157,7 +185,12 @@ public sealed class TopDownSlashAttack : MonoBehaviour
             return lineMaterial;
         }
 
-        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        Shader shader = Shader.Find("TopDown/UnlitVertexColor");
+        if (shader == null)
+        {
+            shader = Shader.Find("Universal Render Pipeline/Unlit");
+        }
+
         if (shader == null)
         {
             shader = Shader.Find("Sprites/Default");
