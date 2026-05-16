@@ -56,7 +56,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        Vector3 movement = new Vector3(moveInput.x, 0f, moveInput.y);
+        Vector3 movement = GetCameraRelativeMovement();
         if (movement.sqrMagnitude > 1f)
         {
             movement.Normalize();
@@ -68,6 +68,39 @@ public sealed class TopDownPlayerController : MonoBehaviour
         {
             body.MoveRotation(Quaternion.LookRotation(aimDirection, Vector3.up));
         }
+    }
+
+    Vector3 GetCameraRelativeMovement()
+    {
+        Camera activeCamera = gameplayCamera != null ? gameplayCamera : Camera.main;
+        Vector3 cameraForward = Vector3.forward;
+        Vector3 cameraRight = Vector3.right;
+
+        if (activeCamera != null)
+        {
+            cameraForward = Vector3.ProjectOnPlane(activeCamera.transform.forward, Vector3.up);
+            cameraRight = Vector3.ProjectOnPlane(activeCamera.transform.right, Vector3.up);
+
+            if (cameraForward.sqrMagnitude > 0.001f)
+            {
+                cameraForward.Normalize();
+            }
+            else
+            {
+                cameraForward = Vector3.forward;
+            }
+
+            if (cameraRight.sqrMagnitude > 0.001f)
+            {
+                cameraRight.Normalize();
+            }
+            else
+            {
+                cameraRight = Vector3.right;
+            }
+        }
+
+        return cameraRight * moveInput.x + cameraForward * moveInput.y;
     }
 
     LineRenderer CreateFacingIndicator()
