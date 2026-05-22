@@ -18,8 +18,20 @@ public sealed class LootPickup : MonoBehaviour
     [SerializeField] 
     private Light auraLight;
 
+    [SerializeField]
+    private ParticleSystem auraParticles;
+
+    [Header("Visual Database")]
+    [SerializeField]
+    private RarityVisualDatabase rarityVisualDatabase;
+
     private GameObject currentVisualInstance;
     private bool wasPickedUp;
+
+    private void Awake()
+    {
+        RefreshVisual();
+    }
 
     private void Start()
     {
@@ -74,25 +86,51 @@ public sealed class LootPickup : MonoBehaviour
 
     private void ApplyRarityVisuals()
     {
-        Color rarityColor = GetRarityColor(itemData.Rarity);
-
-        if (auraLight != null)
+        if (rarityVisualDatabase == null)
         {
-            auraLight.color = rarityColor;
+            Debug.LogWarning($"{name} has no RarityVisualDatabase assigned.");
+            return;
         }
+
+        RarityVisualData visualData =
+            rarityVisualDatabase.GetVisualData(itemData.Rarity);
+
+        if (visualData == null)
+        {
+            return;
+        }
+
+        ApplyLightVisuals(visualData);
+        ApplyParticleVisuals(visualData);
     }
 
-    private Color GetRarityColor(ItemRarity rarity)
+    private void ApplyLightVisuals(RarityVisualData visualData)
     {
-        return rarity switch
+        if (auraLight == null)
         {
-            ItemRarity.Common => Color.white,
-            ItemRarity.Uncommon => Color.green,
-            ItemRarity.Rare => Color.blue,
-            ItemRarity.Epic => new Color(0.6f, 0f, 1f),
-            ItemRarity.Legendary => new Color(1f, 0.55f, 0f),
-            _ => Color.white
-        };
+            return;
+        }
+
+        auraLight.color = visualData.AuraColor;
+        auraLight.intensity = visualData.LightIntensity;
+        auraLight.range = visualData.LightRange;
+    }
+
+    private void ApplyParticleVisuals(RarityVisualData visualData)
+    {
+        if (auraParticles == null)
+        {
+            return;
+        }
+
+        ParticleSystem.MainModule main = auraParticles.main;
+        main.startColor = visualData.AuraColor;
+        main.startSize = visualData.ParticleStartSize;
+        main.startSpeed = visualData.ParticleStartSpeed;
+        main.startLifetime = visualData.ParticleStartLifetime;
+
+        ParticleSystem.EmissionModule emission = auraParticles.emission;
+        emission.rateOverTime = visualData.ParticleRateOverTime;
     }
 
     private void OnTriggerEnter(Collider other)

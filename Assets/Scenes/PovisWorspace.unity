@@ -11529,7 +11529,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32d6c6f5bbe793b439e77f35b67fd853, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootDropper
-  lootDropTable: {fileID: 11400000, guid: 280caf8a909e6cc458fc7d2fabf07667, type: 2}
+  lootDropTable: {fileID: 11400000, guid: bf0c7f569dbf36b45bb331cf844a1a14, type: 2}
   lootSpawner: {fileID: 1753464893}
   spawnPoint: {fileID: 948499622}
   dropOnStart: 1

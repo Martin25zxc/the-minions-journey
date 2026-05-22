@@ -1,33 +1,23 @@
+using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Game/Loot/Rarity Visual Database"
-)]
+[CreateAssetMenu(menuName = "Game/Loot/Rarity Visual Database")]
 public sealed class RarityVisualDatabase : ScriptableObject
 {
-    [System.Serializable]
-    public class RarityVisual
-    {
-        public ItemRarity rarity;
-        public Color auraColor = Color.white;
-        public Color lightColor = Color.white;
-        [Min(0f)]
-        public float lightIntensity = 1f;
-    }
+    [Header("Visuals By Rarity")]
+    [SerializeField] private List<RarityVisualData> rarityVisuals = new();
 
-    [SerializeField]
-    private RarityVisual[] visuals;
-
-    public RarityVisual GetVisual(ItemRarity rarity)
+    public RarityVisualData GetVisualData(ItemRarity rarity)
     {
-        foreach (RarityVisual visual in visuals)
+        foreach (RarityVisualData visualData in rarityVisuals)
         {
-            if (visual.rarity == rarity)
+            if (visualData != null && visualData.Rarity == rarity)
             {
-                return visual;
+                return visualData;
             }
         }
 
-        Debug.LogWarning($"No rarity visual configured for rarity: {rarity}");
+        Debug.LogWarning($"No visual data found for rarity: {rarity}");
         return null;
     }
 }
