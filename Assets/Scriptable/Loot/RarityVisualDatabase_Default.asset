@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2275fe6b6910bcd4bbfaeb9fca2bbeeb, type: 3}
+  m_Name: RarityVisualDatabase_Default
+  m_EditorClassIdentifier: Assembly-CSharp::RarityVisualDatabase
+  rarityVisuals:
+  - rarity: 0
+    auraColor: {r: 1, g: 1, b: 1, a: 1}
+    lightIntensity: 0.4
+    lightRange: 1.2
+    particleRateOverTime: 8
+    particleStartSize: 0.5
+    particleStartSpeed: 0.15
+    particleStartLifetime: 0.6
+  - rarity: 1
+    auraColor: {r: 0, g: 0.9882353, b: 0.16786908, a: 1}
+    lightIntensity: 0.7
+    lightRange: 1.5
+    particleRateOverTime: 12
+    particleStartSize: 0.5
+    particleStartSpeed: 0.15
+    particleStartLifetime: 0.6
+  - rarity: 2
+    auraColor: {r: 0.041138142, g: 0.29803923, b: 0.9882353, a: 1}
+    lightIntensity: 0.7
+    lightRange: 1.5
+    particleRateOverTime: 14
+    particleStartSize: 0.5
+    particleStartSpeed: 0.15
+    particleStartLifetime: 0.6
+  - rarity: 3
+    auraColor: {r: 0.38591194, g: 0.17194732, b: 0.5283019, a: 1}
+    lightIntensity: 1
+    lightRange: 2
+    particleRateOverTime: 16
+    particleStartSize: 0.5
+    particleStartSpeed: 0.2
+    particleStartLifetime: 0.6
+  - rarity: 4
+    auraColor: {r: 0.98039216, g: 0.4083731, b: 0.17254901, a: 1}
+    lightIntensity: 2
+    lightRange: 2.5
+    particleRateOverTime: 30
+    particleStartSize: 0.5
+    particleStartSpeed: 0.2
+    particleStartLifetime: 0.6
