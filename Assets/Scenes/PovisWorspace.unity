@@ -5776,6 +5776,8 @@ MonoBehaviour:
   playerTag: Player
   visualRoot: {fileID: 341044519}
   auraLight: {fileID: 320725318}
+  auraParticles: {fileID: 0}
+  rarityVisualDatabase: {fileID: 0}
 --- !u!4 &550074457
 Transform:
   m_ObjectHideFlags: 0
@@ -5918,6 +5920,8 @@ MonoBehaviour:
   playerTag: Player
   visualRoot: {fileID: 490492143}
   auraLight: {fileID: 1142996618}
+  auraParticles: {fileID: 0}
+  rarityVisualDatabase: {fileID: 0}
 --- !u!4 &665183884
 Transform:
   m_ObjectHideFlags: 0
@@ -11529,7 +11533,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 32d6c6f5bbe793b439e77f35b67fd853, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LootDropper
-  lootDropTable: {fileID: 11400000, guid: bf0c7f569dbf36b45bb331cf844a1a14, type: 2}
+  lootDropTable: {fileID: 11400000, guid: 341b9e68a623a954bac5e117d8540a75, type: 2}
   lootSpawner: {fileID: 1753464893}
   spawnPoint: {fileID: 948499622}
   dropOnStart: 1
