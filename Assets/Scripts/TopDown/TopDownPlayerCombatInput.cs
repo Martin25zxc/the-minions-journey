@@ -25,6 +25,9 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
     TopDownPlayerController playerController;
 
+    [SerializeField]
+    TopDownPlayerAnimator playerAnimator;
+
     void Awake()
     {
         playerController = GetComponent<TopDownPlayerController>();
@@ -32,6 +35,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         if (equippedWeapon == null)
         {
             equippedWeapon = GetComponent<TopDownWeapon>();
+        }
+
+        if (playerAnimator == null)
+        {
+            playerAnimator = GetComponent<TopDownPlayerAnimator>();
         }
     }
 
@@ -101,6 +109,10 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         {
             case TopDownCombatComboTarget.Weapon:
                 executed = equippedWeapon != null && equippedWeapon.TryComboAttack(comboDefinition, facingDirection);
+                if (executed)
+                {
+                    playerAnimator?.PlayComboAttack();
+                }
                 break;
             case TopDownCombatComboTarget.PowerQ:
                 executed = powerQ != null && powerQ.TryComboActivate(comboDefinition, facingDirection);
@@ -124,9 +136,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         {
             case TopDownCombatInputAction.LightAttack:
                 equippedWeapon?.TryLightAttack(facingDirection);
+                playerAnimator?.PlayLightAttack();
                 break;
             case TopDownCombatInputAction.HeavyAttack:
                 equippedWeapon?.TryHeavyAttack(facingDirection);
+                playerAnimator?.PlayHeavyAttack();
                 break;
             case TopDownCombatInputAction.PowerQ:
                 powerQ?.TryActivate(facingDirection);
