@@ -191,6 +191,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 21
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d4f45e88687625b41a442db4a002c941, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: d4f45e88687625b41a442db4a002c941, type: 3}
+      propertyPath: m_TagString
+      value: LimitWall
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -586,7 +594,7 @@ GameObject:
   - component: {fileID: 944513105}
   m_Layer: 21
   m_Name: Cube (3)
-  m_TagString: Untagged
+  m_TagString: LimitWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -600,8 +608,8 @@ Transform:
   m_GameObject: {fileID: 944513103}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: 39.9, y: 0, z: 0}
-  m_LocalScale: {x: 72.16775, y: 2.0314, z: 1}
+  m_LocalPosition: {x: 39.9, y: 1.9, z: 0}
+  m_LocalScale: {x: 72.16775, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1832494864}
@@ -886,7 +894,7 @@ GameObject:
   - component: {fileID: 1265932797}
   m_Layer: 21
   m_Name: Cube
-  m_TagString: Untagged
+  m_TagString: LimitWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -900,8 +908,8 @@ Transform:
   m_GameObject: {fileID: 1265932795}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.4, y: 0, z: -22.3}
-  m_LocalScale: {x: 72.16775, y: 2.0314, z: 1}
+  m_LocalPosition: {x: 6.4, y: 1.9, z: -22.3}
+  m_LocalScale: {x: 72.16775, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1832494864}
@@ -998,7 +1006,7 @@ GameObject:
   - component: {fileID: 1343126033}
   m_Layer: 21
   m_Name: Cube (2)
-  m_TagString: Untagged
+  m_TagString: LimitWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1012,8 +1020,8 @@ Transform:
   m_GameObject: {fileID: 1343126031}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7071068, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -24, y: 0, z: 0}
-  m_LocalScale: {x: 72.16775, y: 2.0314, z: 1}
+  m_LocalPosition: {x: -24, y: 1.9, z: 0}
+  m_LocalScale: {x: 72.16775, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1832494864}
@@ -1172,6 +1180,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 9ef3170c88f19fb48acb465e5838c050, type: 3}
+      propertyPath: m_TagString
+      value: LimitWall
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1306,7 +1318,7 @@ GameObject:
   - component: {fileID: 1491360990}
   m_Layer: 0
   m_Name: Ground
-  m_TagString: Untagged
+  m_TagString: Ground
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1597,7 +1609,7 @@ GameObject:
   - component: {fileID: 1971532756}
   m_Layer: 21
   m_Name: Cube (1)
-  m_TagString: Untagged
+  m_TagString: LimitWall
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -1611,8 +1623,8 @@ Transform:
   m_GameObject: {fileID: 1971532754}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 6.4, y: 0, z: 34}
-  m_LocalScale: {x: 72.16775, y: 2.0314, z: 1}
+  m_LocalPosition: {x: 6.4, y: 1.9, z: 34}
+  m_LocalScale: {x: 72.16775, y: 5, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1832494864}

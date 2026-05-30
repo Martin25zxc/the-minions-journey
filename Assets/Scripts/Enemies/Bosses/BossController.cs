@@ -67,7 +67,7 @@ public class BossController : MonoBehaviour
 
         transform.position = target;
         moveRoutine = null;
-        Debug.Log("[BossController] Arrived at destination.");
+        //Debug.Log("[BossController] Arrived at destination.");
         OnArrived?.Invoke();
     }
 

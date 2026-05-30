@@ -33,9 +33,12 @@ public class BossArenaManager : MonoBehaviour
     private Attack01_Slash    atk01;
     private Attack02_SpinArms atk02;
     private Attack03_Laser    atk03;
+    private Attack04_Drops    atk04;
+    private Attack05_Wave     atk05;
+    private Attack06_Bullets  atk06;
 
     private int  lastAttackIndex = -1;
-    private int  chosenAttack    = -1;   // 1, 2 o 3
+    private int  chosenAttack    = -1;
     private bool fightActive     = false;
 
     // ─────────────────────────────────────────────────────────────────────
@@ -55,16 +58,18 @@ public class BossArenaManager : MonoBehaviour
         Vector3 pos = spawnPoint ? spawnPoint.position : Vector3.zero;
         var go = Instantiate(bossData.prefab, pos, Quaternion.identity);
 
-        // Obtener componentes (InChildren para cubrir root + cualquier hijo)
+        // Obtener componentes y asignar referencias
         boss  = go.GetComponentInChildren<BossController>();
         atk01 = go.GetComponentInChildren<Attack01_Slash>();
-        atk02 = go.GetComponentInChildren<Attack02_SpinArms>();
-        atk03 = go.GetComponentInChildren<Attack03_Laser>();
+        //atk02 = go.GetComponentInChildren<Attack02_SpinArms>();
+        //atk03 = go.GetComponentInChildren<Attack03_Laser>();
+        atk04 = go.GetComponentInChildren<Attack04_Drops>();
+        atk05 = go.GetComponentInChildren<Attack05_Wave>();
+        atk06 = go.GetComponentInChildren<Attack06_Bullets>();
 
         if (boss == null) { Debug.LogError("[FSM] BossController no encontrado en prefab."); return; }
 
-        // Log para confirmar qué se encontró
-        Debug.Log($"[FSM] Ataques encontrados — atk01:{atk01 != null} atk02:{atk02 != null} atk03:{atk03 != null}");
+        Debug.Log($"[FSM] Ataques — 01:{atk01 != null} 02:{atk02 != null} 03:{atk03 != null} 04:{atk04 != null} 05:{atk05 != null} 06:{atk06 != null}");
 
         boss.Initialize(bossData);
 
@@ -78,6 +83,9 @@ public class BossArenaManager : MonoBehaviour
         if (atk01 != null) atk01.OnCycleEnded  += HandleSlashCycleEnded;
         if (atk02 != null) atk02.OnAttackEnded += HandleAttackEnded;
         if (atk03 != null) atk03.OnAttackEnded += HandleAttackEnded;
+        if (atk04 != null) atk04.OnAttackEnded += HandleAttackEnded;
+        if (atk05 != null) atk05.OnAttackEnded += HandleAttackEnded;
+        if (atk06 != null) atk06.OnAttackEnded += HandleAttackEnded;
 
         // Suscribir OnRocksReady si hay rockManager
         if (rockManager != null) rockManager.OnRocksReady += HandleRocksReady;
@@ -96,7 +104,7 @@ public class BossArenaManager : MonoBehaviour
         // Elegir ataque (evitar repetir el último)
         chosenAttack = PickAttack();
 
-        // Determinar destino
+        // Ataque 1 va a la posición del jugador; el resto al centro
         Vector3 target;
         if (chosenAttack == 1)
         {
@@ -106,7 +114,7 @@ public class BossArenaManager : MonoBehaviour
         }
         else
         {
-            // Ataques 2 y 3 van al centro
+            // Ataques 2, 3, 4, 5 y 6 van al centro
             target = spawnPoint ? spawnPoint.position : Vector3.zero;
         }
 
@@ -169,6 +177,9 @@ public class BossArenaManager : MonoBehaviour
                 break;
             case 2: atk02?.StartAttack(); break;
             case 3: atk03?.StartAttack(); break;
+            case 4: atk04?.StartAttack(); break;
+            case 5: atk05?.StartAttack(); break;
+            case 6: atk06?.StartAttack(); break;
         }
     }
 
@@ -258,6 +269,9 @@ public class BossArenaManager : MonoBehaviour
         if (atk01 != null) pool.Add(1);
         if (atk02 != null) pool.Add(2);
         if (atk03 != null && rockManager != null) pool.Add(3);
+        if (atk04 != null) pool.Add(4);
+        if (atk05 != null) pool.Add(5);
+        if (atk06 != null) pool.Add(6);
 
         if (pool.Count == 0) return 1;
 
@@ -278,6 +292,9 @@ public class BossArenaManager : MonoBehaviour
         if (atk01 != null) { atk01.OnAttackEnded -= HandleAttackEnded; atk01.OnCycleEnded -= HandleSlashCycleEnded; }
         if (atk02 != null) atk02.OnAttackEnded -= HandleAttackEnded;
         if (atk03 != null) atk03.OnAttackEnded -= HandleAttackEnded;
+        if (atk04 != null) atk04.OnAttackEnded -= HandleAttackEnded;
+        if (atk05 != null) atk05.OnAttackEnded -= HandleAttackEnded;
+        if (atk06 != null) atk06.OnAttackEnded -= HandleAttackEnded;
         if (rockManager != null) rockManager.OnRocksReady -= HandleRocksReady;
     }
 }
