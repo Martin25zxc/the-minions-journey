@@ -8,6 +8,9 @@ public sealed class TopDownPlayerController : MonoBehaviour
     [SerializeField, Min(0.1f)]
     float moveSpeed = 6f;
 
+    [SerializeField, Min(1f)]
+    float sprintMultiplier = 4.5f;
+
     [SerializeField]
     Camera gameplayCamera;
 
@@ -27,6 +30,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
     LineRenderer facingIndicator;
     Vector2 moveInput;
     Vector3 aimDirection = Vector3.forward;
+    bool isSprinting;
 
     public Vector3 AimDirection => aimDirection;
 
@@ -52,6 +56,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
     {
         moveInput = ReadMovementInput();
         aimDirection = ReadAimDirection();
+        isSprinting = ReadSprintInput();
     }
 
     void FixedUpdate()
@@ -62,7 +67,8 @@ public sealed class TopDownPlayerController : MonoBehaviour
             movement.Normalize();
         }
 
-        body.linearVelocity = movement * moveSpeed;
+        float currentMoveSpeed = isSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
+        body.linearVelocity = movement * currentMoveSpeed;
 
         if (aimDirection.sqrMagnitude > aimDeadZone)
         {
@@ -209,6 +215,17 @@ public sealed class TopDownPlayerController : MonoBehaviour
         }
 
         return Vector2.ClampMagnitude(new Vector2(x, y), 1f);
+    }
+
+    static bool ReadSprintInput()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return false;
+        }
+
+        return keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed;
     }
 
     Vector3 ReadAimDirection()
