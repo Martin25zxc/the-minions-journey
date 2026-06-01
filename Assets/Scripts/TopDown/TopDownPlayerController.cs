@@ -23,6 +23,9 @@ public sealed class TopDownPlayerController : MonoBehaviour
     [SerializeField, Range(0.01f, 0.2f)]
     float facingIndicatorWidth = 0.05f;
 
+    [SerializeField, Range(0f, 10f)]
+    float aimRotationDeadZoneDegrees = 2f;
+
     [SerializeField]
     Color facingIndicatorColor = new Color(0.95f, 0.95f, 0.95f, 1f);
 
@@ -37,12 +40,6 @@ public sealed class TopDownPlayerController : MonoBehaviour
     void Awake()
     {
         body = GetComponent<Rigidbody>();
-
-        body.useGravity = false;
-        body.isKinematic = false;
-        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        body.interpolation = RigidbodyInterpolation.Interpolate;
-        body.constraints = RigidbodyConstraints.FreezePositionY | RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
 
         facingIndicator = CreateFacingIndicator();
 
@@ -68,11 +65,17 @@ public sealed class TopDownPlayerController : MonoBehaviour
         }
 
         float currentMoveSpeed = isSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
-        body.linearVelocity = movement * currentMoveSpeed;
+        Vector3 velocity = movement * currentMoveSpeed;
+        velocity.y = body.linearVelocity.y;
+        body.linearVelocity = velocity;
 
         if (aimDirection.sqrMagnitude > aimDeadZone)
         {
-            body.MoveRotation(Quaternion.LookRotation(aimDirection, Vector3.up));
+            float rotationDelta = Vector3.Angle(transform.forward, aimDirection);
+            if (rotationDelta > aimRotationDeadZoneDegrees)
+            {
+                body.MoveRotation(Quaternion.LookRotation(aimDirection, Vector3.up));
+            }
         }
     }
 

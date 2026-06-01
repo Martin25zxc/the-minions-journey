@@ -17,12 +17,7 @@ public sealed class GrapplingHookProjectile : MonoBehaviour
 
     void Awake()
     {
-        body = GetComponent<Rigidbody>();
-        body.useGravity = false;
-        body.isKinematic = false;
-        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        body.interpolation = RigidbodyInterpolation.Interpolate;
-        body.constraints = RigidbodyConstraints.FreezeRotation;
+
     }
 
     public void Launch(Vector3 direction)
