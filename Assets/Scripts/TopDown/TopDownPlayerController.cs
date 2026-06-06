@@ -26,6 +26,12 @@ public sealed class TopDownPlayerController : MonoBehaviour
     [SerializeField, Range(0f, 10f)]
     float aimRotationDeadZoneDegrees = 2f;
 
+    [SerializeField, Min(0.01f)]
+    float movementAcceleration = 40f;
+
+    [SerializeField, Min(0.01f)]
+    float movementFriction = 24f;
+
     [SerializeField]
     Color facingIndicatorColor = new Color(0.95f, 0.95f, 0.95f, 1f);
 
@@ -40,6 +46,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
     void Awake()
     {
         body = GetComponent<Rigidbody>();
+        body.interpolation = RigidbodyInterpolation.Interpolate;
 
         facingIndicator = CreateFacingIndicator();
 
@@ -65,9 +72,21 @@ public sealed class TopDownPlayerController : MonoBehaviour
         }
 
         float currentMoveSpeed = isSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
-        Vector3 velocity = movement * currentMoveSpeed;
-        velocity.y = body.linearVelocity.y;
-        body.linearVelocity = velocity;
+        Vector3 currentVelocity = body.linearVelocity;
+        Vector3 currentHorizontalVelocity = new Vector3(currentVelocity.x, 0f, currentVelocity.z);
+        Vector3 desiredAcceleration;
+
+        if (movement.sqrMagnitude > 0.0001f)
+        {
+            Vector3 targetHorizontalVelocity = movement * currentMoveSpeed;
+            desiredAcceleration = Vector3.ClampMagnitude((targetHorizontalVelocity - currentHorizontalVelocity) / Time.fixedDeltaTime, movementAcceleration);
+        }
+        else
+        {
+            desiredAcceleration = Vector3.ClampMagnitude(-currentHorizontalVelocity / Time.fixedDeltaTime, movementFriction);
+        }
+
+        body.AddForce(desiredAcceleration, ForceMode.Acceleration);
 
         if (aimDirection.sqrMagnitude > aimDeadZone)
         {
