@@ -13,8 +13,9 @@ public class Attack01_Slash : MonoBehaviour
     public event Action OnCycleEnded;   // un giro terminó → FSM vuelve a Moving
     public event Action OnAttackEnded;  // todos los ciclos terminados → FSM va a Cleanup
 
-    [Header("Mesh espada")]
+    [Header("Meshes")]
     public GameObject swordMesh;
+    public GameObject mainWeaponMesh; // para ocultar el arma principal durante el ataque
 
     [Header("Parámetros")]
     public float spinSpeed      = 300f;
@@ -41,6 +42,7 @@ public class Attack01_Slash : MonoBehaviour
         cyclesDone = 0;
         damageTimer = 0f;
         if (swordMesh != null) swordMesh.SetActive(true);
+        if (mainWeaponMesh != null) mainWeaponMesh.SetActive(false);
         StartCycle();
     }
 
@@ -72,6 +74,7 @@ public class Attack01_Slash : MonoBehaviour
         {
             // Último ciclo: cleanup y fin del ataque
             if (swordMesh != null) swordMesh.SetActive(false);
+            if (mainWeaponMesh != null) mainWeaponMesh.SetActive(true);
             OnAttackEnded?.Invoke();
         }
         else

@@ -13,6 +13,9 @@ public class Attack02_SpinArms : MonoBehaviour
     [Header("Brazos")]
     public GameObject[] armMeshes = new GameObject[4];
 
+    [Header("Armas principales")]
+    public GameObject[] mainWeaponMeshes; // para ocultar las armas principales durante el ataque
+
     [Header("Parámetros")]
     public float spinSpeed = 50f;   // grados/segundo
     public float spinDuration = 6f;    // duración total del ataque
@@ -22,6 +25,13 @@ public class Attack02_SpinArms : MonoBehaviour
 
     private float damageTimer;
     private Coroutine routine;
+
+    private Animator animator;
+
+    private void Awake()
+    {
+        animator = GetComponentInParent<Animator>();
+    }
 
     // ─────────────────────────────────────────
     //  API pública
@@ -37,8 +47,10 @@ public class Attack02_SpinArms : MonoBehaviour
     // ─────────────────────────────────────────
     private IEnumerator AttackRoutine()
     {
+       
         damageTimer = 0f;
         SetArmsActive(true);
+        if (animator != null) animator.SetBool("IsRotating", true);
 
         int segments = directionChanges + 1;
         float segmentTime = spinDuration / segments;
@@ -58,14 +70,21 @@ public class Attack02_SpinArms : MonoBehaviour
         }
 
         SetArmsActive(false);
+        if (animator != null) animator.SetBool("IsRotating", false);
         routine = null;
         OnAttackEnded?.Invoke();
     }
 
     private void SetArmsActive(bool active)
     {
+        if (mainWeaponMeshes != null)
+        {
+            foreach (var main in mainWeaponMeshes)
+                if (main != null) main.SetActive(!active);
+        }
         foreach (var arm in armMeshes)
             if (arm != null) arm.SetActive(active);
+        
     }
 
     // ─────────────────────────────────────────

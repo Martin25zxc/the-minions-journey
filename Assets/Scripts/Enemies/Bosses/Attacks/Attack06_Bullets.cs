@@ -41,6 +41,15 @@ public class Attack06_Bullets : MonoBehaviour
     public float projectileSpeed      = 10f;
 
     private Coroutine routine;
+    private Animator animator;
+    private bool isCasting;
+
+    private void Awake()
+    {
+        animator = GetComponentInParent<Animator>();
+        if (animator == null)
+            Debug.LogWarning("[Attack06_Bullets] No se encontró un Animator en el mismo GameObject.");
+    }
 
     // ─────────────────────────────────────────
     //  API pública
@@ -63,6 +72,12 @@ public class Attack06_Bullets : MonoBehaviour
     // ─────────────────────────────────────────
     private IEnumerator AttackRoutine()
     {
+        if (animator != null)
+        {
+            isCasting = true;
+            animator.SetBool("IsCasting", isCasting);
+        }
+            
         for (int v = 0; v < volleyCount; v++)
         {
             // Disparar desde todos los puntos hijo de spawnRoot
@@ -76,6 +91,8 @@ public class Attack06_Bullets : MonoBehaviour
         }
 
         routine = null;
+        isCasting = false;
+        animator.SetBool("IsCasting", isCasting);
         OnAttackEnded?.Invoke();
     }
 

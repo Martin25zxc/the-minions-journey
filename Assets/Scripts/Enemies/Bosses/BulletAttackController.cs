@@ -9,6 +9,7 @@ public class BulletAttackController : MonoBehaviour
 
     private Vector3 moveDirection;
     private int bouncesLeft;
+   
 
     private void Start()
     {

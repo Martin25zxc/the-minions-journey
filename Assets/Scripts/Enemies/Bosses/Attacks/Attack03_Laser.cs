@@ -16,6 +16,9 @@ public class Attack03_Laser : MonoBehaviour
     [Header("Origen del láser (empty hijo apuntando al frente)")]
     public Transform laserOrigin;
 
+    [Header("Cast circle")]
+    public GameObject castCirclePrefab;  // círculo que aparece al centro durante el warning
+
     [Header("Layers")]
     public LayerMask blockingLayers;   // Rock + borde arena
     public LayerMask playerLayer;
@@ -37,6 +40,8 @@ public class Attack03_Laser : MonoBehaviour
     private Coroutine    routine;
     private bool         dealingDamage = false;
 
+    private Animator anim;
+
     // ─────────────────────────────────────────
     //  Awake
     // ─────────────────────────────────────────
@@ -50,6 +55,7 @@ public class Attack03_Laser : MonoBehaviour
         lr.enabled       = false;
 
         if (laserOrigin == null) laserOrigin = transform;
+        anim = GetComponentInParent<Animator>();
     }
 
     // ─────────────────────────────────────────
@@ -73,8 +79,10 @@ public class Attack03_Laser : MonoBehaviour
         lr.enabled    = true;
         dealingDamage = false;
         SetLaserColor(warningColor);
+        castCirclePrefab?.SetActive(true);
 
         float elapsed = 0f;
+        if (anim != null) anim.SetBool("IsCasting", true);
 
         // Fase warning — amarillo, sin daño
         while (elapsed < warningDuration)
@@ -100,6 +108,8 @@ public class Attack03_Laser : MonoBehaviour
 
         lr.enabled    = false;
         dealingDamage = false;
+        if (anim != null) anim.SetBool("IsCasting", false);
+        castCirclePrefab?.SetActive(false);
 
         routine = null;
         OnAttackEnded?.Invoke();
@@ -108,15 +118,17 @@ public class Attack03_Laser : MonoBehaviour
     // ─────────────────────────────────────────
     //  Lógica frame-a-frame
     // ─────────────────────────────────────────
-    private void RotateTowardsPlayer()
+        private void RotateTowardsPlayer()
     {
-        Vector3 dir = playerTransform.position - transform.position;
+        Transform root = transform.parent != null ? transform.parent : transform;
+        Vector3 dir = playerTransform.position - root.position;
         dir.y = 0f;
         if (dir.sqrMagnitude < 0.001f) return;
         Quaternion targetRot = Quaternion.LookRotation(dir);
-        transform.rotation   = Quaternion.RotateTowards(
-            transform.rotation, targetRot, rotateSpeed * Time.deltaTime);
+        root.rotation = Quaternion.RotateTowards(
+            root.rotation, targetRot, rotateSpeed * Time.deltaTime);
     }
+
 
     private void FireLaser()
     {

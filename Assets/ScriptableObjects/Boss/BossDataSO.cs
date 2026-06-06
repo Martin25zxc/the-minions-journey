@@ -13,8 +13,6 @@ public class BossDataSO : ScriptableObject
 
     [Header("Estadísticas")]
     public float maxHealth    = 1000f;
-    public float moveSpeed    = 4f;
-    public float damageAmount = 20f;
 
     [Header("Fases (opcional)")]
     [Tooltip("healthThreshold = porcentaje de vida (0-1) al que empieza la fase.")]
