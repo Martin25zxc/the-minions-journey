@@ -28,6 +28,9 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
     [SerializeField]
     TopDownPlayerAnimator playerAnimator;
 
+    [SerializeField]
+    TopDownEquipmentVisualManager equipmentVisuals;
+
     void Awake()
     {
         playerController = GetComponent<TopDownPlayerController>();
@@ -40,6 +43,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         if (playerAnimator == null)
         {
             playerAnimator = GetComponent<TopDownPlayerAnimator>();
+        }
+
+        if (equipmentVisuals == null)
+        {
+            equipmentVisuals = GetComponent<TopDownEquipmentVisualManager>();
         }
     }
 
@@ -109,10 +117,13 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         {
             case TopDownCombatComboTarget.Weapon:
                 executed = equippedWeapon != null && equippedWeapon.TryComboAttack(comboDefinition, facingDirection);
+
                 if (executed)
                 {
+                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Heavy);
                     playerAnimator?.PlayComboAttack();
                 }
+
                 break;
             case TopDownCombatComboTarget.PowerQ:
                 executed = powerQ != null && powerQ.TryComboActivate(comboDefinition, facingDirection);
@@ -135,16 +146,25 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         switch (action)
         {
             case TopDownCombatInputAction.LightAttack:
-                equippedWeapon?.TryLightAttack(facingDirection);
-                playerAnimator?.PlayLightAttack();
+                if (equippedWeapon != null && equippedWeapon.TryLightAttack(facingDirection))
+                {
+                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Light);
+                    playerAnimator?.PlayLightAttack();
+                }
                 break;
+
             case TopDownCombatInputAction.HeavyAttack:
-                equippedWeapon?.TryHeavyAttack(facingDirection);
-                playerAnimator?.PlayHeavyAttack();
+                if (equippedWeapon != null && equippedWeapon.TryHeavyAttack(facingDirection))
+                {
+                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Heavy);
+                    playerAnimator?.PlayHeavyAttack();
+                }
                 break;
+
             case TopDownCombatInputAction.PowerQ:
                 powerQ?.TryActivate(facingDirection);
                 break;
+
             case TopDownCombatInputAction.PowerE:
                 powerE?.TryActivate(facingDirection);
                 break;

@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: WD_Epic_Skeleton_Blade
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   itemName: Epic_Skeleton_Blade
-  description: 
-  icon: {fileID: 0}
-  worldModelPrefab: {fileID: 919132149155446097, guid: 346e67132d2659847882969b197d923a, type: 3}
-  rarity: 3
-  weaponType: 0
-  damage: 20
   equippedModelPrefab: {fileID: 919132149155446097, guid: 346e67132d2659847882969b197d923a, type: 3}
+  handLocalPosition: {x: 0, y: 0, z: 0}
+  handLocalEulerAngles: {x: 0, y: 0, z: 0}
+  handLocalScale: {x: -1, y: 1, z: 1}
+  backLocalPosition: {x: -0.141, y: 0.07, z: 0}
+  backLocalEulerAngles: {x: 0, y: -180, z: -45}
+  backLocalScale: {x: 1, y: -1, z: 1}
