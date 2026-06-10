@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Knight_LootTable
   m_EditorClassIdentifier: Assembly-CSharp::LootDropTable
   guaranteedDrops:
-  - itemData: {fileID: 11400000, guid: 28c79c860e0ff924497f3251a661e1dc, type: 2}
+  - itemData: {fileID: 11400000, guid: 0621e7ccdc273af45981e9b420b5cce1, type: 2}
     amount: 1

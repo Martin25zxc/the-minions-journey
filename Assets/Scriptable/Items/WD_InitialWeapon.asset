@@ -17,6 +17,12 @@ MonoBehaviour:
   icon: {fileID: 0}
   worldModelPrefab: {fileID: 6968956498155833823, guid: 3624a5eb6a6cdfa4cb8955ecbd70c802, type: 3}
   rarity: 0
+  damage: 0
   weaponType: 0
-  damage: 10
-  equippedModelPrefab: {fileID: 0}
+  equippedModelPrefab: {fileID: 433687607784990684, guid: d5f90141112282c4394a5391cfe041b9, type: 3}
+  handLocalPosition: {x: 0, y: 0.9, z: 0}
+  handLocalEulerAngles: {x: 0, y: 0, z: 0}
+  handLocalScale: {x: 1, y: 1, z: 1}
+  backLocalPosition: {x: -0.3, y: -0.5, z: 0}
+  backLocalEulerAngles: {x: 0, y: 180, z: 45}
+  backLocalScale: {x: -1, y: -1, z: 1}
