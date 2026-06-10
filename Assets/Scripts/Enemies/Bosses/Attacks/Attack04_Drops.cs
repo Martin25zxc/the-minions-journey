@@ -25,13 +25,22 @@ public class Attack04_Drops : MonoBehaviour
     [Tooltip("Segundos entre cada drop.")]
     public float delayBetweenDrops = 0.4f;
 
+    [Tooltip("Círculo mágico.")]
+    public GameObject magicCircle;
+
 
     [Tooltip("Segundos de espera después del último drop antes de limpiar la lista.")]
-    public float cleanupDelay    = 3f;
+    public float cleanupDelay    = 1f;
 
     // Runtime
     private readonly List<GameObject> activeDrops = new List<GameObject>();
     private Coroutine routine;
+    private Animator anim;
+
+    private void Awake()
+    {
+        anim = GetComponentInParent<Animator>();
+    }
 
     // ─────────────────────────────────────────
     //  API pública
@@ -48,6 +57,8 @@ public class Attack04_Drops : MonoBehaviour
     private IEnumerator AttackRoutine()
     {
         activeDrops.Clear();
+        if (anim != null) anim.SetBool("IsCasting", true);
+        magicCircle?.SetActive(true);
 
         var playerGO = GameObject.FindGameObjectWithTag("Player");
 
@@ -85,6 +96,8 @@ public class Attack04_Drops : MonoBehaviour
         activeDrops.Clear();
 
         routine = null;
+        if (anim != null) anim.SetBool("IsCasting", false);
+        magicCircle?.SetActive(false);
         OnAttackEnded?.Invoke();
     }
 }

@@ -875,7 +875,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c885f5b6d1e985c46b99e8aa0e1db663, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossArenaManager
-  bossData: {fileID: 11400000, guid: 679eca80a7787df46be9d354b6e6887a, type: 2}
+  bossData: {fileID: 11400000, guid: f213156fc29f9664eb87796c541fe494, type: 2}
   spawnPoint: {fileID: 1624443619}
   rockManager: {fileID: 316900996}
   minCooldown: 0.8

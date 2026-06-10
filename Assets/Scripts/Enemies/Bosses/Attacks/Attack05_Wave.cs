@@ -25,13 +25,28 @@ public class Attack05_Wave : MonoBehaviour
 
     [Header("Parámetros")]
     public int   bulletCount      = 6;
-    public float delayBetween     = 0.15f;
+    public float delayBetween     = 1.1f;
     public float projectileSpeed  = 12f;
+    public float rotateSpeed      = 360f; // grados/segundo durante la fase de apuntado
+    public float animationDelay    = 0.3f; // segundos entre el trigger de animación y el spawn del proyectil
 
     [Tooltip("Segundos que tarda en rotar hacia el jugador antes de disparar.")]
     public float aimDuration      = 0.6f;
 
     private Coroutine routine;
+    private Transform playerTransform;
+
+    private Animator anim;
+
+    private void Awake()
+    {
+        anim = GetComponentInParent<Animator>();
+    }
+
+     private void Start()
+    {
+        playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+    }
 
     // ─────────────────────────────────────────
     //  API pública
@@ -58,19 +73,14 @@ public class Attack05_Wave : MonoBehaviour
                 float elapsed = 0f;
                 while (elapsed < aimDuration)
                 {
-                    Vector3 dir = playerGO.transform.position - transform.position;
-                    dir.y = 0f;
-                    if (dir.sqrMagnitude > 0.001f)
-                    {
-                        Quaternion target = Quaternion.LookRotation(dir);
-                        transform.rotation = Quaternion.Slerp(
-                            transform.rotation, target, elapsed / aimDuration);
-                    }
+                    RotateTowardsPlayer();
                     elapsed += Time.deltaTime;
                     yield return null;
                 }
             }
-
+            if (anim != null) anim.SetTrigger("DoubleSlash");
+            yield return new WaitForSeconds(animationDelay);
+            
             Transform origin  = firePoint != null ? firePoint : transform;
             SpawnBullet(origin.position, origin.forward);
 
@@ -97,5 +107,16 @@ public class Attack05_Wave : MonoBehaviour
             rb.useGravity     = false;
             rb.linearVelocity = dir.normalized * projectileSpeed;
         }*/
+    }
+
+      private void RotateTowardsPlayer()
+    {
+        Transform root = transform.parent != null ? transform.parent : transform;
+        Vector3 dir = playerTransform.position - root.position;
+        dir.y = 0f;
+        if (dir.sqrMagnitude < 0.001f) return;
+        Quaternion targetRot = Quaternion.LookRotation(dir);
+        root.rotation = Quaternion.RotateTowards(
+            root.rotation, targetRot, rotateSpeed * Time.deltaTime);
     }
 }

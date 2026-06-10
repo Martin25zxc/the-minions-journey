@@ -9,7 +9,9 @@ public class FallAttackController : MonoBehaviour
 
     private bool hasCollided = false; // Flag to check if the object has already collided
     
-   
+    [Header("Mesh fracturado")]
+    public GameObject fracturedMesh;
+
     void Start()
     {
         // Set the initial position of the object to be at the specified height
@@ -47,7 +49,8 @@ public class FallAttackController : MonoBehaviour
                 // If the object collides with a marker, it will be destroyed immediately
                 collision.gameObject.SetActive(false); // Deactivate the marker
             }
-           Destroy(gameObject, destroyDelay);
+           Destroy(gameObject);
+           fracturedMesh.SetActive(true); // Activate the fractured mesh
         }
 
         //Destroy(gameObject, destroyDelay);

@@ -16,8 +16,8 @@ public class Attack03_Laser : MonoBehaviour
     [Header("Origen del láser (empty hijo apuntando al frente)")]
     public Transform laserOrigin;
 
-    [Header("Cast circle")]
-    public GameObject castCirclePrefab;  // círculo que aparece al centro durante el warning
+    [Header("Circulo magico")]
+    public GameObject magicCircle;  // círculo que aparece al centro durante el warning
 
     [Header("Layers")]
     public LayerMask blockingLayers;   // Rock + borde arena
@@ -79,7 +79,7 @@ public class Attack03_Laser : MonoBehaviour
         lr.enabled    = true;
         dealingDamage = false;
         SetLaserColor(warningColor);
-        castCirclePrefab?.SetActive(true);
+        magicCircle?.SetActive(true);
 
         float elapsed = 0f;
         if (anim != null) anim.SetBool("IsCasting", true);
@@ -97,6 +97,7 @@ public class Attack03_Laser : MonoBehaviour
         dealingDamage = true;
         SetLaserColor(damageColor);
         elapsed = 0f;
+        CameraShake.Trigger(0.3f, laserDuration);  // shake durante toda la fase activa
 
         while (elapsed < laserDuration)
         {
@@ -109,7 +110,7 @@ public class Attack03_Laser : MonoBehaviour
         lr.enabled    = false;
         dealingDamage = false;
         if (anim != null) anim.SetBool("IsCasting", false);
-        castCirclePrefab?.SetActive(false);
+        magicCircle?.SetActive(false);
 
         routine = null;
         OnAttackEnded?.Invoke();

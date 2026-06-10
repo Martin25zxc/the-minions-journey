@@ -56,6 +56,7 @@ public class Attack08_Jump : MonoBehaviour
     {
         anim?.SetBool("OnAir", false);
         anim?.SetTrigger("JumpEnd");
+        CameraShake.Trigger(0.5f, 0.5f, CameraShake.ShakeDirection.Vertical);
 
         if (ringPrefab != null)
             Instantiate(ringPrefab, transform.position, Quaternion.identity);

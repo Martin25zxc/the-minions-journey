@@ -16,12 +16,16 @@ public class Attack07_Ring : MonoBehaviour
     [Header("Prefab")]
     public GameObject ringPrefab;
 
+    [Header("Circulo magico")]
+    public GameObject magicCircle;
+
     [Header("Parámetros")]
     public int repeatCount = 3;
     [Tooltip("Segundos a esperar antes de instanciar el anillo (para coincidir con animación).")]
     public float preSpawnDelay = 0.3f;
     [Tooltip("Debe coincidir con RingController.expandDuration para esperar a que termine.")]
     public float ringDuration = 1f;
+
 
     // Runtime
     private int cyclesDone;
@@ -61,6 +65,7 @@ public class Attack07_Ring : MonoBehaviour
     // ─────────────────────────────────────────
     private IEnumerator CycleRoutine()
     {
+        magicCircle?.SetActive(true);
         animator.SetTrigger("Raise");
         // Pequeña pausa para coincidir con la animación del jefe
         yield return new WaitForSeconds(preSpawnDelay);
@@ -71,9 +76,10 @@ public class Attack07_Ring : MonoBehaviour
             Vector3 spawnPos = transform.position;
             Instantiate(ringPrefab, spawnPos, Quaternion.identity);
         }
-
+        yield return new WaitForSeconds(ringDuration/2);
+        magicCircle?.SetActive(false);
         // Esperar a que el anillo termine de expandirse
-        yield return new WaitForSeconds(ringDuration);
+        yield return new WaitForSeconds(ringDuration/2);
 
         cyclesDone++;
         routine = null;
