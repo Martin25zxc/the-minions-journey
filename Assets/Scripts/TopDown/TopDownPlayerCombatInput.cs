@@ -120,7 +120,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
                 if (executed)
                 {
-                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Heavy);
+                    equipmentVisuals?.SetWeaponInHand(ToWeaponUseSlot(comboDefinition.WeaponAttackStyle));
                     playerAnimator?.PlayComboAttack();
                 }
 
@@ -148,7 +148,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
             case TopDownCombatInputAction.LightAttack:
                 if (equippedWeapon != null && equippedWeapon.TryLightAttack(facingDirection))
                 {
-                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Light);
+                    equipmentVisuals?.SetWeaponInHand(TMJ_WeaponUseSlot.LightAttack);
                     playerAnimator?.PlayLightAttack();
                 }
                 break;
@@ -156,7 +156,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
             case TopDownCombatInputAction.HeavyAttack:
                 if (equippedWeapon != null && equippedWeapon.TryHeavyAttack(facingDirection))
                 {
-                    equipmentVisuals?.SetWeaponInHand(TopDownWeaponEquipSlot.Heavy);
+                    equipmentVisuals?.SetWeaponInHand(TMJ_WeaponUseSlot.HeavyAttack);
                     playerAnimator?.PlayHeavyAttack();
                 }
                 break;
@@ -169,6 +169,13 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
                 powerE?.TryActivate(facingDirection);
                 break;
         }
+    }
+
+    static TMJ_WeaponUseSlot ToWeaponUseSlot(TopDownCombatAttackStyle attackStyle)
+    {
+        return attackStyle == TopDownCombatAttackStyle.Light
+            ? TMJ_WeaponUseSlot.LightAttack
+            : TMJ_WeaponUseSlot.HeavyAttack;
     }
 
     void TrimInputHistory(float currentTime)

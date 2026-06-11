@@ -5,6 +5,10 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class TopDownSlashAttack : TopDownWeapon
 {
+    [Header("Weapon Loadout")]
+    [SerializeField] TMJ_WeaponLoadout weaponLoadout;
+
+    [Header("Light Attack")]
     [SerializeField, Min(0.05f)]
     float lightCooldown = 0.25f;
 
@@ -26,6 +30,7 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     [SerializeField]
     Color lightSlashColor = new Color(1f, 0.9f, 0.6f, 1f);
 
+    [Header("Heavy Attack")]
     [SerializeField, Min(0.05f)]
     float heavyCooldown = 0.65f;
 
@@ -47,6 +52,7 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     [SerializeField]
     Color heavySlashColor = new Color(1f, 0.75f, 0.35f, 1f);
 
+    [Header("Hit Detection")]
     [SerializeField, Min(4)]
     int visualSegments = 18;
 
@@ -60,14 +66,44 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     float nextHeavyAttackTime;
     float nextComboAttackTime;
 
+    void Awake()
+    {
+        if (weaponLoadout == null)
+        {
+            weaponLoadout = GetComponent<TMJ_WeaponLoadout>();
+        }
+    }
+
     public override bool TryLightAttack(Vector3 facingDirection)
     {
-        return TryAttack(ref nextLightAttackTime, facingDirection, lightCooldown, lightDamage, lightAttackRange, lightAttackArc, lightVisualDuration, lightVisualWidth, lightSlashColor);
+        return TryAttack(
+            ref nextLightAttackTime,
+            facingDirection,
+            lightCooldown,
+            lightDamage,
+            1f,
+            TMJ_WeaponUseSlot.LightAttack,
+            lightAttackRange,
+            lightAttackArc,
+            lightVisualDuration,
+            lightVisualWidth,
+            lightSlashColor);
     }
 
     public override bool TryHeavyAttack(Vector3 facingDirection)
     {
-        return TryAttack(ref nextHeavyAttackTime, facingDirection, heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
+        return TryAttack(
+            ref nextHeavyAttackTime,
+            facingDirection,
+            heavyCooldown,
+            heavyDamage,
+            1f,
+            TMJ_WeaponUseSlot.HeavyAttack,
+            heavyAttackRange,
+            heavyAttackArc,
+            heavyVisualDuration,
+            heavyVisualWidth,
+            heavySlashColor);
     }
 
     public override bool TryComboAttack(TopDownCombatComboDefinition combo, Vector3 facingDirection)
@@ -78,18 +114,40 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         }
 
         AttackProfile profile = combo.WeaponAttackStyle == TopDownCombatAttackStyle.Light ? CreateLightProfile() : CreateHeavyProfile();
+        TMJ_WeaponUseSlot weaponUseSlot = ToWeaponUseSlot(combo.WeaponAttackStyle);
         float cooldown = profile.cooldown * combo.CooldownMultiplier;
-        float damage = profile.damage * combo.DamageMultiplier;
         float attackRange = profile.attackRange * combo.RangeMultiplier;
         float attackArc = profile.attackArc * combo.ArcMultiplier;
         float visualDuration = profile.visualDuration * combo.VisualDurationMultiplier;
         float visualWidth = profile.visualWidth * combo.VisualWidthMultiplier;
         Color slashColor = combo.UseSlashColorOverride ? combo.SlashColorOverride : profile.slashColor;
 
-        return TryComboAttack(ref nextComboAttackTime, facingDirection, cooldown, damage, attackRange, attackArc, visualDuration, visualWidth, slashColor);
+        return TryAttack(
+            ref nextComboAttackTime,
+            facingDirection,
+            cooldown,
+            profile.damage,
+            combo.DamageMultiplier,
+            weaponUseSlot,
+            attackRange,
+            attackArc,
+            visualDuration,
+            visualWidth,
+            slashColor);
     }
 
-    bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
+    bool TryAttack(
+        ref float nextAttackTime,
+        Vector3 facingDirection,
+        float cooldown,
+        float baseDamage,
+        float damageMultiplier,
+        TMJ_WeaponUseSlot weaponUseSlot,
+        float attackRange,
+        float attackArc,
+        float visualDuration,
+        float visualWidth,
+        Color slashColor)
     {
         if (Time.time < nextAttackTime)
         {
@@ -99,14 +157,19 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         facingDirection = NormalizeFacingDirection(facingDirection, transform.forward);
         nextAttackTime = Time.time + cooldown;
 
+        float damage = CalculateFinalDamage(baseDamage, damageMultiplier, weaponUseSlot);
         ApplyDamage(facingDirection, damage, attackRange, attackArc);
         StartCoroutine(PlaySlashVisual(facingDirection, attackRange, attackArc, visualDuration, visualWidth, slashColor));
         return true;
     }
 
-    bool TryComboAttack(ref float nextAttackTime, Vector3 facingDirection, float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
+    float CalculateFinalDamage(float baseDamage, float damageMultiplier, TMJ_WeaponUseSlot weaponUseSlot)
     {
-        return TryAttack(ref nextAttackTime, facingDirection, cooldown, damage, attackRange, attackArc, visualDuration, visualWidth, slashColor);
+        float safeBaseDamage = Mathf.Max(0f, baseDamage);
+        float safeMultiplier = Mathf.Max(0f, damageMultiplier);
+        float weaponBonus = weaponLoadout != null ? weaponLoadout.RollDamageBonus(weaponUseSlot) : 0f;
+
+        return safeBaseDamage * safeMultiplier + weaponBonus;
     }
 
     AttackProfile CreateLightProfile()
@@ -119,11 +182,18 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         return new AttackProfile(heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
     }
 
+    static TMJ_WeaponUseSlot ToWeaponUseSlot(TopDownCombatAttackStyle attackStyle)
+    {
+        return attackStyle == TopDownCombatAttackStyle.Light
+            ? TMJ_WeaponUseSlot.LightAttack
+            : TMJ_WeaponUseSlot.HeavyAttack;
+    }
+
     void ApplyDamage(Vector3 facingDirection, float damage, float attackRange, float attackArc)
     {
         Vector3 center = transform.position + Vector3.up * hitHeight + facingDirection * (attackRange * 0.5f);
         Collider[] hits = Physics.OverlapSphere(center, attackRange * 0.75f, hittableLayers, QueryTriggerInteraction.Ignore);
-        HashSet<Transform> processedRoots = new HashSet<Transform>();
+        HashSet<ITopDownDamageable> processedTargets = new HashSet<ITopDownDamageable>();
 
         foreach (Collider hit in hits)
         {
@@ -132,13 +202,21 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 continue;
             }
 
-            Transform root = hit.attachedRigidbody != null ? hit.attachedRigidbody.transform : hit.transform.root;
-            if (!processedRoots.Add(root))
+            if (!TMJ_DamageUtility.TryGetDamageable(hit, hittableLayers, gameObject, out ITopDownDamageable damageable))
             {
                 continue;
             }
 
-            Vector3 toTarget = root.position - transform.position;
+            if (processedTargets.Contains(damageable))
+            {
+                continue;
+            }
+
+            Transform targetTransform = damageable is MonoBehaviour damageableBehaviour
+                ? damageableBehaviour.transform
+                : hit.transform;
+
+            Vector3 toTarget = targetTransform.position - transform.position;
             toTarget.y = 0f;
 
             float distance = toTarget.magnitude;
@@ -152,15 +230,14 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 continue;
             }
 
-            MonoBehaviour[] behaviours = root.GetComponentsInChildren<MonoBehaviour>(true);
-            foreach (MonoBehaviour behaviour in behaviours)
-            {
-                if (behaviour is ITopDownDamageable damageable)
-                {
-                    damageable.TakeDamage(damage);
-                    break;
-                }
-            }
+            TMJ_DamageUtility.TryDamageCollider(
+                hit,
+                damage,
+                transform.position,
+                gameObject,
+                hittableLayers,
+                gameObject,
+                processedTargets);
         }
     }
 

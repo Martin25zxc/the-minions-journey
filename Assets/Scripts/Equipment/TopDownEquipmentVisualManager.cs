@@ -7,50 +7,56 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
     [SerializeField] Transform rightHandSocket;
     [SerializeField] Transform backSocket;
 
-    [Header("Starting Equipment")]
-    [SerializeField] WeaponData startingLightWeapon;
-    [SerializeField] WeaponData startingHeavyWeapon;
+    [Header("Weapon Loadout")]
+    [SerializeField] TMJ_WeaponLoadout weaponLoadout;
 
     [Header("Behaviour")]
     [SerializeField] TopDownWeaponVisualPose startingPose = TopDownWeaponVisualPose.LightInHand;
 
     WeaponVisualInstance lightWeapon;
     WeaponVisualInstance heavyWeapon;
+    TopDownWeaponVisualPose currentPose;
 
-    public WeaponData CurrentLightWeapon => lightWeapon.weaponData;
-    public WeaponData CurrentHeavyWeapon => heavyWeapon.weaponData;
+    public WeaponData CurrentLightWeapon => weaponLoadout != null ? weaponLoadout.CurrentLightAttackWeapon : lightWeapon.weaponData;
+    public WeaponData CurrentHeavyWeapon => weaponLoadout != null ? weaponLoadout.CurrentHeavyAttackWeapon : heavyWeapon.weaponData;
+
+    bool UsesSharedWeapon => CurrentLightWeapon != null && CurrentLightWeapon == CurrentHeavyWeapon;
+
+    void Awake()
+    {
+        if (weaponLoadout == null)
+        {
+            weaponLoadout = GetComponent<TMJ_WeaponLoadout>();
+        }
+    }
+
+    void OnEnable()
+    {
+        if (weaponLoadout != null)
+        {
+            weaponLoadout.OnLoadoutChanged += RefreshVisuals;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (weaponLoadout != null)
+        {
+            weaponLoadout.OnLoadoutChanged -= RefreshVisuals;
+        }
+    }
 
     void Start()
     {
-        EquipLightWeapon(startingLightWeapon);
-        EquipHeavyWeapon(startingHeavyWeapon);
-        SetVisualPose(startingPose);
+        currentPose = startingPose;
+        RefreshVisuals();
     }
 
-    public void EquipLightWeapon(WeaponData weaponData)
+    public void SetWeaponInHand(TMJ_WeaponUseSlot useSlot)
     {
-        DestroyVisual(ref lightWeapon);
-        lightWeapon = CreateVisual(weaponData);
-        SetVisualPose(startingPose);
-    }
-
-    public void EquipHeavyWeapon(WeaponData weaponData)
-    {
-        DestroyVisual(ref heavyWeapon);
-        heavyWeapon = CreateVisual(weaponData);
-        SetVisualPose(startingPose);
-    }
-
-    public void SetWeaponInHand(TopDownWeaponEquipSlot slot)
-    {
-        if (slot == TopDownWeaponEquipSlot.Light)
-        {
-            SetVisualPose(TopDownWeaponVisualPose.LightInHand);
-        }
-        else
-        {
-            SetVisualPose(TopDownWeaponVisualPose.HeavyInHand);
-        }
+        SetVisualPose(useSlot == TMJ_WeaponUseSlot.LightAttack
+            ? TopDownWeaponVisualPose.LightInHand
+            : TopDownWeaponVisualPose.HeavyInHand);
     }
 
     public void SheatheWeapons()
@@ -60,6 +66,8 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
 
     public void SetVisualPose(TopDownWeaponVisualPose pose)
     {
+        currentPose = pose;
+
         switch (pose)
         {
             case TopDownWeaponVisualPose.LightInHand:
@@ -68,8 +76,15 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
                 break;
 
             case TopDownWeaponVisualPose.HeavyInHand:
-                AttachToHand(ref heavyWeapon);
-                AttachToBack(ref lightWeapon);
+                if (UsesSharedWeapon)
+                {
+                    AttachToHand(ref lightWeapon);
+                }
+                else
+                {
+                    AttachToHand(ref heavyWeapon);
+                    AttachToBack(ref lightWeapon);
+                }
                 break;
 
             case TopDownWeaponVisualPose.BothOnBack:
@@ -77,6 +92,54 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
                 AttachToBack(ref heavyWeapon);
                 break;
         }
+    }
+
+    public void EquipLightWeapon(WeaponData weaponData)
+    {
+        if (weaponLoadout != null)
+        {
+            weaponLoadout.EquipWeapon(TMJ_WeaponUseSlot.LightAttack, weaponData);
+            return;
+        }
+
+        DestroyVisual(ref lightWeapon);
+        lightWeapon = CreateVisual(weaponData);
+        SetVisualPose(currentPose);
+    }
+
+    public void EquipHeavyWeapon(WeaponData weaponData)
+    {
+        if (weaponLoadout != null)
+        {
+            weaponLoadout.EquipWeapon(TMJ_WeaponUseSlot.HeavyAttack, weaponData);
+            return;
+        }
+
+        DestroyVisual(ref heavyWeapon);
+        heavyWeapon = CreateVisual(weaponData);
+        SetVisualPose(currentPose);
+    }
+
+    void RefreshVisuals()
+    {
+        DestroyVisual(ref lightWeapon);
+        DestroyVisual(ref heavyWeapon);
+
+        WeaponData lightWeaponData = weaponLoadout.CurrentLightAttackWeapon;
+        WeaponData heavyWeaponData = weaponLoadout.CurrentHeavyAttackWeapon;
+
+        lightWeapon = CreateVisual(lightWeaponData);
+
+        if (heavyWeaponData != null && heavyWeaponData != lightWeaponData)
+        {
+            heavyWeapon = CreateVisual(heavyWeaponData);
+        }
+        else
+        {
+            heavyWeapon = default;
+        }
+
+        SetVisualPose(currentPose);
     }
 
     WeaponVisualInstance CreateVisual(WeaponData weaponData)
