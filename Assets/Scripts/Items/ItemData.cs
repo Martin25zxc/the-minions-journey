@@ -4,6 +4,7 @@ public abstract class ItemData : ScriptableObject
 {
     [Header("Basic Info")]
     [SerializeField] private string itemName;
+    [SerializeField] private string displayName;
 
     [SerializeField, TextArea]
     private string description;
@@ -16,6 +17,7 @@ public abstract class ItemData : ScriptableObject
     [SerializeField] private ItemRarity rarity;
 
     public string ItemName => itemName;
+    public string DisplayName => displayName;
     public string Description => description;
     public Sprite Icon => icon;
     public GameObject WorldModelPrefab => worldModelPrefab;
