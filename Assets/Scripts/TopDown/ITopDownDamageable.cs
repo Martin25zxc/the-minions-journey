@@ -1,4 +1,4 @@
 public interface ITopDownDamageable
 {
-    void TakeDamage(float damage);
+    void TakeDamage(TMJ_DamageInfo damageInfo);
 }

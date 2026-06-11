@@ -5,70 +5,71 @@ using UnityEngine;
 
 /// <summary>
 /// Ataque 4 — Drops de rocas.
-/// 1. El FSM mueve al jefe al centro (spawnPoint).
-/// 2. Instancia dropPrefab en la posición XZ del jugador (altura fija) con delay entre cada uno.
-/// 3. Espera cleanupDelay para dar tiempo a que las rocas aterricen y se destruyan solas.
-/// 4. Destruye los padres que queden en la lista → OnAttackEnded.
+/// El ataque decide dónde spawnear. El daño vive en FallAttackController.
 /// </summary>
 public class Attack04_Drops : MonoBehaviour
 {
     public event Action OnAttackEnded;
 
     [Header("Prefab")]
-    [Tooltip("Prefab del drop a instanciar.")]
     public GameObject dropPrefab;
 
+    [Header("Targets del drop")]
+    public LayerMask targetLayers;
+    public LayerMask impactLayers;
+
+    [SerializeField]
+    GameObject damageOwner;
+
     [Header("Parámetros")]
-    [Tooltip("Cantidad de drops a instanciar.")]
-    public int   dropCount       = 5;
-
-    [Tooltip("Segundos entre cada drop.")]
+    public int dropCount = 5;
     public float delayBetweenDrops = 0.4f;
-
-    [Tooltip("Círculo mágico.")]
     public GameObject magicCircle;
+    public float cleanupDelay = 1f;
 
+    readonly List<GameObject> activeDrops = new List<GameObject>();
+    Coroutine routine;
+    Animator anim;
 
-    [Tooltip("Segundos de espera después del último drop antes de limpiar la lista.")]
-    public float cleanupDelay    = 1f;
-
-    // Runtime
-    private readonly List<GameObject> activeDrops = new List<GameObject>();
-    private Coroutine routine;
-    private Animator anim;
-
-    private void Awake()
+    void Awake()
     {
         anim = GetComponentInParent<Animator>();
+
+        if (damageOwner == null)
+        {
+            BossController boss = GetComponentInParent<BossController>();
+            damageOwner = boss != null ? boss.gameObject : transform.root.gameObject;
+        }
     }
 
-    // ─────────────────────────────────────────
-    //  API pública
-    // ─────────────────────────────────────────
     public void StartAttack()
     {
-        if (routine != null) StopCoroutine(routine);
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+        }
+
         routine = StartCoroutine(AttackRoutine());
     }
 
-    // ─────────────────────────────────────────
-    //  Rutina principal
-    // ─────────────────────────────────────────
-    private IEnumerator AttackRoutine()
+    IEnumerator AttackRoutine()
     {
         activeDrops.Clear();
-        if (anim != null) anim.SetBool("IsCasting", true);
-        magicCircle?.SetActive(true);
 
-        var playerGO = GameObject.FindGameObjectWithTag("Player");
+        if (anim != null)
+        {
+            anim.SetBool("IsCasting", true);
+        }
+
+        magicCircle?.SetActive(true);
+        GameObject playerGO = GameObject.FindGameObjectWithTag("Player");
 
         for (int i = 0; i < dropCount; i++)
         {
-            // Snapshot de la posición del jugador en este frame (solo XZ)
             Vector3 spawnPos;
             if (playerGO != null)
             {
-                spawnPos   = playerGO.transform.position;
+                spawnPos = playerGO.transform.position;
                 spawnPos.y = 0f;
             }
             else
@@ -78,25 +79,40 @@ public class Attack04_Drops : MonoBehaviour
 
             if (dropPrefab != null)
             {
-                var drop = Instantiate(dropPrefab, spawnPos, Quaternion.identity);
+                GameObject drop = Instantiate(dropPrefab, spawnPos, Quaternion.identity);
+                FallAttackController fallController = drop.GetComponent<FallAttackController>();
+                if (fallController != null)
+                {
+                    fallController.Configure(damageOwner, targetLayers, impactLayers);
+                }
+
                 activeDrops.Add(drop);
             }
 
-            // Esperar antes del siguiente (excepto tras el último)
             if (i < dropCount - 1)
+            {
                 yield return new WaitForSeconds(delayBetweenDrops);
+            }
         }
 
-        // Dar tiempo a que las rocas caigan y se destruyan solas
         yield return new WaitForSeconds(cleanupDelay);
 
-        // Limpiar padres que aún existan
-        foreach (var drop in activeDrops)
-            if (drop != null) Destroy(drop);
-        activeDrops.Clear();
+        foreach (GameObject drop in activeDrops)
+        {
+            if (drop != null)
+            {
+                Destroy(drop);
+            }
+        }
 
+        activeDrops.Clear();
         routine = null;
-        if (anim != null) anim.SetBool("IsCasting", false);
+
+        if (anim != null)
+        {
+            anim.SetBool("IsCasting", false);
+        }
+
         magicCircle?.SetActive(false);
         OnAttackEnded?.Invoke();
     }

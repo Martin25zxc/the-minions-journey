@@ -15,45 +15,48 @@ using UnityEngine;
 ///   - Agregar como hijos de BulletSpawnRoot los cubos/empties de spawn,
 ///     distribuidos en círculo apuntando hacia afuera.
 ///   - Los cubos se pueden desactivar el mesh renderer si no se quieren ver.
+/// Spawnea proyectiles desde varios puntos. El daño vive en BulletAttackController.
 /// </summary>
 public class Attack06_Bullets : MonoBehaviour
 {
     public event Action OnAttackEnded;
 
     [Header("Referencias")]
-    [Tooltip("Origen de los proyectiles. Se rotará para cambiar la dirección de disparo.")]
     public Transform spawnRoot;
-
-    [Tooltip("Prefab del proyectil")]
     public GameObject bulletPrefab;
 
+    [Header("Targets del proyectil")]
+    public LayerMask targetLayers;
+    public LayerMask wallLayers;
+
+    [SerializeField]
+    GameObject damageOwner;
+
     [Header("Parámetros de salva")]
-    [Tooltip("Cuántas salvas dispara en total.")]
-    public int   volleyCount          = 4;
+    public int volleyCount = 4;
+    public float delayBetweenVolleys = 0.5f;
+    public float rotationPerVolley = 30f;
+    public float projectileSpeed = 10f;
 
-    [Tooltip("Segundos entre cada salva.")]
-    public float delayBetweenVolleys  = 0.5f;
+    Coroutine routine;
+    Animator animator;
+    bool isCasting;
 
-    [Tooltip("Grados que rota spawnRoot entre salva y salva.")]
-    public float rotationPerVolley    = 30f;
-
-    [Tooltip("Velocidad inicial de cada proyectil.")]
-    public float projectileSpeed      = 10f;
-
-    private Coroutine routine;
-    private Animator animator;
-    private bool isCasting;
-
-    private void Awake()
+    void Awake()
     {
         animator = GetComponentInParent<Animator>();
         if (animator == null)
+        {
             Debug.LogWarning("[Attack06_Bullets] No se encontró un Animator en el mismo GameObject.");
+        }
+
+        if (damageOwner == null)
+        {
+            BossController boss = GetComponentInParent<BossController>();
+            damageOwner = boss != null ? boss.gameObject : transform.root.gameObject;
+        }
     }
 
-    // ─────────────────────────────────────────
-    //  API pública
-    // ─────────────────────────────────────────
     public void StartAttack()
     {
         if (spawnRoot == null)
@@ -63,57 +66,59 @@ public class Attack06_Bullets : MonoBehaviour
             return;
         }
 
-        if (routine != null) StopCoroutine(routine);
+        if (routine != null)
+        {
+            StopCoroutine(routine);
+        }
+
         routine = StartCoroutine(AttackRoutine());
     }
 
-    // ─────────────────────────────────────────
-    //  Rutina
-    // ─────────────────────────────────────────
-    private IEnumerator AttackRoutine()
+    IEnumerator AttackRoutine()
     {
         if (animator != null)
         {
             isCasting = true;
             animator.SetBool("IsCasting", isCasting);
         }
-            
+
         for (int v = 0; v < volleyCount; v++)
         {
-            // Disparar desde todos los puntos hijo de spawnRoot
             FireVolley();
-
-            // Rotar el root para la próxima salva
             spawnRoot.Rotate(0f, rotationPerVolley, 0f, Space.World);
 
             if (v < volleyCount - 1)
+            {
                 yield return new WaitForSeconds(delayBetweenVolleys);
+            }
         }
 
         routine = null;
         isCasting = false;
-        animator.SetBool("IsCasting", isCasting);
+
+        if (animator != null)
+        {
+            animator.SetBool("IsCasting", isCasting);
+        }
+
         OnAttackEnded?.Invoke();
     }
 
-    // ─────────────────────────────────────────
-    //  Disparo de una salva
-    // ─────────────────────────────────────────
-    private void FireVolley()
+    void FireVolley()
     {
-        if (bulletPrefab == null) return;
+        if (bulletPrefab == null)
+        {
+            return;
+        }
 
         foreach (Transform spawnPoint in spawnRoot)
         {
-            var go = Instantiate(bulletPrefab, spawnPoint.position,
-                                 spawnPoint.rotation);
-            /*
-            var rb = go.GetComponent<Rigidbody>();
-            if (rb != null)
+            GameObject go = Instantiate(bulletPrefab, spawnPoint.position, spawnPoint.rotation);
+            BulletAttackController bullet = go.GetComponent<BulletAttackController>();
+            if (bullet != null)
             {
-                rb.useGravity     = false;
-                rb.linearVelocity = spawnPoint.forward * projectileSpeed;
-            }*/
+                bullet.Configure(damageOwner, targetLayers, wallLayers, projectileSpeed);
+            }
         }
     }
 }

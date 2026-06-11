@@ -1,58 +1,83 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class FallAttackController : MonoBehaviour
 {
-    public float fallSpeed = 10f; // Speed at which the object falls
-    public float damage = 20f; // Damage dealt to the player on impact
-    public float initialHeight = 10f; // Initial height from which the object starts falling
-    public float destroyDelay = 2f; // Time after which the object is destroyed post-impact
+    [Header("Movimiento")]
+    public float fallSpeed = 10f;
+    public float initialHeight = 10f;
+    public float destroyDelay = 2f;
 
-    private bool hasCollided = false; // Flag to check if the object has already collided
-    
+    [Header("Daño")]
+    public float damage = 20f;
+    public LayerMask targetLayers;
+    public LayerMask impactLayers;
+
+    [SerializeField]
+    GameObject damageOwner;
+
     [Header("Mesh fracturado")]
     public GameObject fracturedMesh;
 
+    bool hasCollided;
+    readonly HashSet<ITopDownDamageable> damagedTargets = new HashSet<ITopDownDamageable>();
+
     void Start()
     {
-        // Set the initial position of the object to be at the specified height
         transform.position = new Vector3(transform.position.x, initialHeight, transform.position.z);
-        
     }
 
-   
     void Update()
     {
-        // Move the object downwards at a constant speed
         if (!hasCollided)
-        {   
-        transform.position += Vector3.down * fallSpeed * Time.deltaTime;
+        {
+            transform.position += Vector3.down * fallSpeed * Time.deltaTime;
         }
-        
     }
 
-    private void OnTriggerEnter(Collider collision)
+    public void Configure(GameObject owner, LayerMask targets, LayerMask impacts)
     {
-        if (collision.gameObject.CompareTag("Player"))
+        damageOwner = owner;
+        targetLayers = targets;
+        impactLayers = impacts;
+    }
+
+    void OnTriggerEnter(Collider collision)
+    {
+        TMJ_DamageUtility.TryDamageCollider(
+            collision,
+            damage,
+            transform.position,
+            gameObject,
+            targetLayers,
+            damageOwner,
+            damagedTargets);
+
+        if (TMJ_DamageUtility.IsInLayerMask(collision.gameObject.layer, impactLayers))
         {
-            // Assuming the player has a method to take damage
-            PlayerHealth playerHealth = collision.gameObject.GetComponent<PlayerHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.TakeDamage(damage);
-            }
+            Impact(collision.gameObject);
         }
-        if (collision.gameObject.CompareTag("Marker") || collision.gameObject.CompareTag("Ground"))
+    }
+
+    void Impact(GameObject impactedObject)
+    {
+        if (hasCollided)
         {
-            hasCollided = true; // Set the flag to true to stop further movement
-            if (collision.gameObject.CompareTag("Marker"))
-            {
-                // If the object collides with a marker, it will be destroyed immediately
-                collision.gameObject.SetActive(false); // Deactivate the marker
-            }
-           Destroy(gameObject);
-           fracturedMesh.SetActive(true); // Activate the fractured mesh
+            return;
         }
 
-        //Destroy(gameObject, destroyDelay);
+        hasCollided = true;
+
+        if (impactedObject != null && impactedObject.CompareTag("Marker"))
+        {
+            impactedObject.SetActive(false);
+        }
+
+        if (fracturedMesh != null)
+        {
+            fracturedMesh.SetActive(true);
+        }
+
+        Destroy(gameObject, destroyDelay);
     }
 }

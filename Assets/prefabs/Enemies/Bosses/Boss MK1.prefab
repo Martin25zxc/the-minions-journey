@@ -126,7 +126,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmDamageZone
   parentAttack: {fileID: 363323165118294080}
-  playerTag: Player
 --- !u!1 &1239379544454269071
 GameObject:
   m_ObjectHideFlags: 0
@@ -253,7 +252,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmDamageZone
   parentAttack: {fileID: 363323165118294080}
-  playerTag: Player
 --- !u!1 &1348030330134602325
 GameObject:
   m_ObjectHideFlags: 0
@@ -299,8 +297,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Attack04_Drops
   dropPrefab: {fileID: 6159548021099154663, guid: 98fe87dcaba95444fa1d6e10b5f3755d, type: 3}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  impactLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
   dropCount: 5
   delayBetweenDrops: 0.4
+  magicCircle: {fileID: 0}
   cleanupDelay: 3
 --- !u!1 &1822350148527537598
 GameObject:
@@ -459,13 +465,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Attack03_Laser
   laserOrigin: {fileID: 4210427453326360113}
-  castCirclePrefab: {fileID: 2676078388943443919}
+  magicCircle: {fileID: 0}
   blockingLayers:
     serializedVersion: 2
     m_Bits: 3145728
-  playerLayer:
+  targetLayers:
     serializedVersion: 2
     m_Bits: 8
+  damageOwner: {fileID: 0}
   laserDuration: 4
   laserRange: 30
   damagePerSecond: 8
@@ -528,6 +535,10 @@ MonoBehaviour:
   - {fileID: 884123631037511995}
   - {fileID: 6023820614019518716}
   mainWeaponMeshes: []
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
   spinSpeed: 45
   spinDuration: 10
   directionChanges: 1
@@ -655,6 +666,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2601862775421807147}
   - component: {fileID: 9005421812066795859}
+  - component: {fileID: 3078166894712940605}
   m_Layer: 0
   m_Name: BossController
   m_TagString: Untagged
@@ -689,8 +701,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6d4fc59f77572748893db6dde27473a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossController
+  health: {fileID: 0}
   moveSpeed: 4
   epsilon: 0.05
+--- !u!114 &3078166894712940605
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3453154651700311919}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1e5d39c3bd3954696fa41a9f50acab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TopDownHealth
+  maxHealth: 10
+  maxShield: 0
+  onDied:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &4666018612452418836
 GameObject:
   m_ObjectHideFlags: 0
@@ -921,6 +951,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Attack06_Bullets
   spawnRoot: {fileID: 8720892069657063185}
   bulletPrefab: {fileID: 1636242591893876205, guid: b50b12ed972fdbf49a5fdb8fc51bd944, type: 3}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
   volleyCount: 10
   delayBetweenVolleys: 0.5
   rotationPerVolley: 30
@@ -1051,7 +1088,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmDamageZone
   parentAttack: {fileID: 363323165118294080}
-  playerTag: Player
 --- !u!1 &6048066122198225928
 GameObject:
   m_ObjectHideFlags: 0
@@ -1099,6 +1135,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Attack01_Slash
   swordMesh: {fileID: 3417017661939358094}
   mainWeaponMesh: {fileID: 0}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
   spinSpeed: 280
   spinDuration: 1.8
   repeatCount: 3
@@ -1207,6 +1247,7 @@ GameObject:
   - component: {fileID: 2987814186304352871}
   - component: {fileID: 1744547566530269972}
   - component: {fileID: -995097313741462617}
+  - component: {fileID: 95200417075167344}
   m_Layer: 0
   m_Name: Boss MK1
   m_TagString: Untagged
@@ -1328,8 +1369,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6d4fc59f77572748893db6dde27473a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossController
+  health: {fileID: 95200417075167344}
   moveSpeed: 20
   epsilon: 0.05
+--- !u!114 &95200417075167344
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7576196185581834887}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1e5d39c3bd3954696fa41a9f50acab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TopDownHealth
+  maxHealth: 10
+  maxShield: 0
+  onDied:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &7649955263716578409
 GameObject:
   m_ObjectHideFlags: 0
@@ -1456,7 +1515,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ArmDamageZone
   parentAttack: {fileID: 363323165118294080}
-  playerTag: Player
 --- !u!1 &7997819475094209811
 GameObject:
   m_ObjectHideFlags: 0
@@ -1593,9 +1651,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Attack05_Wave
   bulletPrefab: {fileID: 542362497551489405, guid: 64a841de1ff7b0d40bb24a2322244025, type: 3}
   firePoint: {fileID: 5846195250454171962}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  blockingLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
   bulletCount: 6
   delayBetween: 0.35
   projectileSpeed: 12
+  rotateSpeed: 360
+  animationDelay: 0.3
   aimDuration: 0.6
 --- !u!1001 &3018043746724866718
 PrefabInstance:
@@ -1654,11 +1721,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
---- !u!1 &2676078388943443919 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
-  m_PrefabInstance: {fileID: 3018043746724866718}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &3344071919189265781 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}

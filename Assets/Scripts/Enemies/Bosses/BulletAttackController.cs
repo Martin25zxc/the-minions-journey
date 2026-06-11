@@ -2,48 +2,70 @@ using UnityEngine;
 
 public class BulletAttackController : MonoBehaviour
 {
+    [Header("Movimiento")]
     public float projectileSpeed = 5f;
-    public float damage = 10f;
     public bool canBounce = false;
     public int maxBounces = 1;
 
-    private Vector3 moveDirection;
-    private int bouncesLeft;
-   
+    [Header("Daño")]
+    public float damage = 10f;
+    public LayerMask targetLayers;
+    public LayerMask wallLayers;
 
-    private void Start()
+    [SerializeField]
+    GameObject damageOwner;
+
+    Vector3 moveDirection;
+    int bouncesLeft;
+
+    void Start()
     {
-        moveDirection = transform.forward;
+        if (moveDirection.sqrMagnitude < 0.001f)
+        {
+            moveDirection = transform.forward;
+        }
+
         bouncesLeft = maxBounces;
     }
 
-    private void Update()
+    void Update()
     {
         transform.Translate(moveDirection * projectileSpeed * Time.deltaTime, Space.World);
     }
 
-    private void OnTriggerEnter(Collider other)
+    public void Configure(GameObject owner, LayerMask targets, LayerMask walls, float speed)
     {
-        if (other.CompareTag("Player"))
+        damageOwner = owner;
+        targetLayers = targets;
+        wallLayers = walls;
+        projectileSpeed = speed;
+        moveDirection = transform.forward;
+        bouncesLeft = maxBounces;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (TMJ_DamageUtility.TryDamageCollider(other, damage, transform.position, gameObject, targetLayers, damageOwner))
         {
-            other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
             Destroy(gameObject);
             return;
         }
 
-        if (other.CompareTag("LimitWall"))
+        if (TMJ_DamageUtility.IsInLayerMask(other.gameObject.layer, wallLayers))
         {
-            if (canBounce && bouncesLeft > 0)
-            {
-                moveDirection = -moveDirection;
-                bouncesLeft--;
-
-                //Destroy(gameObject, 4f); // Destruir después de un tiempo para evitar bounces infinitos
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
+            HandleWallCollision();
         }
+    }
+
+    void HandleWallCollision()
+    {
+        if (canBounce && bouncesLeft > 0)
+        {
+            moveDirection = -moveDirection;
+            bouncesLeft--;
+            return;
+        }
+
+        Destroy(gameObject);
     }
 }

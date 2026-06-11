@@ -4,42 +4,75 @@ using UnityEngine;
 
 /// <summary>
 /// Vive en el prefab del jefe.
-/// Expone GoTo() y JumpTo() con evento OnArrived, y los métodos de activación de cada ataque.
-/// NO decide qué ataque hacer — eso es el FSM del manager.
+/// Expone GoTo() y JumpTo() con evento OnArrived.
+/// NO decide qué ataque hacer — eso es responsabilidad del FSM/manager.
+/// La vida real vive en TopDownHealth.
 /// </summary>
+[RequireComponent(typeof(TopDownHealth))]
 public class BossController : MonoBehaviour
 {
     // ── Eventos ───────────────────────────────────────────────────────────
-    public event Action        OnArrived;
+    public event Action OnArrived;
     public event Action<float> OnHealthChanged;
-    public event Action        OnDeath;
+    public event Action OnDeath;
 
     // ── Estado público ────────────────────────────────────────────────────
-    public bool IsAlive  => currentHealth > 0f;
+    public bool IsAlive => health != null && health.IsAlive;
     public bool IsMoving => moveRoutine != null;
 
     // ── Inspector ─────────────────────────────────────────────────────────
+    [SerializeField]
+    private TopDownHealth health;
+
     [Header("Movimiento")]
-    [SerializeField] private float moveSpeed = 4f;
-    [SerializeField] private float epsilon   = 0.05f;
+    [SerializeField]
+    private float moveSpeed = 4f;
+
+    [SerializeField]
+    private float epsilon = 0.05f;
 
     // ── Runtime ───────────────────────────────────────────────────────────
-    private float     currentHealth;
-    private float     maxHealth;
     private Coroutine moveRoutine;
 
     // ── Animator ──────────────────────────────────────────────────────────
     private Animator animator;
-    private bool     isRunning = false;
+    private bool isRunning = false;
 
     // ─────────────────────────────────────────────────────────────────────
-    //  Awake
+    //  Awake / OnDestroy
     // ─────────────────────────────────────────────────────────────────────
     private void Awake()
     {
         animator = GetComponent<Animator>();
         if (animator == null)
+        {
             Debug.LogError("[BossController] No Animator found on the boss prefab.");
+        }
+
+        if (health == null)
+        {
+            health = GetComponent<TopDownHealth>();
+        }
+
+        if (health == null)
+        {
+            Debug.LogError("[BossController] TopDownHealth no encontrado.");
+            return;
+        }
+
+        health.OnHealthChanged += HandleHealthChanged;
+        health.OnDied += HandleDeath;
+    }
+
+    private void OnDestroy()
+    {
+        if (health == null)
+        {
+            return;
+        }
+
+        health.OnHealthChanged -= HandleHealthChanged;
+        health.OnDied -= HandleDeath;
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -47,10 +80,13 @@ public class BossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     public void Initialize(BossDataSO data)
     {
-        if (data == null) { Debug.LogError("[BossController] BossDataSO null."); return; }
-        maxHealth     = data.maxHealth;
-        currentHealth = maxHealth;
-        
+        if (data == null)
+        {
+            Debug.LogError("[BossController] BossDataSO null.");
+            return;
+        }
+
+        health?.Initialize(data.maxHealth);
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -58,13 +94,31 @@ public class BossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     public void GoTo(Vector3 worldPos)
     {
-        if (moveRoutine != null) StopCoroutine(moveRoutine);
+        if (!IsAlive)
+        {
+            return;
+        }
+
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+        }
+
         moveRoutine = StartCoroutine(MoveRoutine(worldPos));
     }
 
     public void JumpTo(Vector3 worldPos, float height, float duration)
     {
-        if (moveRoutine != null) StopCoroutine(moveRoutine);
+        if (!IsAlive)
+        {
+            return;
+        }
+
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+        }
+
         moveRoutine = StartCoroutine(JumpRoutine(worldPos, height, duration));
     }
 
@@ -75,7 +129,7 @@ public class BossController : MonoBehaviour
     {
         target.y = transform.position.y;
 
-        // Esperar un frame para asegurarse que Awake terminó
+        // Esperar un frame para asegurarse que Awake terminó.
         yield return null;
 
         if (animator != null)
@@ -84,16 +138,29 @@ public class BossController : MonoBehaviour
             animator.SetBool("IsRunning", isRunning);
         }
 
-        while (Vector3.Distance(transform.position, target) > epsilon)
+        while (Vector3.Distance(transform.position, target) > epsilon && IsAlive)
         {
             Vector3 dir = (target - transform.position).normalized;
             if (dir.sqrMagnitude > 0.001f)
+            {
                 transform.rotation = Quaternion.Slerp(
-                    transform.rotation, Quaternion.LookRotation(dir), 10f * Time.deltaTime);
+                    transform.rotation,
+                    Quaternion.LookRotation(dir),
+                    10f * Time.deltaTime);
+            }
 
             transform.position = Vector3.MoveTowards(
-                transform.position, target, moveSpeed * Time.deltaTime);
+                transform.position,
+                target,
+                moveSpeed * Time.deltaTime);
+
             yield return null;
+        }
+
+        if (!IsAlive)
+        {
+            moveRoutine = null;
+            yield break;
         }
 
         transform.position = target;
@@ -111,22 +178,33 @@ public class BossController : MonoBehaviour
     private IEnumerator JumpRoutine(Vector3 target, float height, float duration)
     {
         target.y = transform.position.y;
-        Vector3 startPos = transform.position;
-        float   elapsed  = 0f;
 
-        // Rotar hacia el objetivo antes de saltar
+        Vector3 startPos = transform.position;
+        float elapsed = 0f;
+
+        // Rotar hacia el objetivo antes de saltar.
         Vector3 dir = (target - startPos).normalized;
         if (dir.sqrMagnitude > 0.001f)
-            transform.rotation = Quaternion.LookRotation(dir);
-
-        while (elapsed < duration)
         {
-            float   t          = elapsed / duration;
+            transform.rotation = Quaternion.LookRotation(dir);
+        }
+
+        while (elapsed < duration && IsAlive)
+        {
+            float t = elapsed / duration;
             Vector3 horizontal = Vector3.Lerp(startPos, target, t);
-            float   arc        = height * 4f * t * (1f - t);
+            float arc = height * 4f * t * (1f - t);
+
             transform.position = new Vector3(horizontal.x, startPos.y + arc, horizontal.z);
+
             elapsed += Time.deltaTime;
             yield return null;
+        }
+
+        if (!IsAlive)
+        {
+            moveRoutine = null;
+            yield break;
         }
 
         transform.position = target;
@@ -139,6 +217,11 @@ public class BossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     public void RotateY(float degreesPerSecond)
     {
+        if (!IsAlive)
+        {
+            return;
+        }
+
         transform.Rotate(0f, degreesPerSecond * Time.deltaTime, 0f, Space.World);
     }
 
@@ -147,15 +230,26 @@ public class BossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     public void TakeDamage(float amount)
     {
-        if (!IsAlive) return;
-        currentHealth = Mathf.Max(0f, currentHealth - amount);
-        OnHealthChanged?.Invoke(currentHealth / maxHealth);
-        if (currentHealth <= 0f) Die();
+        health?.TakeDamage(new TMJ_DamageInfo(amount, transform.position));
     }
 
-    private void Die()
+    private void HandleHealthChanged(float currentHealth, float maxHealth)
+    {
+        float healthPercent = maxHealth > 0f ? currentHealth / maxHealth : 0f;
+        OnHealthChanged?.Invoke(healthPercent);
+    }
+
+    private void HandleDeath()
     {
         StopAllCoroutines();
+        moveRoutine = null;
+
+        if (animator != null)
+        {
+            isRunning = false;
+            animator.SetBool("IsRunning", isRunning);
+        }
+
         OnDeath?.Invoke();
         gameObject.SetActive(false);
     }

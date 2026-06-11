@@ -3,46 +3,83 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Capa de ejecución del minion: movimiento, salud, eventos.
+/// Capa de ejecución del minion: movimiento, salud y eventos.
 /// NO decide qué hacer — eso es responsabilidad del FSM.
+/// La vida real vive en TopDownHealth.
 /// </summary>
+[RequireComponent(typeof(TopDownHealth))]
 public class MinionController : MonoBehaviour
 {
-    // ── Eventos ───────────────────────────────────────────────────────────
     public event Action<float> OnHealthChanged;  // porcentaje 0-1
-    public event Action        OnDeath;
+    public event Action OnDeath;
 
-    // ── Estado público ────────────────────────────────────────────────────
-    public bool IsAlive  => currentHealth > 0f;
+    public bool IsAlive => health != null && health.IsAlive;
     public bool IsMoving => moveRoutine != null;
 
-    // ── Inspector ─────────────────────────────────────────────────────────
-    [SerializeField] private float moveSpeed    = 3.5f;
-    [SerializeField] private float rotateSpeed  = 10f;
+    [SerializeField]
+    TopDownHealth health;
 
-    // ── Runtime ───────────────────────────────────────────────────────────
-    private float     currentHealth;
-    private float     maxHealth;
-    private Coroutine moveRoutine;
+    [Header("Movimiento")]
+    [SerializeField]
+    float moveSpeed = 3.5f;
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  Init
-    // ─────────────────────────────────────────────────────────────────────
-    public void Initialize(MinionDataSO data)
+    [SerializeField]
+    float rotateSpeed = 10f;
+
+    Coroutine moveRoutine;
+
+    void Awake()
     {
-        maxHealth     = data.maxHealth;
-        currentHealth = maxHealth;
-        moveSpeed     = data.moveSpeed;
+        if (health == null)
+        {
+            health = GetComponent<TopDownHealth>();
+        }
+
+        if (health == null)
+        {
+            Debug.LogError("[MinionController] TopDownHealth no encontrado.");
+            return;
+        }
+
+        health.OnHealthChanged += HandleHealthChanged;
+        health.OnDied += HandleDeath;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  Movimiento
-    // ─────────────────────────────────────────────────────────────────────
+    void OnDestroy()
+    {
+        if (health == null)
+        {
+            return;
+        }
 
-    /// <summary>Persigue un Transform continuamente hasta que se llame StopMoving().</summary>
+        health.OnHealthChanged -= HandleHealthChanged;
+        health.OnDied -= HandleDeath;
+    }
+
+    public void Initialize(MinionDataSO data)
+    {
+        if (data == null)
+        {
+            Debug.LogError("[MinionController] MinionDataSO null.");
+            return;
+        }
+
+        health?.Initialize(data.maxHealth);
+        moveSpeed = data.moveSpeed;
+    }
+
     public void StartChasing(Transform target)
     {
-        if (moveRoutine != null) StopCoroutine(moveRoutine);
+        if (!IsAlive)
+        {
+            return;
+        }
+
+        if (moveRoutine != null)
+        {
+            StopCoroutine(moveRoutine);
+        }
+
         moveRoutine = StartCoroutine(ChaseRoutine(target));
     }
 
@@ -54,19 +91,21 @@ public class MinionController : MonoBehaviour
             moveRoutine = null;
         }
     }
-
+    
     /// <summary>Rota hacia el objetivo de forma instantánea (útil al iniciar un ataque).</summary>
     public void FaceTarget(Vector3 target)
     {
         Vector3 dir = target - transform.position;
         dir.y = 0f;
         if (dir.sqrMagnitude > 0.001f)
+        {
             transform.rotation = Quaternion.LookRotation(dir.normalized);
+        }
     }
 
-    private IEnumerator ChaseRoutine(Transform target)
+    IEnumerator ChaseRoutine(Transform target)
     {
-        while (target != null)
+        while (target != null && IsAlive)
         {
             Vector3 dest = target.position;
             dest.y = transform.position.y;
@@ -80,27 +119,32 @@ public class MinionController : MonoBehaviour
                     rotateSpeed * Time.deltaTime);
 
                 transform.position = Vector3.MoveTowards(
-                    transform.position, dest, moveSpeed * Time.deltaTime);
+                    transform.position,
+                    dest,
+                    moveSpeed * Time.deltaTime);
             }
+
             yield return null;
         }
+
         moveRoutine = null;
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    //  Daño / muerte
-    // ─────────────────────────────────────────────────────────────────────
     public void TakeDamage(float amount)
     {
-        if (!IsAlive) return;
-        currentHealth = Mathf.Max(0f, currentHealth - amount);
-        OnHealthChanged?.Invoke(currentHealth / maxHealth);
-        if (currentHealth <= 0f) Die();
+        health?.TakeDamage(new TMJ_DamageInfo(amount, transform.position));
     }
 
-    private void Die()
+    void HandleHealthChanged(float currentHealth, float maxHealth)
+    {
+        float healthPercent = maxHealth > 0f ? currentHealth / maxHealth : 0f;
+        OnHealthChanged?.Invoke(healthPercent);
+    }
+
+    void HandleDeath()
     {
         StopAllCoroutines();
+        moveRoutine = null;
         OnDeath?.Invoke();
         gameObject.SetActive(false);
     }

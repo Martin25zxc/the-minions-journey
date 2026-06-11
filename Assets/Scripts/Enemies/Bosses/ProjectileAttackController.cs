@@ -2,23 +2,44 @@ using UnityEngine;
 
 public class ProjectileAttackController : MonoBehaviour
 {
+    [Header("Movimiento")]
     public float projectileSpeed = 5f;
-    public float damage    = 10f;
+
+    [Header("Daño")]
+    public float damage = 10f;
+    public LayerMask targetLayers;
+    public LayerMask blockingLayers;
+    public bool destroyOnTargetHit = true;
+
+    [SerializeField]
+    GameObject damageOwner;
 
     void Update()
     {
         transform.Translate(transform.forward * projectileSpeed * Time.deltaTime, Space.World);
     }
 
+    public void Configure(GameObject owner, LayerMask targets, LayerMask blockers, float speed)
+    {
+        damageOwner = owner;
+        targetLayers = targets;
+        blockingLayers = blockers;
+        projectileSpeed = speed;
+    }
+
     void OnTriggerEnter(Collider other)
     {
-        Debug.Log($"[ProjectileAttackController] Colision con {other.gameObject.name}");
-        if (other.CompareTag("Player"))
+        if (TMJ_DamageUtility.TryDamageCollider(other, damage, transform.position, gameObject, targetLayers, damageOwner))
         {
-            other.GetComponent<PlayerHealth>()?.TakeDamage(damage);
+            if (destroyOnTargetHit)
+            {
+                Destroy(gameObject);
+            }
+
+            return;
         }
 
-        if (other.CompareTag("LimitWall"))
+        if (TMJ_DamageUtility.IsInLayerMask(other.gameObject.layer, blockingLayers))
         {
             Destroy(gameObject);
         }

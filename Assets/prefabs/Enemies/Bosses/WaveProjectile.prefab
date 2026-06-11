@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5815674635826805051}
   - component: {fileID: 8526738874814698254}
   - component: {fileID: 5745847676842983314}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: WaveProjectile
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -48,6 +48,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileAttackController
   projectileSpeed: 20
   damage: 10
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  blockingLayers:
+    serializedVersion: 2
+    m_Bits: 2097152
+  destroyOnTargetHit: 1
+  damageOwner: {fileID: 0}
 --- !u!54 &5745847676842983314
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -84,7 +92,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8592517698869253103}
-  m_Layer: 0
+  m_Layer: 7
   m_Name: ProjectileController
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -166,6 +174,10 @@ PrefabInstance:
     - target: {fileID: 919132149155446097, guid: 8a0b80d968d987448bbd1c522896d3e6, type: 3}
       propertyPath: m_Name
       value: Wave
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 8a0b80d968d987448bbd1c522896d3e6, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
