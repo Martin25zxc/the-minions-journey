@@ -25,9 +25,9 @@ public class Attack02_SpinArms : MonoBehaviour
     GameObject damageOwner;
 
     [Header("Parámetros")]
-    public float spinSpeed = 50f;
-    public float spinDuration = 6f;
-    public int directionChanges = 1;
+    public float spinSpeed = 50f;   // grados/segundo
+    public float spinDuration = 6f;    // duración total del ataque
+    public int directionChanges = 1;     // cuántas veces cambia de dirección
     public float damage = 10f;
     public float damageCooldown = 0.5f;
 

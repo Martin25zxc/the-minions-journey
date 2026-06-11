@@ -36,9 +36,9 @@ public class Attack03_Laser : MonoBehaviour
     public float rotateSpeed = 90f;
 
     [Header("Visual")]
-    public Color warningColor = Color.yellow;
-    public Color damageColor = Color.red;
-    public float warningDuration = 2f;
+    public Color warningColor = Color.yellow;  // fase de aviso (sin daño)
+    public Color damageColor  = Color.red;     // fase activa (con daño)
+    public float warningDuration = 2f;       // segundos en amarillo antes de hacer daño
     public float laserWidth = 0.05f;
 
     LineRenderer lr;
@@ -102,6 +102,7 @@ public class Attack03_Laser : MonoBehaviour
             anim.SetBool("IsCasting", true);
         }
 
+        // Fase warning — amarillo, sin daño
         while (elapsed < warningDuration)
         {
             RotateTowardsPlayer();

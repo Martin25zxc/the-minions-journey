@@ -25,8 +25,8 @@ public class Attack05_Wave : MonoBehaviour
     public int bulletCount = 6;
     public float delayBetween = 1.1f;
     public float projectileSpeed = 12f;
-    public float rotateSpeed = 360f;
-    public float animationDelay = 0.3f;
+    public float rotateSpeed      = 360f; // grados/segundo durante la fase de apuntado
+    public float animationDelay    = 0.3f; // segundos entre el trigger de animación y el spawn del proyectil
     public float aimDuration = 0.6f;
 
     Coroutine routine;
@@ -65,7 +65,8 @@ public class Attack05_Wave : MonoBehaviour
         {
             playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
         }
-
+        
+        // Disparar bulletCount proyectiles, reapuntando antes de cada uno
         for (int i = 0; i < bulletCount; i++)
         {
             if (playerTransform != null)

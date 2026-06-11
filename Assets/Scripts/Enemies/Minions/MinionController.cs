@@ -91,7 +91,8 @@ public class MinionController : MonoBehaviour
             moveRoutine = null;
         }
     }
-
+    
+    /// <summary>Rota hacia el objetivo de forma instantánea (útil al iniciar un ataque).</summary>
     public void FaceTarget(Vector3 target)
     {
         Vector3 dir = target - transform.position;

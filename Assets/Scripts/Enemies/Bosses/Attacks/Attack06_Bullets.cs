@@ -4,6 +4,17 @@ using UnityEngine;
 
 /// <summary>
 /// Ataque 6 — Bullets rotatorios.
+/// 1. El FSM mueve al jefe al centro.
+/// 2. Dispara desde todos los spawnPoints simultáneamente (cada uno en su forward).
+/// 3. Rota el contenedor de spawnPoints en Y por rotationPerVolley grados.
+/// 4. Repite volleyCount veces con delayBetweenVolleys entre cada salva.
+/// 5. OnAttackEnded.
+///
+/// Setup en el prefab del jefe:
+///   - Crear un empty hijo llamado "BulletSpawnRoot" (asignarlo a spawnRoot).
+///   - Agregar como hijos de BulletSpawnRoot los cubos/empties de spawn,
+///     distribuidos en círculo apuntando hacia afuera.
+///   - Los cubos se pueden desactivar el mesh renderer si no se quieren ver.
 /// Spawnea proyectiles desde varios puntos. El daño vive en BulletAttackController.
 /// </summary>
 public class Attack06_Bullets : MonoBehaviour

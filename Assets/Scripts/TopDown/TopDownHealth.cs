@@ -59,8 +59,6 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
 
     public void TakeDamage(float damage)
     {
-        //log 
-        Debug.Log($"Taking damage: {damage}");
         TakeDamage(new TMJ_DamageInfo(damage, transform.position));
     }
 
