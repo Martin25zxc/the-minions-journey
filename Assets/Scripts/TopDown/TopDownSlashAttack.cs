@@ -6,51 +6,17 @@ using UnityEngine;
 public sealed class TopDownSlashAttack : TopDownWeapon
 {
     [Header("Weapon Loadout")]
-    [SerializeField] TMJ_WeaponLoadout weaponLoadout;
-
-    [Header("Light Attack")]
-    [SerializeField, Min(0.05f)]
-    float lightCooldown = 0.25f;
-
-    [SerializeField, Min(0.1f)]
-    float lightDamage = 1f;
-
-    [SerializeField, Min(0.1f)]
-    float lightAttackRange = 1.8f;
-
-    [SerializeField, Range(20f, 180f)]
-    float lightAttackArc = 95f;
-
-    [SerializeField, Min(0.01f)]
-    float lightVisualDuration = 0.12f;
-
-    [SerializeField, Range(0.05f, 0.35f)]
-    float lightVisualWidth = 0.18f;
-
     [SerializeField]
-    Color lightSlashColor = new Color(1f, 0.9f, 0.6f, 1f);
+    TMJ_WeaponLoadout weaponLoadout;
 
-    [Header("Heavy Attack")]
-    [SerializeField, Min(0.05f)]
-    float heavyCooldown = 0.65f;
-
-    [SerializeField, Min(0.1f)]
-    float heavyDamage = 2.25f;
-
-    [SerializeField, Min(0.1f)]
-    float heavyAttackRange = 2.25f;
-
-    [SerializeField, Range(20f, 180f)]
-    float heavyAttackArc = 120f;
-
-    [SerializeField, Min(0.01f)]
-    float heavyVisualDuration = 0.16f;
-
-    [SerializeField, Range(0.05f, 0.4f)]
-    float heavyVisualWidth = 0.24f;
-
+    [Header("Attack Profiles")]
+    [Tooltip("Profile used by left-click / light attack.")]
     [SerializeField]
-    Color heavySlashColor = new Color(1f, 0.75f, 0.35f, 1f);
+    PlayerMeleeAttackProfile lightAttackProfile;
+
+    [Tooltip("Profile used by right-click / heavy attack.")]
+    [SerializeField]
+    PlayerMeleeAttackProfile heavyAttackProfile;
 
     [Header("Hit Detection")]
     [SerializeField, Min(4)]
@@ -61,6 +27,11 @@ public sealed class TopDownSlashAttack : TopDownWeapon
 
     [SerializeField]
     LayerMask hittableLayers = ~0;
+
+    [Header("Debug Fallbacks")]
+    [Tooltip("Allows attacks to keep working while profiles are not assigned yet. Assign PlayerMeleeAttackProfile assets to use the recommended workflow.")]
+    [SerializeField]
+    bool useFallbackProfilesWhenMissing = true;
 
     float nextLightAttackTime;
     float nextHeavyAttackTime;
@@ -76,34 +47,14 @@ public sealed class TopDownSlashAttack : TopDownWeapon
 
     public override bool TryLightAttack(Vector3 facingDirection)
     {
-        return TryAttack(
-            ref nextLightAttackTime,
-            facingDirection,
-            lightCooldown,
-            lightDamage,
-            1f,
-            TMJ_WeaponUseSlot.LightAttack,
-            lightAttackRange,
-            lightAttackArc,
-            lightVisualDuration,
-            lightVisualWidth,
-            lightSlashColor);
+        AttackProfile profile = GetLightProfile();
+        return TryAttack(ref nextLightAttackTime, facingDirection, profile, 1f);
     }
 
     public override bool TryHeavyAttack(Vector3 facingDirection)
     {
-        return TryAttack(
-            ref nextHeavyAttackTime,
-            facingDirection,
-            heavyCooldown,
-            heavyDamage,
-            1f,
-            TMJ_WeaponUseSlot.HeavyAttack,
-            heavyAttackRange,
-            heavyAttackArc,
-            heavyVisualDuration,
-            heavyVisualWidth,
-            heavySlashColor);
+        AttackProfile profile = GetHeavyProfile();
+        return TryAttack(ref nextHeavyAttackTime, facingDirection, profile, 1f);
     }
 
     public override bool TryComboAttack(TopDownCombatComboDefinition combo, Vector3 facingDirection)
@@ -113,53 +64,40 @@ public sealed class TopDownSlashAttack : TopDownWeapon
             return false;
         }
 
-        AttackProfile profile = combo.WeaponAttackStyle == TopDownCombatAttackStyle.Light ? CreateLightProfile() : CreateHeavyProfile();
-        TMJ_WeaponUseSlot weaponUseSlot = ToWeaponUseSlot(combo.WeaponAttackStyle);
-        float cooldown = profile.cooldown * combo.CooldownMultiplier;
-        float attackRange = profile.attackRange * combo.RangeMultiplier;
-        float attackArc = profile.attackArc * combo.ArcMultiplier;
-        float visualDuration = profile.visualDuration * combo.VisualDurationMultiplier;
-        float visualWidth = profile.visualWidth * combo.VisualWidthMultiplier;
-        Color slashColor = combo.UseSlashColorOverride ? combo.SlashColorOverride : profile.slashColor;
+        AttackProfile baseProfile = combo.WeaponAttackStyle == TopDownCombatAttackStyle.Light
+            ? GetLightProfile()
+            : GetHeavyProfile();
 
-        return TryAttack(
-            ref nextComboAttackTime,
-            facingDirection,
-            cooldown,
-            profile.damage,
+        AttackProfile comboProfile = baseProfile.WithMultipliers(
             combo.DamageMultiplier,
-            weaponUseSlot,
-            attackRange,
-            attackArc,
-            visualDuration,
-            visualWidth,
-            slashColor);
+            combo.RangeMultiplier,
+            combo.ArcMultiplier,
+            combo.CooldownMultiplier,
+            combo.VisualDurationMultiplier,
+            combo.VisualWidthMultiplier,
+            combo.UseSlashColorOverride ? combo.SlashColorOverride : baseProfile.slashColor);
+
+        return TryAttack(ref nextComboAttackTime, facingDirection, comboProfile, combo.DamageMultiplier);
     }
 
-    bool TryAttack(
-        ref float nextAttackTime,
-        Vector3 facingDirection,
-        float cooldown,
-        float baseDamage,
-        float damageMultiplier,
-        TMJ_WeaponUseSlot weaponUseSlot,
-        float attackRange,
-        float attackArc,
-        float visualDuration,
-        float visualWidth,
-        Color slashColor)
+    bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, AttackProfile profile, float damageMultiplier)
     {
+        if (!profile.isValid)
+        {
+            return false;
+        }
+
         if (Time.time < nextAttackTime)
         {
             return false;
         }
 
         facingDirection = NormalizeFacingDirection(facingDirection, transform.forward);
-        nextAttackTime = Time.time + cooldown;
+        nextAttackTime = Time.time + profile.cooldown;
 
-        float damage = CalculateFinalDamage(baseDamage, damageMultiplier, weaponUseSlot);
-        ApplyDamage(facingDirection, damage, attackRange, attackArc);
-        StartCoroutine(PlaySlashVisual(facingDirection, attackRange, attackArc, visualDuration, visualWidth, slashColor));
+        float damage = CalculateFinalDamage(profile.baseDamage, damageMultiplier, profile.weaponUseSlot);
+        ApplyDamage(facingDirection, damage, profile.attackRange, profile.attackArc);
+        StartCoroutine(PlaySlashVisual(facingDirection, profile.attackRange, profile.attackArc, profile.visualDuration, profile.visualWidth, profile.slashColor));
         return true;
     }
 
@@ -172,21 +110,28 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         return safeBaseDamage * safeMultiplier + weaponBonus;
     }
 
-    AttackProfile CreateLightProfile()
+    AttackProfile GetLightProfile()
     {
-        return new AttackProfile(lightCooldown, lightDamage, lightAttackRange, lightAttackArc, lightVisualDuration, lightVisualWidth, lightSlashColor);
+        if (lightAttackProfile != null)
+        {
+            return AttackProfile.FromAsset(lightAttackProfile);
+        }
+
+        return useFallbackProfilesWhenMissing
+            ? AttackProfile.CreateFallbackLight()
+            : AttackProfile.Invalid;
     }
 
-    AttackProfile CreateHeavyProfile()
+    AttackProfile GetHeavyProfile()
     {
-        return new AttackProfile(heavyCooldown, heavyDamage, heavyAttackRange, heavyAttackArc, heavyVisualDuration, heavyVisualWidth, heavySlashColor);
-    }
+        if (heavyAttackProfile != null)
+        {
+            return AttackProfile.FromAsset(heavyAttackProfile);
+        }
 
-    static TMJ_WeaponUseSlot ToWeaponUseSlot(TopDownCombatAttackStyle attackStyle)
-    {
-        return attackStyle == TopDownCombatAttackStyle.Light
-            ? TMJ_WeaponUseSlot.LightAttack
-            : TMJ_WeaponUseSlot.HeavyAttack;
+        return useFallbackProfilesWhenMissing
+            ? AttackProfile.CreateFallbackHeavy()
+            : AttackProfile.Invalid;
     }
 
     void ApplyDamage(Vector3 facingDirection, float damage, float attackRange, float attackArc)
@@ -323,10 +268,21 @@ public sealed class TopDownSlashAttack : TopDownWeapon
 
     readonly struct AttackProfile
     {
-        public AttackProfile(float cooldown, float damage, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
+        public AttackProfile(
+            bool isValid,
+            TMJ_WeaponUseSlot weaponUseSlot,
+            float cooldown,
+            float baseDamage,
+            float attackRange,
+            float attackArc,
+            float visualDuration,
+            float visualWidth,
+            Color slashColor)
         {
+            this.isValid = isValid;
+            this.weaponUseSlot = weaponUseSlot;
             this.cooldown = cooldown;
-            this.damage = damage;
+            this.baseDamage = baseDamage;
             this.attackRange = attackRange;
             this.attackArc = attackArc;
             this.visualDuration = visualDuration;
@@ -334,18 +290,79 @@ public sealed class TopDownSlashAttack : TopDownWeapon
             this.slashColor = slashColor;
         }
 
+        public bool isValid { get; }
+        public TMJ_WeaponUseSlot weaponUseSlot { get; }
         public float cooldown { get; }
-
-        public float damage { get; }
-
+        public float baseDamage { get; }
         public float attackRange { get; }
-
         public float attackArc { get; }
-
         public float visualDuration { get; }
-
         public float visualWidth { get; }
-
         public Color slashColor { get; }
+
+        public static AttackProfile Invalid => new AttackProfile(false, TMJ_WeaponUseSlot.LightAttack, 0f, 0f, 0f, 0f, 0f, 0f, Color.white);
+
+        public static AttackProfile FromAsset(PlayerMeleeAttackProfile profile)
+        {
+            return new AttackProfile(
+                true,
+                profile.WeaponUseSlot,
+                profile.Cooldown,
+                profile.BaseDamage,
+                profile.AttackRange,
+                profile.AttackArc,
+                profile.VisualDuration,
+                profile.VisualWidth,
+                profile.SlashColor);
+        }
+
+        public static AttackProfile CreateFallbackLight()
+        {
+            return new AttackProfile(
+                true,
+                TMJ_WeaponUseSlot.LightAttack,
+                0.25f,
+                1f,
+                1.8f,
+                95f,
+                0.12f,
+                0.18f,
+                new Color(1f, 0.9f, 0.6f, 1f));
+        }
+
+        public static AttackProfile CreateFallbackHeavy()
+        {
+            return new AttackProfile(
+                true,
+                TMJ_WeaponUseSlot.HeavyAttack,
+                0.65f,
+                2.25f,
+                2.25f,
+                120f,
+                0.16f,
+                0.24f,
+                new Color(1f, 0.75f, 0.35f, 1f));
+        }
+
+        public AttackProfile WithMultipliers(
+            float damageMultiplier,
+            float rangeMultiplier,
+            float arcMultiplier,
+            float cooldownMultiplier,
+            float visualDurationMultiplier,
+            float visualWidthMultiplier,
+            Color comboSlashColor)
+        {
+            return new AttackProfile(
+                isValid,
+                weaponUseSlot,
+                cooldown * Mathf.Max(0.01f, cooldownMultiplier),
+                baseDamage,
+                attackRange * Mathf.Max(0.1f, rangeMultiplier),
+                attackArc * Mathf.Max(0.1f, arcMultiplier),
+                visualDuration * Mathf.Max(0.01f, visualDurationMultiplier),
+                visualWidth * Mathf.Max(0.01f, visualWidthMultiplier),
+                comboSlashColor);
+        }
     }
 }
