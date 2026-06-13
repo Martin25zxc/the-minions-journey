@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Garrote
   displayName: Garrote
   description: 
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 57d85e226ff58374ba97f74179b685a0, type: 3}
   worldModelPrefab: {fileID: 6968956498155833823, guid: 3624a5eb6a6cdfa4cb8955ecbd70c802, type: 3}
   rarity: 0
   damageBonusMin: 10

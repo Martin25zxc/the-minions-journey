@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Epic_Skeleton_Blade
   displayName: Sable fulminador
   description: 
-  icon: {fileID: 0}
+  icon: {fileID: 21300000, guid: d26bd75cc591ce941807f1d0cf4aac60, type: 3}
   worldModelPrefab: {fileID: 919132149155446097, guid: 346e67132d2659847882969b197d923a, type: 3}
   rarity: 3
   damageBonusMin: 30
