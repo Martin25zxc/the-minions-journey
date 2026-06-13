@@ -17,8 +17,14 @@ MonoBehaviour:
   baseDamage: 5
   attackRange: 1.8
   attackArc: 120
+  impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.32
   cooldown: 0.65
+  applyImpact: 1
+  knockbackDistance: 0.2
+  knockbackDuration: 0.08
+  stunDuration: 0
+  interruptCurrentAction: 0
   visualDuration: 0.16
   visualWidth: 0.24
   slashColor: {r: 0, g: 1, b: 0, a: 1}

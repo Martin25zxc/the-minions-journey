@@ -20,6 +20,11 @@ MonoBehaviour:
   impactOriginOffset: {x: 0.6, y: 0.35}
   impactDelaySeconds: 0.52
   cooldown: 0.85
+  applyImpact: 1
+  knockbackDistance: 0.05
+  knockbackDuration: 0.05
+  stunDuration: 0.2
+  interruptCurrentAction: 0
   visualDuration: 0.22
   visualWidth: 0.35
   slashColor: {r: 1, g: 0.6509804, b: 0.2509804, a: 1}

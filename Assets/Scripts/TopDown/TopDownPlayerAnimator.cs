@@ -29,13 +29,21 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     private static readonly int LeapSlashAttackHash = Animator.StringToHash("LeapSlashAttack");
     private static readonly int SpinSlashAttackHash = Animator.StringToHash("SpinSlashAttack");
 
-    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int HitFrontHash = Animator.StringToHash("HitFront");
+    private static readonly int HitBackHash = Animator.StringToHash("HitBack");
     private static readonly int DieHash = Animator.StringToHash("Die");
 
     private static readonly int IsBlockingHash = Animator.StringToHash("IsBlocking");
     private static readonly int DodgeHash = Animator.StringToHash("Dodge");
     private static readonly int UseItemHash = Animator.StringToHash("UseItem");
     private static readonly int InteractHash = Animator.StringToHash("Interact");
+
+    [Header("Hit Reaction")]
+    [SerializeField]
+    private bool ignoreHitAnimationWhileAttacking = true;
+
+    [SerializeField, Range(-1f, 1f)]
+    private float frontBackThreshold = 0f;
 
     private void Awake()
     {
@@ -107,11 +115,116 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         animator?.SetTrigger(SpinSlashAttackHash);
     }
 
-    public void PlayHit()
+    public void PlayHit(TMJ_DamageInfo damageInfo)
     {
-        animator?.SetTrigger(HitHash);
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (ShouldIgnoreHitAnimation())
+        {
+            return;
+        }
+
+        Vector3 directionToSource = damageInfo.SourcePosition - transform.position;
+        directionToSource.y = 0f;
+
+        if (directionToSource.sqrMagnitude < 0.0001f)
+        {
+            PlayHitFront();
+            return;
+        }
+
+        directionToSource.Normalize();
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude < 0.0001f)
+        {
+            PlayHitFront();
+            return;
+        }
+
+        forward.Normalize();
+
+        float dot = Vector3.Dot(forward, directionToSource);
+
+        if (dot >= frontBackThreshold)
+        {
+            PlayHitFront();
+        }
+        else
+        {
+            PlayHitBack();
+        }
     }
 
+    public void PlayHitFront()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.ResetTrigger(HitBackHash);
+        animator.SetTrigger(HitFrontHash);
+    }
+
+    public void PlayHitBack()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.ResetTrigger(HitFrontHash);
+        animator.SetTrigger(HitBackHash);
+    }
+
+    private bool ShouldIgnoreHitAnimation()
+    {
+        if (animator == null)
+        {
+            return true;
+        }
+
+        if (IsCurrentOrNextStateTagged("Death"))
+        {
+            return true;
+        }
+
+        if (IsCurrentOrNextStateTagged("Hit"))
+        {
+            return true;
+        }
+
+        if (ignoreHitAnimationWhileAttacking && IsCurrentOrNextStateTagged("Attack"))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool IsCurrentOrNextStateTagged(string tag)
+    {
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(0);
+
+        if (currentState.IsTag(tag))
+        {
+            return true;
+        }
+
+        if (!animator.IsInTransition(0))
+        {
+            return false;
+        }
+
+        AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(0);
+        return nextState.IsTag(tag);
+    }
     public void PlayDeath()
     {
         animator?.SetTrigger(DieHash);

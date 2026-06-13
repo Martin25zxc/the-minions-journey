@@ -10,11 +10,11 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     private TMJ_WeaponLoadout weaponLoadout;
 
     [Header("Attack Profiles")]
-    [Tooltip("Profile used by left-click / light attack.")]
+    [Tooltip("Profile usado por click izquierdo / ataque liviano. Es obligatorio: si falta, el ataque no se ejecuta para evitar valores ocultos en código.")]
     [SerializeField]
     private PlayerMeleeAttackProfile lightAttackProfile;
 
-    [Tooltip("Profile used by right-click / heavy attack.")]
+    [Tooltip("Profile usado por click derecho / ataque pesado. Es obligatorio: si falta, el ataque no se ejecuta para evitar valores ocultos en código.")]
     [SerializeField]
     private PlayerMeleeAttackProfile heavyAttackProfile;
 
@@ -29,14 +29,11 @@ public sealed class TopDownSlashAttack : TopDownWeapon
     [SerializeField]
     private LayerMask hittableLayers = ~0;
 
-    [Header("Debug Fallbacks")]
-    [Tooltip("Permite que los ataques sigan funcionando si todavía no asignaste profiles. Es cómodo para prototipar, pero la ruta recomendada es usar PlayerMeleeAttackProfile assets.")]
-    [SerializeField]
-    private bool useFallbackProfilesWhenMissing = true;
-
     private float nextLightAttackTime;
     private float nextHeavyAttackTime;
     private float nextComboAttackTime;
+    private bool missingLightProfileWarningShown;
+    private bool missingHeavyProfileWarningShown;
 
     private void Awake()
     {
@@ -48,14 +45,14 @@ public sealed class TopDownSlashAttack : TopDownWeapon
 
     public override bool TryLightAttack(Vector3 facingDirection)
     {
-        AttackProfile profile = GetLightProfile();
-        return TryAttack(ref nextLightAttackTime, facingDirection, profile, 1f);
+        ResolvedMeleeAttack attack = GetLightAttack();
+        return TryAttack(ref nextLightAttackTime, facingDirection, attack, 1f);
     }
 
     public override bool TryHeavyAttack(Vector3 facingDirection)
     {
-        AttackProfile profile = GetHeavyProfile();
-        return TryAttack(ref nextHeavyAttackTime, facingDirection, profile, 1f);
+        ResolvedMeleeAttack attack = GetHeavyAttack();
+        return TryAttack(ref nextHeavyAttackTime, facingDirection, attack, 1f);
     }
 
     public override bool TryComboAttack(TopDownCombatComboDefinition combo, Vector3 facingDirection)
@@ -65,38 +62,36 @@ public sealed class TopDownSlashAttack : TopDownWeapon
             return false;
         }
 
-        AttackProfile baseProfile = GetComboBaseProfile(combo);
-        AttackProfile comboProfile = baseProfile.WithMultipliers(
-            combo.DamageMultiplier,
+        ResolvedMeleeAttack baseAttack = GetComboBaseAttack(combo);
+        ResolvedMeleeAttack comboAttack = baseAttack.WithMultipliers(
             combo.RangeMultiplier,
             combo.ArcMultiplier,
             combo.CooldownMultiplier,
             combo.VisualDurationMultiplier,
             combo.VisualWidthMultiplier,
-            combo.UseSlashColorOverride ? combo.SlashColorOverride : baseProfile.slashColor);
+            combo.UseSlashColorOverride ? combo.SlashColorOverride : baseAttack.SlashColor);
 
-        return TryAttack(ref nextComboAttackTime, facingDirection, comboProfile, combo.DamageMultiplier);
+        return TryAttack(ref nextComboAttackTime, facingDirection, comboAttack, combo.DamageMultiplier);
     }
 
-    private AttackProfile GetComboBaseProfile(TopDownCombatComboDefinition combo)
+    private ResolvedMeleeAttack GetComboBaseAttack(TopDownCombatComboDefinition combo)
     {
-        // Por ahora el offset de origen solo lo usamos en LeapSlash y solo si ese combo tiene profile propio.
-        // Así evitamos que un offset puesto en Light/Heavy afecte ataques normales o combos que caen al fallback.
-        bool useImpactOriginOffset = combo.AnimationCue == PlayerComboAnimationCue.LeapSlash;
-
         if (combo.OverrideAttackProfile != null)
         {
-            return AttackProfile.FromAsset(combo.OverrideAttackProfile, useImpactOriginOffset);
+            return ResolvedMeleeAttack.FromAsset(combo.OverrideAttackProfile);
         }
 
+        // Si el combo no tiene profile propio, cae al Light/Heavy configurado.
+        // Esto mantiene compatibilidad con combos simples, pero para combos con identidad fuerte
+        // como LeapSlash o SpinSlash conviene asignar Override Attack Profile.
         return combo.WeaponAttackStyle == TopDownCombatAttackStyle.Light
-            ? GetLightProfile()
-            : GetHeavyProfile();
+            ? GetLightAttack()
+            : GetHeavyAttack();
     }
 
-    private bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, AttackProfile profile, float damageMultiplier)
+    private bool TryAttack(ref float nextAttackTime, Vector3 facingDirection, ResolvedMeleeAttack attack, float damageMultiplier)
     {
-        if (!profile.isValid)
+        if (!attack.IsValid)
         {
             return false;
         }
@@ -107,50 +102,45 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         }
 
         facingDirection = NormalizeFacingDirection(facingDirection, transform.forward);
-        nextAttackTime = Time.time + profile.cooldown;
+        nextAttackTime = Time.time + attack.Cooldown;
 
         // El bonus del arma se tira cuando el ataque queda aceptado, no cuando pega.
         // Así no cambia el daño si el jugador cambia el loadout durante el delay del impacto.
-        float damage = CalculateFinalDamage(profile.baseDamage, damageMultiplier, profile.weaponUseSlot);
+        float damage = CalculateFinalDamage(attack.BaseDamage, damageMultiplier, attack.WeaponUseSlot);
 
-        if (profile.impactDelaySeconds <= 0f)
+        if (attack.ImpactDelaySeconds <= 0f)
         {
-            ResolveAttackImpact(facingDirection, damage, profile);
+            ResolveAttackImpact(facingDirection, damage, attack);
             return true;
         }
 
-        StartCoroutine(ResolveAttackImpactAfterDelay(facingDirection, damage, profile));
+        StartCoroutine(ResolveAttackImpactAfterDelay(facingDirection, damage, attack));
         return true;
     }
 
-    private IEnumerator ResolveAttackImpactAfterDelay(Vector3 facingDirection, float damage, AttackProfile profile)
+    private IEnumerator ResolveAttackImpactAfterDelay(Vector3 facingDirection, float damage, ResolvedMeleeAttack attack)
     {
-        yield return new WaitForSeconds(profile.impactDelaySeconds);
-        ResolveAttackImpact(facingDirection, damage, profile);
+        yield return new WaitForSeconds(attack.ImpactDelaySeconds);
+        ResolveAttackImpact(facingDirection, damage, attack);
     }
 
-    private void ResolveAttackImpact(Vector3 facingDirection, float damage, AttackProfile profile)
+    private void ResolveAttackImpact(Vector3 facingDirection, float damage, ResolvedMeleeAttack attack)
     {
-        Vector3 impactOrigin = CalculateImpactOrigin(facingDirection, profile);
+        Vector3 impactOrigin = CalculateImpactOrigin(facingDirection, attack.ImpactOriginOffset);
 
-        ApplyDamage(impactOrigin, facingDirection, damage, profile.attackRange, profile.attackArc);
-        StartCoroutine(PlaySlashVisual(impactOrigin, facingDirection, profile.attackRange, profile.attackArc, profile.visualDuration, profile.visualWidth, profile.slashColor));
+        ResolveHits(impactOrigin, facingDirection, damage, attack);
+        StartCoroutine(PlaySlashVisual(impactOrigin, facingDirection, attack.AttackRange, attack.AttackArc, attack.VisualDuration, attack.VisualWidth, attack.SlashColor));
     }
 
-    private Vector3 CalculateImpactOrigin(Vector3 facingDirection, AttackProfile profile)
+    private Vector3 CalculateImpactOrigin(Vector3 facingDirection, Vector2 impactOriginOffset)
     {
-        if (!profile.useImpactOriginOffset)
-        {
-            return transform.position;
-        }
-
         Vector3 localRight = Vector3.Cross(Vector3.up, facingDirection).normalized;
-        Vector2 offset = profile.impactOriginOffset;
 
-        // Convención del profile:
+        // Convención del PlayerMeleeAttackProfile:
         // X = derecha/izquierda local del jugador.
         // Y = adelante/atrás según hacia dónde mira.
-        return transform.position + localRight * offset.x + facingDirection * offset.y;
+        // Si el offset es 0,0, esto no cambia nada; por eso no necesitamos un bool extra.
+        return transform.position + localRight * impactOriginOffset.x + facingDirection * impactOriginOffset.y;
     }
 
     private float CalculateFinalDamage(float baseDamage, float damageMultiplier, TMJ_WeaponUseSlot weaponUseSlot)
@@ -162,34 +152,43 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         return safeBaseDamage * safeMultiplier + weaponBonus;
     }
 
-    private AttackProfile GetLightProfile()
+    private ResolvedMeleeAttack GetLightAttack()
     {
         if (lightAttackProfile != null)
         {
-            return AttackProfile.FromAsset(lightAttackProfile);
+            return ResolvedMeleeAttack.FromAsset(lightAttackProfile);
         }
 
-        return useFallbackProfilesWhenMissing
-            ? AttackProfile.CreateFallbackLight()
-            : AttackProfile.Invalid;
+        LogMissingProfileOnce(ref missingLightProfileWarningShown, nameof(lightAttackProfile));
+        return ResolvedMeleeAttack.Invalid;
     }
 
-    private AttackProfile GetHeavyProfile()
+    private ResolvedMeleeAttack GetHeavyAttack()
     {
         if (heavyAttackProfile != null)
         {
-            return AttackProfile.FromAsset(heavyAttackProfile);
+            return ResolvedMeleeAttack.FromAsset(heavyAttackProfile);
         }
 
-        return useFallbackProfilesWhenMissing
-            ? AttackProfile.CreateFallbackHeavy()
-            : AttackProfile.Invalid;
+        LogMissingProfileOnce(ref missingHeavyProfileWarningShown, nameof(heavyAttackProfile));
+        return ResolvedMeleeAttack.Invalid;
     }
 
-    private void ApplyDamage(Vector3 impactOrigin, Vector3 facingDirection, float damage, float attackRange, float attackArc)
+    private void LogMissingProfileOnce(ref bool warningWasShown, string fieldName)
     {
-        float safeRange = Mathf.Max(0.1f, attackRange);
-        float safeArc = Mathf.Clamp(attackArc, 0f, 360f);
+        if (warningWasShown)
+        {
+            return;
+        }
+
+        warningWasShown = true;
+        Debug.LogWarning($"{nameof(TopDownSlashAttack)} on '{name}' needs '{fieldName}' assigned. Attack cancelled instead of using hidden fallback values.", this);
+    }
+
+    private void ResolveHits(Vector3 impactOrigin, Vector3 facingDirection, float damage, ResolvedMeleeAttack attack)
+    {
+        float safeRange = Mathf.Max(0.1f, attack.AttackRange);
+        float safeArc = Mathf.Clamp(attack.AttackArc, 0f, 360f);
         bool isFullCircle = safeArc >= 359.9f;
 
         Vector3 impactOriginAtHeight = impactOrigin + Vector3.up * hitHeight;
@@ -236,7 +235,7 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 continue;
             }
 
-            TMJ_DamageUtility.TryDamageCollider(
+            bool damaged = TMJ_DamageUtility.TryDamageCollider(
                 hit,
                 damage,
                 impactOrigin,
@@ -244,7 +243,130 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 hittableLayers,
                 gameObject,
                 processedTargets);
+
+            if (damaged && CanApplyImpactAfterDamage(hit, damageable))
+            {
+                TryApplyImpact(hit, damageable, impactOrigin, facingDirection, attack);
+            }
         }
+    }
+
+    private void TryApplyImpact(Collider hit, ITopDownDamageable damageable, Vector3 impactOrigin, Vector3 fallbackDirection, ResolvedMeleeAttack attack)
+    {
+        if (!attack.ApplyImpact || !CanApplyImpactAfterDamage(hit, damageable))
+        {
+            return;
+        }
+
+        IImpactReceiver impactReceiver = FindImpactReceiver(hit, damageable);
+        if (impactReceiver == null)
+        {
+            return;
+        }
+
+        Transform targetTransform = damageable is MonoBehaviour damageableBehaviour
+            ? damageableBehaviour.transform
+            : hit.transform;
+
+        Vector3 impactDirection = targetTransform.position - impactOrigin;
+        impactDirection.y = 0f;
+
+        if (impactDirection.sqrMagnitude <= 0.0001f)
+        {
+            impactDirection = fallbackDirection;
+        }
+
+        ImpactInfo impactInfo = new ImpactInfo(
+            gameObject,
+            impactOrigin,
+            impactDirection,
+            attack.KnockbackDistance,
+            attack.KnockbackDuration,
+            attack.StunDuration,
+            attack.InterruptCurrentAction);
+
+        impactReceiver.ReceiveImpact(impactInfo);
+    }
+
+
+    private static bool CanApplyImpactAfterDamage(Collider hit, ITopDownDamageable damageable)
+    {
+        // El daño puede matar al enemigo y disparar su lógica de muerte antes de que intentemos aplicar knockback/stun.
+        // Si el target murió, fue destruido o quedó desactivado, no le aplicamos impacto: la muerte manda.
+        if (hit == null || damageable == null)
+        {
+            return false;
+        }
+
+        if (damageable is Object damageableObject && damageableObject == null)
+        {
+            return false;
+        }
+
+        if (damageable is MonoBehaviour damageableBehaviour)
+        {
+            if (damageableBehaviour == null || !damageableBehaviour.gameObject.activeInHierarchy)
+            {
+                return false;
+            }
+
+            TopDownHealth health = damageableBehaviour.GetComponentInParent<TopDownHealth>();
+            if (health != null && health.CurrentHealth <= 0f)
+            {
+                return false;
+            }
+        }
+
+        TopDownHealth hitHealth = hit.GetComponentInParent<TopDownHealth>();
+        if (hitHealth != null && hitHealth.CurrentHealth <= 0f)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static IImpactReceiver FindImpactReceiver(Collider hit, ITopDownDamageable damageable)
+    {
+        if (damageable is Object damageableObject && damageableObject == null)
+        {
+            return null;
+        }
+
+        if (damageable is MonoBehaviour damageableBehaviour)
+        {
+            if (damageableBehaviour == null || !damageableBehaviour.gameObject.activeInHierarchy)
+            {
+                return null;
+            }
+
+            IImpactReceiver receiver = FindInterfaceInParents<IImpactReceiver>(damageableBehaviour.transform);
+            if (receiver != null)
+            {
+                return receiver;
+            }
+        }
+
+        return hit != null ? FindInterfaceInParents<IImpactReceiver>(hit.transform) : null;
+    }
+
+    private static TInterface FindInterfaceInParents<TInterface>(Transform start) where TInterface : class
+    {
+        if (start == null)
+        {
+            return null;
+        }
+
+        MonoBehaviour[] behaviours = start.GetComponentsInParent<MonoBehaviour>(true);
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            if (behaviours[i] is TInterface found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private IEnumerator PlaySlashVisual(Vector3 impactOrigin, Vector3 facingDirection, float attackRange, float attackArc, float visualDuration, float visualWidth, Color slashColor)
@@ -331,9 +453,9 @@ public sealed class TopDownSlashAttack : TopDownWeapon
         return lineMaterial;
     }
 
-    private readonly struct AttackProfile
+    private readonly struct ResolvedMeleeAttack
     {
-        public AttackProfile(
+        private ResolvedMeleeAttack(
             bool isValid,
             TMJ_WeaponUseSlot weaponUseSlot,
             float cooldown,
@@ -342,43 +464,76 @@ public sealed class TopDownSlashAttack : TopDownWeapon
             float attackRange,
             float attackArc,
             Vector2 impactOriginOffset,
-            bool useImpactOriginOffset,
+            bool applyImpact,
+            float knockbackDistance,
+            float knockbackDuration,
+            float stunDuration,
+            bool interruptCurrentAction,
             float visualDuration,
             float visualWidth,
             Color slashColor)
         {
-            this.isValid = isValid;
-            this.weaponUseSlot = weaponUseSlot;
-            this.cooldown = cooldown;
-            this.impactDelaySeconds = impactDelaySeconds;
-            this.baseDamage = baseDamage;
-            this.attackRange = attackRange;
-            this.attackArc = attackArc;
-            this.impactOriginOffset = impactOriginOffset;
-            this.useImpactOriginOffset = useImpactOriginOffset;
-            this.visualDuration = visualDuration;
-            this.visualWidth = visualWidth;
-            this.slashColor = slashColor;
+            IsValid = isValid;
+            WeaponUseSlot = weaponUseSlot;
+            Cooldown = cooldown;
+            ImpactDelaySeconds = impactDelaySeconds;
+            BaseDamage = baseDamage;
+            AttackRange = attackRange;
+            AttackArc = attackArc;
+            ImpactOriginOffset = impactOriginOffset;
+            ApplyImpact = applyImpact;
+            KnockbackDistance = knockbackDistance;
+            KnockbackDuration = knockbackDuration;
+            StunDuration = stunDuration;
+            InterruptCurrentAction = interruptCurrentAction;
+            VisualDuration = visualDuration;
+            VisualWidth = visualWidth;
+            SlashColor = slashColor;
         }
 
-        public bool isValid { get; }
-        public TMJ_WeaponUseSlot weaponUseSlot { get; }
-        public float cooldown { get; }
-        public float impactDelaySeconds { get; }
-        public float baseDamage { get; }
-        public float attackRange { get; }
-        public float attackArc { get; }
-        public Vector2 impactOriginOffset { get; }
-        public bool useImpactOriginOffset { get; }
-        public float visualDuration { get; }
-        public float visualWidth { get; }
-        public Color slashColor { get; }
+        public bool IsValid { get; }
+        public TMJ_WeaponUseSlot WeaponUseSlot { get; }
+        public float Cooldown { get; }
+        public float ImpactDelaySeconds { get; }
+        public float BaseDamage { get; }
+        public float AttackRange { get; }
+        public float AttackArc { get; }
+        public Vector2 ImpactOriginOffset { get; }
+        public bool ApplyImpact { get; }
+        public float KnockbackDistance { get; }
+        public float KnockbackDuration { get; }
+        public float StunDuration { get; }
+        public bool InterruptCurrentAction { get; }
+        public float VisualDuration { get; }
+        public float VisualWidth { get; }
+        public Color SlashColor { get; }
 
-        public static AttackProfile Invalid => new AttackProfile(false, TMJ_WeaponUseSlot.LightAttack, 0f, 0f, 0f, 0f, 0f, Vector2.zero, false, 0f, 0f, Color.white);
+        public static ResolvedMeleeAttack Invalid => new ResolvedMeleeAttack(
+            false,
+            TMJ_WeaponUseSlot.LightAttack,
+            0f,
+            0f,
+            0f,
+            0f,
+            0f,
+            Vector2.zero,
+            false,
+            0f,
+            0f,
+            0f,
+            false,
+            0f,
+            0f,
+            Color.white);
 
-        public static AttackProfile FromAsset(PlayerMeleeAttackProfile profile, bool useImpactOriginOffset = false)
+        public static ResolvedMeleeAttack FromAsset(PlayerMeleeAttackProfile profile)
         {
-            return new AttackProfile(
+            if (profile == null)
+            {
+                return Invalid;
+            }
+
+            return new ResolvedMeleeAttack(
                 true,
                 profile.WeaponUseSlot,
                 profile.Cooldown,
@@ -387,48 +542,17 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 profile.AttackRange,
                 profile.AttackArc,
                 profile.ImpactOriginOffset,
-                useImpactOriginOffset,
+                profile.ApplyImpact,
+                profile.KnockbackDistance,
+                profile.KnockbackDuration,
+                profile.StunDuration,
+                profile.InterruptCurrentAction,
                 profile.VisualDuration,
                 profile.VisualWidth,
                 profile.SlashColor);
         }
 
-        public static AttackProfile CreateFallbackLight()
-        {
-            return new AttackProfile(
-                true,
-                TMJ_WeaponUseSlot.LightAttack,
-                0.25f,
-                0.05f,
-                1f,
-                1.8f,
-                95f,
-                Vector2.zero,
-                false,
-                0.12f,
-                0.18f,
-                new Color(1f, 0.9f, 0.6f, 1f));
-        }
-
-        public static AttackProfile CreateFallbackHeavy()
-        {
-            return new AttackProfile(
-                true,
-                TMJ_WeaponUseSlot.HeavyAttack,
-                0.65f,
-                0.14f,
-                2.25f,
-                2.25f,
-                120f,
-                Vector2.zero,
-                false,
-                0.16f,
-                0.24f,
-                new Color(1f, 0.75f, 0.35f, 1f));
-        }
-
-        public AttackProfile WithMultipliers(
-            float damageMultiplier,
+        public ResolvedMeleeAttack WithMultipliers(
             float rangeMultiplier,
             float arcMultiplier,
             float cooldownMultiplier,
@@ -436,18 +560,27 @@ public sealed class TopDownSlashAttack : TopDownWeapon
             float visualWidthMultiplier,
             Color comboSlashColor)
         {
-            return new AttackProfile(
-                isValid,
-                weaponUseSlot,
-                cooldown * Mathf.Max(0.01f, cooldownMultiplier),
-                impactDelaySeconds,
-                baseDamage,
-                attackRange * Mathf.Max(0.1f, rangeMultiplier),
-                Mathf.Clamp(attackArc * Mathf.Max(0.1f, arcMultiplier), 0f, 360f),
-                impactOriginOffset,
-                useImpactOriginOffset,
-                visualDuration * Mathf.Max(0.01f, visualDurationMultiplier),
-                visualWidth * Mathf.Max(0.01f, visualWidthMultiplier),
+            if (!IsValid)
+            {
+                return Invalid;
+            }
+
+            return new ResolvedMeleeAttack(
+                IsValid,
+                WeaponUseSlot,
+                Cooldown * Mathf.Max(0.01f, cooldownMultiplier),
+                ImpactDelaySeconds,
+                BaseDamage,
+                AttackRange * Mathf.Max(0.1f, rangeMultiplier),
+                Mathf.Clamp(AttackArc * Mathf.Max(0.1f, arcMultiplier), 0f, 360f),
+                ImpactOriginOffset,
+                ApplyImpact,
+                KnockbackDistance,
+                KnockbackDuration,
+                StunDuration,
+                InterruptCurrentAction,
+                VisualDuration * Mathf.Max(0.01f, visualDurationMultiplier),
+                VisualWidth * Mathf.Max(0.01f, visualWidthMultiplier),
                 comboSlashColor);
         }
     }
