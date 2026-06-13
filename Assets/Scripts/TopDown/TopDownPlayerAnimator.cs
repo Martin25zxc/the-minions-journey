@@ -5,38 +5,39 @@ using UnityEngine;
 public sealed class TopDownPlayerAnimator : MonoBehaviour
 {
     [SerializeField]
-    Animator animator;
+    private Animator animator;
 
     [Header("Locomotion")]
     [SerializeField, Min(0.01f)]
-    float locomotionBlendSpeed = 5f;
+    private float locomotionBlendSpeed = 5f;
 
     [SerializeField, Min(0.01f)]
-    float moveDampTime = 0.08f;
+    private float moveDampTime = 0.08f;
 
     [Header("Optional")]
     [SerializeField, Min(0.01f)]
-    float speedDampTime = 0.08f;
+    private float speedDampTime = 0.08f;
 
-    Rigidbody body;
+    private Rigidbody body;
 
-    static readonly int SpeedHash = Animator.StringToHash("Speed");
-    static readonly int MoveXHash = Animator.StringToHash("MoveX");
-    static readonly int MoveYHash = Animator.StringToHash("MoveY");
+    private static readonly int SpeedHash = Animator.StringToHash("Speed");
+    private static readonly int MoveXHash = Animator.StringToHash("MoveX");
+    private static readonly int MoveYHash = Animator.StringToHash("MoveY");
 
-    static readonly int LightAttackHash = Animator.StringToHash("LightAttack");
-    static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
-    static readonly int ComboAttackHash = Animator.StringToHash("ComboAttack");
+    private static readonly int LightAttackHash = Animator.StringToHash("LightAttack");
+    private static readonly int HeavyAttackHash = Animator.StringToHash("HeavyAttack");
+    private static readonly int LeapSlashAttackHash = Animator.StringToHash("LeapSlashAttack");
+    private static readonly int SpinSlashAttackHash = Animator.StringToHash("SpinSlashAttack");
 
-    static readonly int HitHash = Animator.StringToHash("Hit");
-    static readonly int DieHash = Animator.StringToHash("Die");
+    private static readonly int HitHash = Animator.StringToHash("Hit");
+    private static readonly int DieHash = Animator.StringToHash("Die");
 
-    static readonly int IsBlockingHash = Animator.StringToHash("IsBlocking");
-    static readonly int DodgeHash = Animator.StringToHash("Dodge");
-    static readonly int UseItemHash = Animator.StringToHash("UseItem");
-    static readonly int InteractHash = Animator.StringToHash("Interact");
+    private static readonly int IsBlockingHash = Animator.StringToHash("IsBlocking");
+    private static readonly int DodgeHash = Animator.StringToHash("Dodge");
+    private static readonly int UseItemHash = Animator.StringToHash("UseItem");
+    private static readonly int InteractHash = Animator.StringToHash("Interact");
 
-    void Awake()
+    private void Awake()
     {
         body = GetComponent<Rigidbody>();
 
@@ -46,7 +47,7 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         }
     }
 
-    void Update()
+    private void Update()
     {
         if (animator == null || body == null)
         {
@@ -78,9 +79,32 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         animator?.SetTrigger(HeavyAttackHash);
     }
 
-    public void PlayComboAttack()
+    public void PlayCombo(PlayerComboAnimationCue animationCue)
     {
-        animator?.SetTrigger(ComboAttackHash);
+        switch (animationCue)
+        {
+            case PlayerComboAnimationCue.LeapSlash:
+                PlayLeapSlashAttack();
+                break;
+
+            case PlayerComboAnimationCue.SpinSlash:
+                PlaySpinSlashAttack();
+                break;
+
+            case PlayerComboAnimationCue.None:
+            default:
+                break;
+        }
+    }
+
+    public void PlayLeapSlashAttack()
+    {
+        animator?.SetTrigger(LeapSlashAttackHash);
+    }
+
+    public void PlaySpinSlashAttack()
+    {
+        animator?.SetTrigger(SpinSlashAttackHash);
     }
 
     public void PlayHit()

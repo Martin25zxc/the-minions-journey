@@ -12,12 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0b6b203301a8a3f49a7f0572e24b98e3, type: 3}
   m_Name: PMA_HeavyAttack
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMeleeAttackProfile
-  attackName: Melee Heavy Attack
+  displayName: Heavy Attack
   weaponUseSlot: 1
   baseDamage: 5
-  cooldown: 0.65
-  attackRange: 2.25
+  attackRange: 1.8
   attackArc: 120
+  impactDelaySeconds: 0.32
+  cooldown: 0.65
   visualDuration: 0.16
   visualWidth: 0.24
   slashColor: {r: 0, g: 1, b: 0, a: 1}

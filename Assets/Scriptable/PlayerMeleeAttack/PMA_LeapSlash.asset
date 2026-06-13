@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0b6b203301a8a3f49a7f0572e24b98e3, type: 3}
-  m_Name: PMA_LightAttack
+  m_Name: PMA_LeapSlash
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMeleeAttackProfile
-  displayName: Light Attack
-  weaponUseSlot: 0
-  baseDamage: 2
-  attackRange: 1.8
-  attackArc: 100
-  impactOriginOffset: {x: 0, y: 0}
-  impactDelaySeconds: 0.2
-  cooldown: 0.25
-  visualDuration: 0.12
-  visualWidth: 0.18
-  slashColor: {r: 1, g: 0, b: 0, a: 1}
+  displayName: Leap Slash
+  weaponUseSlot: 1
+  baseDamage: 2.6
+  attackRange: 1.82
+  attackArc: 130
+  impactOriginOffset: {x: 0.6, y: 0.35}
+  impactDelaySeconds: 0.52
+  cooldown: 0.85
+  visualDuration: 0.22
+  visualWidth: 0.35
+  slashColor: {r: 1, g: 0.6509804, b: 0.2509804, a: 1}
