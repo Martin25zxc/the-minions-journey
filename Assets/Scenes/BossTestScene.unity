@@ -1915,6 +1915,14 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 5771361122577566460, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: heavyAttackProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 5ba94248c4b7e3d4c97f094a91734043, type: 2}
+    - target: {fileID: 5771361122577566460, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: lightAttackProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 59afdee14c974fa4db0542f0fb4e44be, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

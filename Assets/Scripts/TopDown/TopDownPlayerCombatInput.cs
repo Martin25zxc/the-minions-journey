@@ -1,37 +1,43 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using System.Collections.Generic;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(TopDownPlayerController))]
 public sealed class TopDownPlayerCombatInput : MonoBehaviour
 {
+    [Header("Combat References")]
     [SerializeField]
-    TopDownWeapon equippedWeapon;
+    private TopDownWeapon equippedWeapon;
 
     [SerializeField]
-    TopDownPower powerQ;
+    private TopDownPower powerQ;
 
     [SerializeField]
-    TopDownPower powerE;
+    private TopDownPower powerE;
 
+    [SerializeField]
+    private TopDownPlayerAnimator playerAnimator;
+
+    [SerializeField]
+    private TopDownEquipmentVisualManager equipmentVisuals;
+
+    [Header("Combos")]
     [SerializeField, Min(0.25f)]
-    float comboHistoryWindow = 1.5f;
+    private float comboHistoryWindow = 1.5f;
 
+    [Tooltip("Combos disponibles para el jugador. El orden importa si dos combos empatan en largo y prioridad.")]
     [SerializeField]
-    List<TopDownCombatComboDefinition> comboDefinitions = new List<TopDownCombatComboDefinition>();
+    private List<TopDownCombatComboDefinition> comboDefinitions = new List<TopDownCombatComboDefinition>();
 
-    readonly List<TopDownCombatInputEvent> inputHistory = new List<TopDownCombatInputEvent>();
-
-    TopDownPlayerController playerController;
-
+    [Tooltip("Agrega los combos default si faltan. Desactivalo si querés administrar la lista completamente a mano.")]
     [SerializeField]
-    TopDownPlayerAnimator playerAnimator;
+    private bool autoEnsureDefaultCombos = true;
 
-    [SerializeField]
-    TopDownEquipmentVisualManager equipmentVisuals;
+    private readonly List<TopDownCombatInputEvent> inputHistory = new List<TopDownCombatInputEvent>();
+    private TopDownPlayerController playerController;
 
-    void Awake()
+    private void Awake()
     {
         playerController = GetComponent<TopDownPlayerController>();
 
@@ -51,20 +57,63 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         }
     }
 
-    void OnValidate()
+    private void OnValidate()
     {
         if (comboDefinitions == null)
         {
             comboDefinitions = new List<TopDownCombatComboDefinition>();
         }
 
-        if (comboDefinitions.Count == 0)
+        NormalizeComboDefinitions();
+
+        if (autoEnsureDefaultCombos)
         {
-            comboDefinitions.Add(TopDownCombatComboDefinition.CreateDefaultTripleSlash());
+            EnsureDefaultCombos();
+        }
+        else if (comboDefinitions.Count == 0)
+        {
+            comboDefinitions.Add(TopDownCombatComboDefinition.CreateDefaultLeapSlash());
         }
     }
 
-    void Update()
+    private void NormalizeComboDefinitions()
+    {
+        for (int i = 0; i < comboDefinitions.Count; i++)
+        {
+            comboDefinitions[i]?.NormalizeForInspector();
+        }
+    }
+
+    private void EnsureDefaultCombos()
+    {
+        IReadOnlyList<TopDownCombatComboDefinition> defaultCombos = TopDownCombatComboDefinition.CreateDefaultWeaponCombos();
+        for (int i = 0; i < defaultCombos.Count; i++)
+        {
+            TopDownCombatComboDefinition defaultCombo = defaultCombos[i];
+            if (defaultCombo == null || string.IsNullOrWhiteSpace(defaultCombo.ComboId) || HasCombo(defaultCombo.ComboId))
+            {
+                continue;
+            }
+
+            comboDefinitions.Add(defaultCombo);
+        }
+    }
+
+    private bool HasCombo(string comboId)
+    {
+        for (int i = 0; i < comboDefinitions.Count; i++)
+        {
+            TopDownCombatComboDefinition combo = comboDefinitions[i];
+            if (combo != null && combo.ComboId == comboId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void Update()
     {
         Vector3 facingDirection = playerController != null ? playerController.AimDirection : transform.forward;
 
@@ -91,7 +140,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         }
     }
 
-    void HandleInput(TopDownCombatInputAction action, Vector3 facingDirection)
+    private void HandleInput(TopDownCombatInputAction action, Vector3 facingDirection)
     {
         float currentTime = Time.time;
         inputHistory.Add(new TopDownCombatInputEvent(action, currentTime));
@@ -105,7 +154,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         ExecuteBaseAction(action, facingDirection);
     }
 
-    bool TryResolveCombo(Vector3 facingDirection, float currentTime, out TopDownCombatComboDefinition comboDefinition)
+    private bool TryResolveCombo(Vector3 facingDirection, float currentTime, out TopDownCombatComboDefinition comboDefinition)
     {
         if (!TopDownCombatComboMatcher.TryFindBestMatch(inputHistory, comboDefinitions, currentTime, out comboDefinition))
         {
@@ -120,14 +169,16 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
                 if (executed)
                 {
-                    equipmentVisuals?.SetWeaponInHand(ToWeaponUseSlot(comboDefinition.WeaponAttackStyle));
-                    playerAnimator?.PlayComboAttack();
+                    equipmentVisuals?.SetWeaponInHand(comboDefinition.EffectiveWeaponUseSlot);
+                    playerAnimator?.PlayCombo(comboDefinition.AnimationCue);
                 }
 
                 break;
+
             case TopDownCombatComboTarget.PowerQ:
                 executed = powerQ != null && powerQ.TryComboActivate(comboDefinition, facingDirection);
                 break;
+
             case TopDownCombatComboTarget.PowerE:
                 executed = powerE != null && powerE.TryComboActivate(comboDefinition, facingDirection);
                 break;
@@ -141,7 +192,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         return executed;
     }
 
-    void ExecuteBaseAction(TopDownCombatInputAction action, Vector3 facingDirection)
+    private void ExecuteBaseAction(TopDownCombatInputAction action, Vector3 facingDirection)
     {
         switch (action)
         {
@@ -151,6 +202,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
                     equipmentVisuals?.SetWeaponInHand(TMJ_WeaponUseSlot.LightAttack);
                     playerAnimator?.PlayLightAttack();
                 }
+
                 break;
 
             case TopDownCombatInputAction.HeavyAttack:
@@ -159,6 +211,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
                     equipmentVisuals?.SetWeaponInHand(TMJ_WeaponUseSlot.HeavyAttack);
                     playerAnimator?.PlayHeavyAttack();
                 }
+
                 break;
 
             case TopDownCombatInputAction.PowerQ:
@@ -171,14 +224,8 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         }
     }
 
-    static TMJ_WeaponUseSlot ToWeaponUseSlot(TopDownCombatAttackStyle attackStyle)
-    {
-        return attackStyle == TopDownCombatAttackStyle.Light
-            ? TMJ_WeaponUseSlot.LightAttack
-            : TMJ_WeaponUseSlot.HeavyAttack;
-    }
 
-    void TrimInputHistory(float currentTime)
+    private void TrimInputHistory(float currentTime)
     {
         float window = Mathf.Max(comboHistoryWindow, 0.25f);
         for (int i = inputHistory.Count - 1; i >= 0; i--)

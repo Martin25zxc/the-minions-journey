@@ -6,7 +6,7 @@ using UnityEngine;
 /// Estados: Idle → Chase → Attack → Cooldown → (repeat)
 /// Toda la comunicación es por eventos — no hay polling ni IsBusy checks.
 /// </summary>
-public class MinionMeleeFSM : MonoBehaviour
+public class MinionMeleeFSM : MonoBehaviour, IImpactLockable
 {
     // ─────────────────────────────────────────────────────────────────────
     //  FSM
@@ -26,6 +26,10 @@ public class MinionMeleeFSM : MonoBehaviour
     private MinionController  controller;
     private MinionMeleeAttack meleeAttack;
     private Transform         player;
+
+    private bool impactLocked;
+    private float impactLockEndsAt;
+    private Coroutine impactLockRoutine;
 
     private float detectionRange;
     private float detectionHalfAngle;
@@ -70,7 +74,7 @@ public class MinionMeleeFSM : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     private void Update()
     {
-        if (currentState == State.Dead || player == null) return;
+        if (currentState == State.Dead || player == null || impactLocked) return;
 
         float dist = Vector3.Distance(transform.position, player.position);
 
@@ -146,7 +150,7 @@ public class MinionMeleeFSM : MonoBehaviour
 
     private void HandleAttackEnded()
     {
-        if (currentState != State.Attack) return;
+        if (currentState != State.Attack || impactLocked) return;
         EnterCooldown();
     }
 
@@ -162,7 +166,7 @@ public class MinionMeleeFSM : MonoBehaviour
     private IEnumerator CooldownRoutine()
     {
         yield return new WaitForSeconds(Random.Range(data.minCooldown, data.maxCooldown));
-        if (currentState == State.Cooldown) EnterIdle();
+        if (currentState == State.Cooldown && !impactLocked) EnterIdle();
     }
 
     // Fallback si no hay MinionMeleeAttack en el prefab
@@ -172,12 +176,55 @@ public class MinionMeleeFSM : MonoBehaviour
         HandleAttackEnded();
     }
 
+
+    // ─────────────────────────────────────────────────────────────────────
+    //  Impact lock — usado por ImpactReceiver para stun/knockback leve
+    // ─────────────────────────────────────────────────────────────────────
+    public void ApplyImpactLock(float duration)
+    {
+        if (duration <= 0f || currentState == State.Dead || !isActiveAndEnabled || !gameObject.activeInHierarchy)
+        {
+            return;
+        }
+
+        impactLockEndsAt = Mathf.Max(impactLockEndsAt, Time.time + duration);
+
+        if (impactLockRoutine == null)
+        {
+            impactLockRoutine = StartCoroutine(ImpactLockRoutine());
+        }
+    }
+
+    private IEnumerator ImpactLockRoutine()
+    {
+        impactLocked = true;
+        controller?.StopMoving();
+
+        while (Time.time < impactLockEndsAt && currentState != State.Dead)
+        {
+            yield return null;
+        }
+
+        impactLocked = false;
+        impactLockRoutine = null;
+
+        if (currentState != State.Dead)
+        {
+            // No es una interrupción formal del ataque melee: no cancelamos hitboxes ni casteos.
+            // Solo dejamos al minion listo para reevaluar su comportamiento después del impacto.
+            EnterIdle();
+        }
+    }
+
     // ─────────────────────────────────────────────────────────────────────
     //  DEAD
     // ─────────────────────────────────────────────────────────────────────
     private void HandleDeath()
     {
         currentState = State.Dead;
+        impactLocked = false;
+        impactLockEndsAt = 0f;
+        impactLockRoutine = null;
         StopAllCoroutines();
     }
 

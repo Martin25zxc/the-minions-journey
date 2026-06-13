@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b6b203301a8a3f49a7f0572e24b98e3, type: 3}
+  m_Name: PMA_HeavyAttack
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMeleeAttackProfile
+  displayName: Heavy Attack
+  weaponUseSlot: 1
+  baseDamage: 5
+  attackRange: 1.8
+  attackArc: 120
+  impactOriginOffset: {x: 0, y: 0}
+  impactDelaySeconds: 0.32
+  cooldown: 0.65
+  applyImpact: 1
+  knockbackDistance: 0.2
+  knockbackDuration: 0.08
+  stunDuration: 0
+  interruptCurrentAction: 0
+  visualDuration: 0.16
+  visualWidth: 0.24
+  slashColor: {r: 0, g: 1, b: 0, a: 1}

@@ -67,6 +67,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinionMeleeAttack
   attackHitbox: {fileID: 7048588113558696344}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  damageOwner: {fileID: 0}
 --- !u!1 &2470668763467240131
 GameObject:
   m_ObjectHideFlags: 0
@@ -194,6 +198,8 @@ GameObject:
   - component: {fileID: 323531834288894273}
   - component: {fileID: 7076618851340381802}
   - component: {fileID: 7185566919269051845}
+  - component: {fileID: 2771886360865475360}
+  - component: {fileID: -7496189536679518260}
   m_Layer: 0
   m_Name: MinionMelee
   m_TagString: Untagged
@@ -280,6 +286,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: adf3c89c2d6e06948bc8742259ffeaa5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinionController
+  health: {fileID: 0}
   moveSpeed: 3.5
   rotateSpeed: 10
 --- !u!114 &7185566919269051845
@@ -295,3 +302,40 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MinionMeleeFSM
   data: {fileID: 11400000, guid: d07984e6cb71ae048a65f9cf67f08044, type: 2}
+  obstacleLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+--- !u!114 &2771886360865475360
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3581074105377505929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af1e5d39c3bd3954696fa41a9f50acab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TopDownHealth
+  maxHealth: 10
+  maxShield: 0
+  onDied:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &-7496189536679518260
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3581074105377505929}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 99cefffc67937b846a648acc9177e6a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ImpactReceiver
+  canReceiveKnockback: 1
+  canReceiveStun: 1
+  canReceiveInterrupt: 0
+  useRigidbodyWhenAvailable: 1
+  knockbackEasePower: 2
