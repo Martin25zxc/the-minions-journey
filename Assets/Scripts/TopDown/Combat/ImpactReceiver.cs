@@ -1,9 +1,16 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
 [DisallowMultipleComponent]
 public sealed class ImpactReceiver : MonoBehaviour, IImpactReceiver
 {
+    public event Action<ImpactInfo> OnImpactReceived;
+    public event Action<ImpactInfo> OnKnockbackStarted;
+    public event Action<float> OnStunStarted;
+    public event Action<float> OnImpactLockApplied;
+    public event Action<ImpactInfo> OnImpactNoEffect;
+
     [Header("Permisos")]
     [Tooltip("Permite que este objeto sea empujado por impactos. Para jefes o enemigos pesados suele quedar apagado.")]
     [SerializeField]
@@ -57,11 +64,21 @@ public sealed class ImpactReceiver : MonoBehaviour, IImpactReceiver
             return;
         }
 
+        OnImpactReceived?.Invoke(impactInfo);
+
         bool shouldKnockback = canReceiveKnockback && impactInfo.HasKnockback;
         bool shouldStun = canReceiveStun && impactInfo.HasStun;
+        bool shouldInterrupt = impactInfo.InterruptCurrentAction && canReceiveInterrupt;
+
+        if (!shouldKnockback && !shouldStun && !shouldInterrupt)
+        {
+            OnImpactNoEffect?.Invoke(impactInfo);
+        }
 
         if (shouldKnockback)
         {
+            OnKnockbackStarted?.Invoke(impactInfo);
+
             if (knockbackRoutine != null)
             {
                 StopCoroutine(knockbackRoutine);
@@ -77,22 +94,24 @@ public sealed class ImpactReceiver : MonoBehaviour, IImpactReceiver
         if (shouldKnockback)
         {
             // Aunque no sea stun, durante el empuje conviene pausar movimiento propio
-            // para que la IA no pelee contra el knockback.
+            // para que la IA o el input no peleen contra el knockback.
             lockDuration = Mathf.Max(lockDuration, impactInfo.KnockbackDuration);
         }
 
         if (shouldStun)
         {
             lockDuration = Mathf.Max(lockDuration, impactInfo.StunDuration);
+            OnStunStarted?.Invoke(impactInfo.StunDuration);
             StartLocalStunTimer(impactInfo.StunDuration);
         }
 
         if (lockDuration > 0f)
         {
+            OnImpactLockApplied?.Invoke(lockDuration);
             NotifyImpactLockables(lockDuration);
         }
 
-        if (impactInfo.InterruptCurrentAction && canReceiveInterrupt)
+        if (shouldInterrupt)
         {
             // Futuro: llamar a un IInterruptible o a una acción cancelable concreta.
             // Hoy queda intencionalmente sin efecto para no cortar ataques melee simples de forma confusa.

@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
+  m_Name: ED_EnemyLeap
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  maxHealth: 60
+  moveSpeed: 3.2
+  rotateSpeed: 720
+  detectionRange: 10
+  detectionAngle: 140
+  proximityDetectionRange: 2
+  loseAggroRange: 15
+  targetMemoryDuration: 1.5
+  chaseStopDistance: 1.4
+  bodyRadius: 0.45
+  meleeAttackProfile: {fileID: 11400000, guid: 1d93659a4b88f86418e346bb2bcaac80, type: 2}
+  leapAttackProfile: {fileID: 11400000, guid: d9bdf1618c1c117459f67d23fe8a8fb7, type: 2}
