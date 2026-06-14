@@ -6,20 +6,21 @@ using TMPro;
 
 /// <summary>
 /// Visual representation of a single inventory slot.
-/// Assign this to the slot prefab root. The prefab structure expected:
+/// Used for both inventory and equipped containers — behavior
+/// adapts via SetEquipped(bool).
 ///
-///  [Root] ItemVisualSlot.cs
-///   ├── [Image]  BackgroundImage     ← slot background sprite (universal or per-rarity)
-///   ├── [Image]  FrameImage          ← border sprite, one per rarity
-///   ├── [Image]  IconImage           ← item icon from ItemData
-///   ├── [GameObject] HoverPanel      ← shown on pointer enter/exit
-///   │    ├── [TMP]  NameLabel
-///   │    ├── [TMP]  DescriptionLabel
-///   │    └── [TMP]  StatsLabel
-///   └── [GameObject] ButtonsPanel    ← shown on click
-///        ├── [Button] EquipButton
-///        ├── [Button] DiscardButton
-///        └── [Button] DestroyButton
+///  [Root] ItemVisualSlot.cs  (Image + RectTransform)
+///   ├── [Image]      BackgroundImage
+///   ├── [Image]      FrameImage
+///   ├── [Image]      IconImage
+///   ├── [GameObject] HoverPanel
+///   │    ├── [TMP] NameLabel
+///   │    ├── [TMP] DescriptionLabel
+///   │    └── [TMP] StatsLabel
+///   └── [GameObject] ButtonsPanel
+///        ├── [Button] EquipButton      ← "Equipar" / "Desequipar"
+///        ├── [Button] DiscardButton    ← hidden when equipped
+///        └── [Button] DestroyButton   ← hidden when equipped
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class ItemVisualSlot : MonoBehaviour,
@@ -40,6 +41,7 @@ public sealed class ItemVisualSlot : MonoBehaviour,
     [Header("Action Buttons Panel")]
     [SerializeField] private GameObject buttonsPanel;
     [SerializeField] private Button equipButton;
+    [SerializeField] private TextMeshProUGUI equipButtonLabel;
     [SerializeField] private Button discardButton;
     [SerializeField] private Button destroyButton;
 
@@ -58,7 +60,6 @@ public sealed class ItemVisualSlot : MonoBehaviour,
     [Tooltip("Used for all rarities when useUniversalBackground is true.")]
     [SerializeField] private Sprite backgroundUniversal;
 
-    // Shown in Inspector only when useUniversalBackground is false.
     [SerializeField] private Sprite backgroundCommon;
     [SerializeField] private Sprite backgroundUncommon;
     [SerializeField] private Sprite backgroundRare;
@@ -67,18 +68,20 @@ public sealed class ItemVisualSlot : MonoBehaviour,
 
     // ── Runtime state ────────────────────────────────────────────────────
     private ItemData _data;
+    private bool _isEquipped;
 
-    // ── Events consumed by VisualInventoryManager ────────────────────────
+    // ── Events ───────────────────────────────────────────────────────────
     public event Action<ItemVisualSlot> OnEquipRequested;
     public event Action<ItemVisualSlot> OnDiscardRequested;
     public event Action<ItemVisualSlot> OnDestroyRequested;
 
     public ItemData Data => _data;
+    public bool IsEquipped => _isEquipped;
 
     // ── Initialization ───────────────────────────────────────────────────
     private void Awake()
     {
-        equipButton.onClick.AddListener(  () => { HideButtons(); OnEquipRequested?.Invoke(this);  });
+        equipButton.onClick.AddListener(() => { HideButtons(); OnEquipRequested?.Invoke(this); });
         discardButton.onClick.AddListener(() => { HideButtons(); OnDiscardRequested?.Invoke(this); });
         destroyButton.onClick.AddListener(() => { HideButtons(); OnDestroyRequested?.Invoke(this); });
 
@@ -91,25 +94,33 @@ public sealed class ItemVisualSlot : MonoBehaviour,
     {
         _data = itemData;
 
-        // Icon
-        iconImage.sprite  = itemData.Icon;
+        iconImage.sprite = itemData.Icon;
         iconImage.enabled = itemData.Icon != null;
 
-        // Frame sprite by rarity
         frameImage.sprite = RarityToFrameSprite(itemData.Rarity);
 
-        // Background sprite — universal or per-rarity
         backgroundImage.sprite = useUniversalBackground
             ? backgroundUniversal
             : RarityToBackgroundSprite(itemData.Rarity);
 
-        // Hover panel content
-        nameLabel.text        = itemData.DisplayName;
+        nameLabel.text = itemData.DisplayName;
         descriptionLabel.text = itemData.Description;
-        statsLabel.text       = BuildStatsText(itemData);
+        statsLabel.text = BuildStatsText(itemData);
 
         hoverPanel.SetActive(false);
         buttonsPanel.SetActive(false);
+    }
+
+    /// <summary>
+    /// Switches the slot between inventory and equipped visual state.
+    /// Equipped slots only show the Unequip button.
+    /// </summary>
+    public void SetEquipped(bool equipped)
+    {
+        _isEquipped = equipped;
+        equipButtonLabel.text = equipped ? "Desequipar" : "Equipar";
+        discardButton.gameObject.SetActive(!equipped);
+        destroyButton.gameObject.SetActive(!equipped);
     }
 
     // ── Pointer callbacks ────────────────────────────────────────────────
@@ -135,41 +146,39 @@ public sealed class ItemVisualSlot : MonoBehaviour,
 
     private Sprite RarityToFrameSprite(ItemRarity rarity) => rarity switch
     {
-        ItemRarity.Common    => frameCommon,
-        ItemRarity.Uncommon  => frameUncommon,
-        ItemRarity.Rare      => frameRare,
-        ItemRarity.Epic      => frameEpic,
+        ItemRarity.Common => frameCommon,
+        ItemRarity.Uncommon => frameUncommon,
+        ItemRarity.Rare => frameRare,
+        ItemRarity.Epic => frameEpic,
         ItemRarity.Legendary => frameLegendary,
-        _                    => frameCommon
+        _ => frameCommon
     };
 
     private Sprite RarityToBackgroundSprite(ItemRarity rarity) => rarity switch
     {
-        ItemRarity.Common    => backgroundCommon,
-        ItemRarity.Uncommon  => backgroundUncommon,
-        ItemRarity.Rare      => backgroundRare,
-        ItemRarity.Epic      => backgroundEpic,
+        ItemRarity.Common => backgroundCommon,
+        ItemRarity.Uncommon => backgroundUncommon,
+        ItemRarity.Rare => backgroundRare,
+        ItemRarity.Epic => backgroundEpic,
         ItemRarity.Legendary => backgroundLegendary,
-        _                    => backgroundCommon
+        _ => backgroundCommon
     };
 
-    /// <summary>
-    /// Builds the stats string shown on hover.
-    /// Extends naturally: add more ItemData subtypes below.
-    /// </summary>
     private static string BuildStatsText(ItemData data)
     {
         if (data is WeaponData weapon)
         {
-            // Expose whatever public properties WeaponData offers.
-            // Adjust property names to match your actual WeaponData fields.
-            return $"Rarity: {weapon.Rarity}";
-            // Example extended version once WeaponData exposes more:
-            // return $"DMG: {weapon.BaseDamage}\n" +
-            //        $"SPD: {weapon.AttackSpeed}\n" +
-            //        $"Rarity: {weapon.Rarity}";
+            string typeText = weapon.WeaponType switch
+            {
+                WeaponType.MainHand => "Arma ligera",
+                WeaponType.OffHand => "Arma pesada",
+                _ => "Desconocido"
+            };
+            return $"Tipo: {typeText}\n" +
+                   $"Daño: {weapon.DamageBonusMin:F1} – {weapon.DamageBonusMax:F1}\n";
+
         }
 
-        return $"Rarity: {data.Rarity}";
+        return $"Rareza: {data.Rarity}";
     }
 }
