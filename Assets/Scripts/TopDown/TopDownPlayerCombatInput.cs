@@ -22,6 +22,14 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
     [SerializeField]
     private TopDownEquipmentVisualManager equipmentVisuals;
 
+    [Header("Impact Lock")]
+    [SerializeField]
+    private PlayerActionLock actionLock;
+
+    [Tooltip("Limpia la secuencia de combo cuando el jugador queda bloqueado por impacto/stun. Evita que inputs viejos ejecuten combos al recuperar control.")]
+    [SerializeField]
+    private bool clearComboHistoryWhenCombatLocked = true;
+
     [Header("Combos")]
     [SerializeField, Min(0.25f)]
     private float comboHistoryWindow = 1.5f;
@@ -36,6 +44,7 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
     private readonly List<TopDownCombatInputEvent> inputHistory = new List<TopDownCombatInputEvent>();
     private TopDownPlayerController playerController;
+    private bool wasCombatLocked;
 
     private void Awake()
     {
@@ -54,6 +63,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         if (equipmentVisuals == null)
         {
             equipmentVisuals = GetComponent<TopDownEquipmentVisualManager>();
+        }
+
+        if (actionLock == null)
+        {
+            actionLock = GetComponent<PlayerActionLock>();
         }
     }
 
@@ -115,6 +129,27 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
     private void Update()
     {
+        if (IsCombatLocked())
+        {
+            if (!wasCombatLocked && clearComboHistoryWhenCombatLocked)
+            {
+                inputHistory.Clear();
+            }
+
+            wasCombatLocked = true;
+            return;
+        }
+
+        if (wasCombatLocked)
+        {
+            if (clearComboHistoryWhenCombatLocked)
+            {
+                inputHistory.Clear();
+            }
+
+            wasCombatLocked = false;
+        }
+
         Vector3 facingDirection = playerController != null ? playerController.AimDirection : transform.forward;
 
         Mouse mouse = Mouse.current;
@@ -142,6 +177,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
     private void HandleInput(TopDownCombatInputAction action, Vector3 facingDirection)
     {
+        if (IsCombatLocked())
+        {
+            return;
+        }
+
         float currentTime = Time.time;
         inputHistory.Add(new TopDownCombatInputEvent(action, currentTime));
         TrimInputHistory(currentTime);
@@ -224,6 +264,11 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
         }
     }
 
+
+    private bool IsCombatLocked()
+    {
+        return actionLock != null && actionLock.IsCombatLocked;
+    }
 
     private void TrimInputHistory(float currentTime)
     {

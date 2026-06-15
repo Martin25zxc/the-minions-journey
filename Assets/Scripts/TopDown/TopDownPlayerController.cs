@@ -47,8 +47,8 @@ public sealed class TopDownPlayerController : MonoBehaviour
     {
         body = GetComponent<Rigidbody>();
         body.interpolation = RigidbodyInterpolation.Interpolate;
-
-        facingIndicator = CreateFacingIndicator();
+        //Todo Borrar
+        //facingIndicator = CreateFacingIndicator();
 
         if (gameplayCamera == null)
         {

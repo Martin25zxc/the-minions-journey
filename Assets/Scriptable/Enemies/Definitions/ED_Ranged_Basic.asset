@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
+  m_Name: ED_Ranged_Basic
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
+  maxHealth: 40
+  moveSpeed: 2.8
+  rotateSpeed: 720
+  detectionRange: 12
+  detectionAngle: 150
+  proximityDetectionRange: 1.8
+  loseAggroRange: 16
+  targetMemoryDuration: 1.5
+  bodyRadius: 0.45

@@ -57,11 +57,6 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         OnShieldChanged?.Invoke(currentShield, maxShield);
     }
 
-    public void TakeDamage(float damage)
-    {
-        TakeDamage(new TMJ_DamageInfo(damage, transform.position));
-    }
-
     public void TakeDamage(TMJ_DamageInfo damageInfo)
     {
         if (damageInfo.Damage <= 0f || !IsAlive)
