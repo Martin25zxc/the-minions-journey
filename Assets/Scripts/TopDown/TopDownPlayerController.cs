@@ -24,7 +24,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
     float facingIndicatorWidth = 0.05f;
 
     [SerializeField, Range(0f, 10f)]
-    float aimRotationDeadZoneDegrees = 2f;
+    float aimRotationDeadZoneDegrees = 3f;
 
     [SerializeField, Min(0.01f)]
     float movementAcceleration = 40f;
@@ -47,6 +47,9 @@ public sealed class TopDownPlayerController : MonoBehaviour
     {
         body = GetComponent<Rigidbody>();
         body.interpolation = RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        body.useGravity = true;
+        body.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
         //Todo Borrar
         //facingIndicator = CreateFacingIndicator();
 
@@ -87,6 +90,7 @@ public sealed class TopDownPlayerController : MonoBehaviour
         }
 
         body.AddForce(desiredAcceleration, ForceMode.Acceleration);
+        body.angularVelocity = Vector3.zero;
 
         if (aimDirection.sqrMagnitude > aimDeadZone)
         {
