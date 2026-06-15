@@ -31,12 +31,20 @@ public class BossController : MonoBehaviour
     [SerializeField]
     private float epsilon = 0.05f;
 
+    [SerializeField]
+    private float iframesDuration = 0.5f;
+
+
+
     // ── Runtime ───────────────────────────────────────────────────────────
     private Coroutine moveRoutine;
+    private Coroutine iframesRoutine;
 
     // ── Animator ──────────────────────────────────────────────────────────
     private Animator animator;
     private bool isRunning = false;
+
+    private bool canTakeDamage = true;
 
     // ─────────────────────────────────────────────────────────────────────
     //  Awake / OnDestroy
@@ -230,6 +238,12 @@ public class BossController : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     public void TakeDamage(float amount)
     {
+        if (!canTakeDamage || !IsAlive)
+        {
+            return;
+        }
+        
+        iframesRoutine = StartCoroutine(IFramesRoutine(iframesDuration));
         health?.TakeDamage(new TMJ_DamageInfo(amount, transform.position));
     }
 
@@ -243,6 +257,8 @@ public class BossController : MonoBehaviour
     {
         StopAllCoroutines();
         moveRoutine = null;
+        iframesRoutine = null;
+        
 
         if (animator != null)
         {
@@ -252,5 +268,12 @@ public class BossController : MonoBehaviour
 
         OnDeath?.Invoke();
         gameObject.SetActive(false);
+    }
+
+    private IEnumerator IFramesRoutine(float duration)
+    {
+        canTakeDamage = false;
+        yield return new WaitForSeconds(duration);
+        canTakeDamage = true;
     }
 }
