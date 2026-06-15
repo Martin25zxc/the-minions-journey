@@ -94,8 +94,8 @@ public sealed class RandomTreeScatterWindow : EditorWindow
 
         GUILayout.Space(4f);
         GUILayout.Label("Scale Variation", EditorStyles.boldLabel);
-        minScaleVariation = EditorGUILayout.Slider("Min Variation", minScaleVariation, 0f, 0.5f);
-        maxScaleVariation = EditorGUILayout.Slider("Max Variation", maxScaleVariation, 0f, 0.5f);
+        minScaleVariation = EditorGUILayout.Slider("Min Variation", minScaleVariation, 0f, 5f);
+        maxScaleVariation = EditorGUILayout.Slider("Max Variation", maxScaleVariation, 0f, 5f);
 
         GUILayout.Space(4f);
         useRandomSeed = EditorGUILayout.Toggle("Use Random Seed", useRandomSeed);
