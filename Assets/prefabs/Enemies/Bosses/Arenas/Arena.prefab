@@ -875,6 +875,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 9ef3170c88f19fb48acb465e5838c050, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 9ef3170c88f19fb48acb465e5838c050, type: 3}
       propertyPath: m_Name
       value: Ring Door
@@ -994,6 +998,10 @@ PrefabInstance:
     - target: {fileID: -8679921383154817045, guid: d4f45e88687625b41a442db4a002c941, type: 3}
       propertyPath: m_ConstrainProportionsScale
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: d4f45e88687625b41a442db4a002c941, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d4f45e88687625b41a442db4a002c941, type: 3}
       propertyPath: m_Name
