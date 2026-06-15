@@ -4,18 +4,19 @@ using UnityEngine;
 public sealed class LootPickup : MonoBehaviour
 {
     [Header("Item")]
-    [SerializeField] 
+    [Tooltip("Puede venir asignado en un prefab manual, o ser inyectado por LootSpawner.Initialize().")]
+    [SerializeField]
     private ItemData itemData;
 
     [Header("Pickup")]
-    [SerializeField] 
+    [SerializeField]
     private string playerTag = "Player";
 
     [Header("Visual")]
-    [SerializeField] 
+    [SerializeField]
     private Transform visualRoot;
 
-    [SerializeField] 
+    [SerializeField]
     private Light auraLight;
 
     [SerializeField]
@@ -27,20 +28,36 @@ public sealed class LootPickup : MonoBehaviour
 
     private GameObject currentVisualInstance;
     private bool wasPickedUp;
-
-    private void Awake()
-    {
-        RefreshVisual();
-    }
+    private bool wasInitialized;
 
     private void Start()
     {
-        RefreshVisual();
+        // Caso 1: pickup puesto manualmente en escena con ItemData ya asignado.
+        if (itemData != null && currentVisualInstance == null)
+        {
+            RefreshVisual();
+            return;
+        }
+
+        // Caso 2: pickup instanciado por LootSpawner.
+        // En ese caso Initialize debería haberse llamado inmediatamente después de Instantiate.
+        if (itemData == null && !wasInitialized)
+        {
+            Debug.LogWarning($"{name} has no ItemData assigned. If this pickup is spawned by LootSpawner, make sure Initialize is called.", this);
+        }
     }
 
     public void Initialize(ItemData newItemData)
     {
+        wasInitialized = true;
         itemData = newItemData;
+
+        if (itemData == null)
+        {
+            Debug.LogWarning($"{name} was initialized with null ItemData.", this);
+            return;
+        }
+
         RefreshVisual();
     }
 
@@ -48,7 +65,6 @@ public sealed class LootPickup : MonoBehaviour
     {
         if (itemData == null)
         {
-            Debug.LogWarning($"{name} has no ItemData assigned.");
             return;
         }
 
@@ -60,18 +76,19 @@ public sealed class LootPickup : MonoBehaviour
     {
         if (visualRoot == null)
         {
-            Debug.LogWarning($"{name} has no VisualRoot assigned.");
+            Debug.LogWarning($"{name} has no VisualRoot assigned.", this);
             return;
         }
 
         if (currentVisualInstance != null)
         {
             Destroy(currentVisualInstance);
+            currentVisualInstance = null;
         }
 
         if (itemData.WorldModelPrefab == null)
         {
-            Debug.LogWarning($"{itemData.ItemName} has no WorldModelPrefab assigned.");
+            Debug.LogWarning($"{itemData.ItemName} has no WorldModelPrefab assigned.", this);
             return;
         }
 
@@ -79,16 +96,15 @@ public sealed class LootPickup : MonoBehaviour
 
         currentVisualInstance.transform.localPosition = Vector3.zero;
         currentVisualInstance.transform.localRotation = Quaternion.identity;
-        // Tener en cuenta que si usamos diferentes modelos para cada item,
-        //  puede que necesitemos ajustar la escala de cada prefab para que se vean bien al spawnear. 
-        // currentVisualInstance.transform.localScale = Vector3.one;
+        // La escala queda en manos del prefab visual de cada item.
+        // Si un item se ve grande/chico, conviene ajustar su WorldModelPrefab, no este script.
     }
 
     private void ApplyRarityVisuals()
     {
         if (rarityVisualDatabase == null)
         {
-            Debug.LogWarning($"{name} has no RarityVisualDatabase assigned.");
+            Debug.LogWarning($"{name} has no RarityVisualDatabase assigned.", this);
             return;
         }
 
@@ -152,7 +168,7 @@ public sealed class LootPickup : MonoBehaviour
     {
         if (itemData == null)
         {
-            Debug.LogWarning($"{name} has no ItemData assigned.");
+            Debug.LogWarning($"{name} has no ItemData assigned.", this);
             return;
         }
 
@@ -160,15 +176,14 @@ public sealed class LootPickup : MonoBehaviour
 
         if (inventoryManager == null)
         {
-            Debug.LogWarning("Player has no InventoryManager.");
+            Debug.LogWarning("Player has no InventoryManager.", this);
             return;
         }
 
         wasPickedUp = true;
-
         inventoryManager.AddItem(itemData);
 
-        Debug.Log($"Picked up loot: {itemData.ItemName}");
+        Debug.Log($"Picked up loot: {itemData.ItemName}", this);
 
         Destroy(gameObject);
     }

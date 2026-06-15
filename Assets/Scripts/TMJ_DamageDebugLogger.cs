@@ -66,8 +66,13 @@ public sealed class TopDownDamageDebugLogger : MonoBehaviour
             return;
         }
 
-        string sourceName = damageInfo.Source != null ? damageInfo.Source.name : "Unknown Source";
-        Debug.Log($"[Damage] {name} received {damageInfo.Damage:0.##} damage from {sourceName} at {damageInfo.SourcePosition}.", this);
+        string instigatorName = damageInfo.Instigator != null ? damageInfo.Instigator.name : "Unknown Instigator";
+        string causerName = damageInfo.DamageCauser != null ? damageInfo.DamageCauser.name : "Unknown Causer";
+
+        Debug.Log(
+            $"[Damage] {name} received {damageInfo.Damage:0.##} damage. " +
+            $"Instigator: {instigatorName}. Causer: {causerName}. Origin: {damageInfo.OriginPosition}.",
+            this);
     }
 
     void HandleHealthChanged(float currentHealth, float maxHealth)

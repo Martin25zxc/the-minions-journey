@@ -6,10 +6,9 @@ using UnityEngine;
 /// - filtrar por layer;
 /// - evitar self/owner damage;
 /// - resolver ITopDownDamageable desde colliders hijos;
-/// - crear TMJ_DamageInfo;
-/// - aplicar daño.
+/// - aplicar TMJ_DamageInfo.
 ///
-/// No decide animaciones, FSM, stun, knockback, fases del boss ni cooldowns !!!
+/// No decide animaciones, FSM, stun, knockback, fases del boss ni cooldowns.
 /// </summary>
 public static class TMJ_DamageUtility
 {
@@ -43,9 +42,31 @@ public static class TMJ_DamageUtility
         ICollection<ITopDownDamageable> processedTargets,
         out ITopDownDamageable damageable)
     {
+        TMJ_DamageInfo damageInfo = BuildLegacyDamageInfo(targetCollider, damage, sourcePosition, source);
+        return TryDamageCollider(targetCollider, damageInfo, targetLayers, owner, processedTargets, out damageable);
+    }
+
+    public static bool TryDamageCollider(
+        Collider targetCollider,
+        TMJ_DamageInfo damageInfo,
+        LayerMask targetLayers,
+        GameObject owner = null,
+        ICollection<ITopDownDamageable> processedTargets = null)
+    {
+        return TryDamageCollider(targetCollider, damageInfo, targetLayers, owner, processedTargets, out _);
+    }
+
+    public static bool TryDamageCollider(
+        Collider targetCollider,
+        TMJ_DamageInfo damageInfo,
+        LayerMask targetLayers,
+        GameObject owner,
+        ICollection<ITopDownDamageable> processedTargets,
+        out ITopDownDamageable damageable)
+    {
         damageable = null;
 
-        if (damage <= 0f)
+        if (damageInfo.Damage <= 0f)
         {
             return false;
         }
@@ -65,7 +86,7 @@ public static class TMJ_DamageUtility
             processedTargets.Add(damageable);
         }
 
-        damageable.TakeDamage(new TMJ_DamageInfo(damage, sourcePosition, source));
+        damageable.TakeDamage(damageInfo);
         return true;
     }
 
@@ -110,7 +131,58 @@ public static class TMJ_DamageUtility
         return (layerMask.value & (1 << layer)) != 0;
     }
 
-    static bool IsOwnerOrChild(Collider targetCollider, GameObject owner)
+    public static Vector3 GetTargetReferencePosition(Collider targetCollider)
+    {
+        if (targetCollider == null)
+        {
+            return Vector3.zero;
+        }
+
+        if (targetCollider.attachedRigidbody != null)
+        {
+            return targetCollider.attachedRigidbody.position;
+        }
+
+        return targetCollider.bounds.center;
+    }
+
+    public static Vector3 GetSafeClosestPoint(Collider targetCollider, Vector3 originPosition)
+    {
+        if (targetCollider == null)
+        {
+            return originPosition;
+        }
+
+        return targetCollider.ClosestPoint(originPosition);
+    }
+
+    private static TMJ_DamageInfo BuildLegacyDamageInfo(
+        Collider targetCollider,
+        float damage,
+        Vector3 sourcePosition,
+        GameObject source)
+    {
+        Vector3 targetPosition = targetCollider != null
+            ? GetTargetReferencePosition(targetCollider)
+            : sourcePosition;
+
+        Vector3 direction = targetPosition - sourcePosition;
+        direction.y = 0f;
+
+        Vector3? directionFromSourceToTarget = direction.sqrMagnitude > 0.0001f
+            ? (Vector3?)direction.normalized
+            : null;
+
+        return new TMJ_DamageInfo(
+            damage,
+            sourcePosition,
+            source,
+            source,
+            targetCollider != null ? (Vector3?)GetSafeClosestPoint(targetCollider, sourcePosition) : null,
+            directionFromSourceToTarget);
+    }
+
+    private static bool IsOwnerOrChild(Collider targetCollider, GameObject owner)
     {
         if (owner == null || targetCollider == null)
         {
