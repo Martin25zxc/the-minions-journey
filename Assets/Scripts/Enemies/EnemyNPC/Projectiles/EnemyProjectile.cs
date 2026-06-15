@@ -139,14 +139,20 @@ public sealed class EnemyProjectile : MonoBehaviour
 
     private void TryDamageTarget(Collider targetCollider)
     {
-        Vector3 sourcePosition = transform.position;
+        Vector3 originPosition = transform.position;
         TopDownHealth targetHealth = targetCollider.GetComponentInParent<TopDownHealth>();
+
+        TMJ_DamageInfo damageInfo = new TMJ_DamageInfo(
+            launchData.Damage,
+            originPosition,
+            launchData.Owner,
+            gameObject,
+            TMJ_DamageUtility.GetSafeClosestPoint(targetCollider, originPosition),
+            launchData.Direction);
 
         bool damaged = TMJ_DamageUtility.TryDamageCollider(
             targetCollider,
-            launchData.Damage,
-            sourcePosition,
-            launchData.Owner,
+            damageInfo,
             launchData.TargetLayers,
             launchData.Owner,
             processedTargets,
@@ -174,16 +180,17 @@ public sealed class EnemyProjectile : MonoBehaviour
             return;
         }
 
-        Vector3 direction = targetCollider.transform.position - sourcePosition;
+        Vector3 direction = launchData.Direction;
         direction.y = 0f;
         if (direction.sqrMagnitude <= 0.0001f)
         {
-            direction = launchData.Direction;
+            direction = TMJ_DamageUtility.GetTargetReferencePosition(targetCollider) - originPosition;
+            direction.y = 0f;
         }
 
         ImpactInfo impactInfo = new ImpactInfo(
             launchData.Owner,
-            sourcePosition,
+            originPosition,
             direction.normalized,
             launchData.KnockbackDistance,
             launchData.KnockbackDuration,

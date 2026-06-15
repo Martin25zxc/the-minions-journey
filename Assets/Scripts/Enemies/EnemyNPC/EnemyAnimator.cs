@@ -266,16 +266,7 @@ public sealed class EnemyAnimator : MonoBehaviour
 
     private bool IsDamageSourceInFront(TMJ_DamageInfo damageInfo)
     {
-        Vector3 toSource = damageInfo.SourcePosition - transform.position;
-        toSource.y = 0f;
-
-        if (toSource.sqrMagnitude <= 0.0001f)
-        {
-            return true;
-        }
-
-        float dot = Vector3.Dot(transform.forward, toSource.normalized);
-        return dot >= 0f;
+        return TMJ_DamageReactionUtility.IsDamageSourceInFront(damageInfo, transform, 0f);
     }
 
     private void HandleDamaged(EnemyActor damagedActor, TMJ_DamageInfo damageInfo)

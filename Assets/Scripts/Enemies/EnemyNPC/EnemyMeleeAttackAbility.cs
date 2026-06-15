@@ -83,10 +83,6 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour, IEnemyAbility
         return profile != null ? profile.Priority : 0f;
     }
 
-    public float GetPreferredStopDistance(float fallback)
-    {
-        return profile != null ? profile.AttackRange : fallback;
-    }
 
     public IEnumerator Execute(Transform target)
     {
@@ -226,11 +222,21 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour, IEnemyAbility
 
             TopDownHealth targetHealth = targetCollider.GetComponentInParent<TopDownHealth>();
 
-            bool damaged = TMJ_DamageUtility.TryDamageCollider(
-                targetCollider,
+            Vector3 targetPosition = TMJ_DamageUtility.GetTargetReferencePosition(targetCollider);
+            Vector3 directionFromSourceToTarget = targetPosition - transform.position;
+            directionFromSourceToTarget.y = 0f;
+
+            TMJ_DamageInfo damageInfo = new TMJ_DamageInfo(
                 profile.Damage,
                 hitCenter,
                 gameObject,
+                gameObject,
+                TMJ_DamageUtility.GetSafeClosestPoint(targetCollider, hitCenter),
+                directionFromSourceToTarget);
+
+            bool damaged = TMJ_DamageUtility.TryDamageCollider(
+                targetCollider,
+                damageInfo,
                 profile.TargetLayers,
                 gameObject,
                 processedTargets,

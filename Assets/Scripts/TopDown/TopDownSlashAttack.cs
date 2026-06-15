@@ -235,11 +235,20 @@ public sealed class TopDownSlashAttack : TopDownWeapon
                 continue;
             }
 
-            bool damaged = TMJ_DamageUtility.TryDamageCollider(
-                hit,
+            Vector3 directionFromSourceToTarget = targetTransform.position - transform.position;
+            directionFromSourceToTarget.y = 0f;
+
+            TMJ_DamageInfo damageInfo = new TMJ_DamageInfo(
                 damage,
                 impactOrigin,
                 gameObject,
+                gameObject,
+                TMJ_DamageUtility.GetSafeClosestPoint(hit, impactOrigin),
+                directionFromSourceToTarget);
+
+            bool damaged = TMJ_DamageUtility.TryDamageCollider(
+                hit,
+                damageInfo,
                 hittableLayers,
                 gameObject,
                 processedTargets);

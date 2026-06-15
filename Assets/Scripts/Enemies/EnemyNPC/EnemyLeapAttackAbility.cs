@@ -434,11 +434,21 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour, IEnemyAbility
 
             TopDownHealth targetHealth = targetCollider.GetComponentInParent<TopDownHealth>();
 
-            bool damaged = TMJ_DamageUtility.TryDamageCollider(
-                targetCollider,
+            Vector3 targetPosition = TMJ_DamageUtility.GetTargetReferencePosition(targetCollider);
+            Vector3 directionFromSourceToTarget = targetPosition - damageCenter;
+            directionFromSourceToTarget.y = 0f;
+
+            TMJ_DamageInfo damageInfo = new TMJ_DamageInfo(
                 profile.LandingDamage,
                 damageCenter,
                 gameObject,
+                gameObject,
+                TMJ_DamageUtility.GetSafeClosestPoint(targetCollider, damageCenter),
+                directionFromSourceToTarget);
+
+            bool damaged = TMJ_DamageUtility.TryDamageCollider(
+                targetCollider,
+                damageInfo,
                 profile.TargetLayers,
                 gameObject,
                 processedTargets,

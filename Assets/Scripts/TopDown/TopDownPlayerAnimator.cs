@@ -52,6 +52,12 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     [SerializeField, Range(-1f, 1f)]
     private float frontBackThreshold = 0f;
 
+    [Tooltip("Tiempo minimo entre reacciones visuales de hit. Evita spam, pero permite repetir HitFront/HitBack si el jugador recibe varios golpes.")]
+    [SerializeField, Min(0f)]
+    private float hitAnimationMinInterval = 0.15f;
+
+    private float lastHitAnimationTime = -999f;
+
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
@@ -201,31 +207,12 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return;
         }
 
-        Vector3 directionToSource = damageInfo.SourcePosition - transform.position;
-        directionToSource.y = 0f;
+        bool hitFromFront = TMJ_DamageReactionUtility.IsDamageSourceInFront(
+            damageInfo,
+            transform,
+            frontBackThreshold);
 
-        if (directionToSource.sqrMagnitude < 0.0001f)
-        {
-            PlayHitFront();
-            return;
-        }
-
-        directionToSource.Normalize();
-
-        Vector3 forward = transform.forward;
-        forward.y = 0f;
-
-        if (forward.sqrMagnitude < 0.0001f)
-        {
-            PlayHitFront();
-            return;
-        }
-
-        forward.Normalize();
-
-        float dot = Vector3.Dot(forward, directionToSource);
-
-        if (dot >= frontBackThreshold)
+        if (hitFromFront)
         {
             PlayHitFront();
         }
@@ -242,6 +229,8 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return;
         }
 
+        lastHitAnimationTime = Time.time;
+        animator.ResetTrigger(HitFrontHash);
         animator.ResetTrigger(HitBackHash);
         animator.SetTrigger(HitFrontHash);
     }
@@ -253,7 +242,9 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return;
         }
 
+        lastHitAnimationTime = Time.time;
         animator.ResetTrigger(HitFrontHash);
+        animator.ResetTrigger(HitBackHash);
         animator.SetTrigger(HitBackHash);
     }
 
@@ -269,10 +260,10 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return true;
         }
 
-        // if (IsCurrentOrNextStateTagged("Hit"))
-        // {
-        //     return true;
-        // }
+        if (Time.time - lastHitAnimationTime < hitAnimationMinInterval)
+        {
+            return true;
+        }
 
         if (ignoreHitAnimationWhileAttacking && IsCurrentOrNextStateTagged("Attack"))
         {
