@@ -3,7 +3,7 @@ using UnityEngine;
 public class ProjectileAttackController : MonoBehaviour
 {
     [Header("Movimiento")]
-    public float projectileSpeed = 5f;
+    public float projectileSpeed = 10f;
 
     [Header("Daño")]
     public float damage = 10f;

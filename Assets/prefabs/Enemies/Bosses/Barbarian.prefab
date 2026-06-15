@@ -118,7 +118,7 @@ MeshRenderer:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3583510589600174725}
-  m_Enabled: 1
+  m_Enabled: 0
   m_CastShadows: 1
   m_ReceiveShadows: 1
   m_DynamicOccludee: 1
@@ -352,7 +352,7 @@ MonoBehaviour:
   damageOwner: {fileID: 123415141901231715}
   bulletCount: 6
   delayBetween: 1.1
-  projectileSpeed: 12
+  projectileSpeed: 20
   rotateSpeed: 360
   animationDelay: 0.3
   aimDuration: 0.6
@@ -781,6 +781,7 @@ MonoBehaviour:
   health: {fileID: 7368060827710949760}
   moveSpeed: 10
   epsilon: 0.05
+  iframesDuration: 0.1
 --- !u!114 &7368060827710949760
 MonoBehaviour:
   m_ObjectHideFlags: 0

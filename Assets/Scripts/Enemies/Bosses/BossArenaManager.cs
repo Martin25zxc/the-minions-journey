@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// FSM de la pelea contra el jefe.
 /// Estados: Idle → Moving → ArenaSetup → Attacking → Cleanup → Cooldown → (repeat)
-/// Toda la comunicación es por eventos — no hay polling ni IsBusy checks.
+/// Toda la comunicación es por eventos.
 /// </summary>
 public class BossArenaManager : MonoBehaviour
 {
@@ -21,6 +21,7 @@ public class BossArenaManager : MonoBehaviour
     [SerializeField] private BossDataSO  bossData;
     [SerializeField] private Transform   spawnPoint;    // centro de la arena
     [SerializeField] private ArenaRockManager rockManager;
+    [SerializeField] private BossBattleStartController battleStartController;
 
     [Header("Cooldown entre ataques")]
     [SerializeField] private float minCooldown = 1.2f;
@@ -46,9 +47,9 @@ public class BossArenaManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     //  Start
     // ─────────────────────────────────────────────────────────────────────
-    private void Start() => StartFight();
+    private void Start() => LoadBoss();
 
-    public void StartFight()
+    public void LoadBoss()
     {
         if (bossData?.prefab == null)
         {
@@ -98,6 +99,22 @@ public class BossArenaManager : MonoBehaviour
         // Suscribir OnRocksReady si hay rockManager
         if (rockManager != null) rockManager.OnRocksReady += HandleRocksReady;
 
+        // Suscribir evento de inicio de batalla desde el BossBattleStartController
+        if (battleStartController != null)
+        {
+            battleStartController.OnBossBattleStart += StartFight;
+        }
+        else
+        {
+            Debug.LogWarning("[FSM] No se encontró BossBattleStartController.");
+           
+        }
+
+        
+    }
+
+    private void StartFight()
+    {
         fightActive = true;
         EnterIdle();
     }

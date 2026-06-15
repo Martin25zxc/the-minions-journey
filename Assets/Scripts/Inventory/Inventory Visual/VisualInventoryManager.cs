@@ -23,6 +23,10 @@ public sealed class VisualInventoryManager : MonoBehaviour
     [SerializeField] private GameObject equippedScrollView;
     [SerializeField] private Key toggleKey = Key.I;
 
+    [Header("Equip Settings")]
+    [Tooltip("If true, two weapons of the same WeaponType can be equipped simultaneously.")]
+    [SerializeField] private bool ignoreWeaponType = false;
+
     [Header("Feedback (optional)")]
     [SerializeField] private TextMeshProUGUI feedbackLabel;
     [SerializeField] private float feedbackDuration = 2f;
@@ -149,9 +153,19 @@ public sealed class VisualInventoryManager : MonoBehaviour
             return;
         }
 
-        TMJ_WeaponUseSlot targetUseSlot = weapon.WeaponType == WeaponType.MainHand
-            ? TMJ_WeaponUseSlot.LightAttack
-            : TMJ_WeaponUseSlot.HeavyAttack;
+        TMJ_WeaponUseSlot targetUseSlot;
+        if (ignoreWeaponType)
+        {
+            targetUseSlot = _equippedSlots[TMJ_WeaponUseSlot.LightAttack] == null
+                ? TMJ_WeaponUseSlot.LightAttack
+                : TMJ_WeaponUseSlot.HeavyAttack;
+        }
+        else
+        {
+            targetUseSlot = weapon.WeaponType == WeaponType.MainHand
+                ? TMJ_WeaponUseSlot.LightAttack
+                : TMJ_WeaponUseSlot.HeavyAttack;
+        }
 
         // Swap: displace current occupant back to inventory first (net zero, no limit check).
         ItemVisualSlot displaced = _equippedSlots[targetUseSlot];

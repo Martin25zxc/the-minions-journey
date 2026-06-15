@@ -1052,6 +1052,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6cbddc3d9c1b9af4687e241db669aad0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
+  maxItems: 16
   items: []
 --- !u!4 &393795724 stripped
 Transform:
@@ -7272,6 +7273,7 @@ MonoBehaviour:
   inventoryScrollView: {fileID: 1596624796}
   equippedScrollView: {fileID: 2058444065}
   toggleKey: 23
+  ignoreWeaponType: 1
   feedbackLabel: {fileID: 1572040553}
   feedbackDuration: 2
 --- !u!1001 &1016324680
