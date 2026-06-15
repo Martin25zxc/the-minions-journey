@@ -16,11 +16,11 @@ MonoBehaviour:
   displayName: Garrote
   description: 
   icon: {fileID: 21300000, guid: dc038b2ab22c65c4488779487c9dae97, type: 3}
-  worldModelPrefab: {fileID: 6968956498155833823, guid: 3624a5eb6a6cdfa4cb8955ecbd70c802, type: 3}
+  worldModelPrefab: {fileID: 8381600336495543522, guid: 3c4c211211b5f4f4b9ff9ceba1c685aa, type: 3}
   rarity: 0
   damageBonusMin: 10
   damageBonusMax: 15
-  weaponType: 0
+  weaponType: 1
   equippedModelPrefab: {fileID: 433687607784990684, guid: d5f90141112282c4394a5391cfe041b9, type: 3}
   handLocalPosition: {x: 0, y: 0.9, z: 0}
   handLocalEulerAngles: {x: 0, y: 0, z: 0}

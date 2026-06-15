@@ -1072,11 +1072,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownPlayerAnimator
   animator: {fileID: 1583892000}
+  health: {fileID: 0}
   locomotionBlendSpeed: 5
   moveDampTime: 0.08
   speedDampTime: 0.08
   ignoreHitAnimationWhileAttacking: 1
   frontBackThreshold: 0
+  hitAnimationMinInterval: 0.15
 --- !u!114 &393795743
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -13401,7 +13403,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootSpawner
   lootPickupPrefab: {fileID: 8458440751074983212, guid: 8a97cb5488fa4c94daeecdb527bb8342, type: 3}
   spawnRadius: 1.2
+  projectToGround: 1
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 1
+  raycastStartHeight: 2
+  raycastDistance: 5
+  groundOffset: 0.08
   spawnHeightOffset: 0.1
+  warnWhenGroundNotFound: 1
 --- !u!4 &1753464894
 Transform:
   m_ObjectHideFlags: 0
@@ -13529,8 +13539,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootDropper
   lootDropTable: {fileID: 11400000, guid: 341b9e68a623a954bac5e117d8540a75, type: 2}
   lootSpawner: {fileID: 1753464893}
+  dropTriggerMode: 2
+  dropDelay: 0
+  health: {fileID: 0}
   spawnPoint: {fileID: 948499622}
-  dropOnStart: 1
 --- !u!54 &1776386744
 Rigidbody:
   m_ObjectHideFlags: 0

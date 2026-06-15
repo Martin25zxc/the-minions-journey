@@ -1,0 +1,40 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adf28ff49fe9cd149ab235da9ca88da1, type: 3}
+  m_Name: EnemyLeapAttackProfile_JumpChop
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyLeapAttackProfile
+  minRange: 2.3
+  maxRange: 8
+  cooldown: 3.5
+  telegraphTime: 0.18
+  jumpDuration: 0.4
+  jumpHeight: 1.6
+  recoveryTime: 0.2
+  preferredLandingDistanceFromTarget: 0.9
+  landingBodyRadiusOverride: 0
+  landingCheckHeight: 0.7
+  landingSearchRadius: 1.2
+  landingSearchSteps: 8
+  blockingLayers:
+    serializedVersion: 2
+    m_Bits: 3145864
+  landingDamage: 12
+  landingDamageRadius: 2
+  landingDamageOffset: {x: 0, y: 0.7, z: 0}
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  applyImpactOnLanding: 1
+  landingKnockbackDistance: 2.5
+  landingKnockbackDuration: 0.14
+  landingStunDuration: 0
+  interruptCurrentAction: 0
