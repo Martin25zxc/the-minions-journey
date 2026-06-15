@@ -10,17 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
-  m_Name: ED_EnemyLeap
+  m_Name: ED_Ranged_Basic
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
-  maxHealth: 60
-  moveSpeed: 3.2
+  maxHealth: 40
+  moveSpeed: 2.8
   rotateSpeed: 720
-  detectionRange: 10
-  detectionAngle: 140
-  proximityDetectionRange: 2
-  loseAggroRange: 15
+  detectionRange: 12
+  detectionAngle: 150
+  proximityDetectionRange: 1.8
+  loseAggroRange: 16
   targetMemoryDuration: 1.5
-  chaseStopDistance: 1.4
   bodyRadius: 0.45
-  meleeAttackProfile: {fileID: 11400000, guid: 1d93659a4b88f86418e346bb2bcaac80, type: 2}
-  leapAttackProfile: {fileID: 11400000, guid: d9bdf1618c1c117459f67d23fe8a8fb7, type: 2}

@@ -3,6 +3,11 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Enemies/Combat/Enemy Melee Attack Profile", fileName = "EnemyMeleeAttackProfile_NewAttack")]
 public sealed class EnemyMeleeAttackProfile : ScriptableObject
 {
+    [Header("Prioridad")]
+    [Tooltip("Prioridad relativa frente a otras abilities. Melee comun recomendado: 50.")]
+    [SerializeField]
+    private float priority = 50f;
+
     [Header("Damage")]
     [SerializeField, Min(0f)]
     private float damage = 8f;
@@ -59,6 +64,7 @@ public sealed class EnemyMeleeAttackProfile : ScriptableObject
     [SerializeField]
     private bool interruptCurrentAction;
 
+    public float Priority => priority;
     public float Damage => damage;
     public float AttackRange => attackRange;
     public float HitRadius => hitRadius;

@@ -57,6 +57,8 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         OnShieldChanged?.Invoke(currentShield, maxShield);
     }
 
+    [System.Obsolete("Use TakeDamage(TMJ_DamageInfo) so hit reactions know the damage source position.")]
+
     public void TakeDamage(float damage)
     {
         TakeDamage(new TMJ_DamageInfo(damage, transform.position));

@@ -2,10 +2,16 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(TopDownHealth))]
 public sealed class TopDownPlayerAnimator : MonoBehaviour
 {
     [SerializeField]
     private Animator animator;
+
+    [Header("Health Events")]
+    [Tooltip("Optional explicit reference. If empty, the component is searched on the player root. Used to bridge damage/death events into hit/death animations.")]
+    [SerializeField]
+    private TopDownHealth health;
 
     [Header("Locomotion")]
     [SerializeField, Min(0.01f)]
@@ -19,6 +25,7 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     private float speedDampTime = 0.08f;
 
     private Rigidbody body;
+    private bool isSubscribedToHealth;
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int MoveXHash = Animator.StringToHash("MoveX");
@@ -53,6 +60,73 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         {
             animator = GetComponentInChildren<Animator>();
         }
+
+        if (health == null)
+        {
+            health = GetComponent<TopDownHealth>();
+        }
+    }
+
+    private void OnEnable()
+    {
+        SubscribeToHealthEvents();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromHealthEvents();
+    }
+
+    private void SubscribeToHealthEvents()
+    {
+        if (isSubscribedToHealth)
+        {
+            return;
+        }
+
+        if (health == null)
+        {
+            health = GetComponent<TopDownHealth>();
+        }
+
+        if (health == null)
+        {
+            Debug.LogWarning($"{name} has no TopDownHealth assigned to TopDownPlayerAnimator.", this);
+            return;
+        }
+
+        health.OnDamaged += HandleDamaged;
+        health.OnDied += HandleDied;
+        isSubscribedToHealth = true;
+    }
+
+    private void UnsubscribeFromHealthEvents()
+    {
+        if (!isSubscribedToHealth || health == null)
+        {
+            return;
+        }
+
+        health.OnDamaged -= HandleDamaged;
+        health.OnDied -= HandleDied;
+        isSubscribedToHealth = false;
+    }
+
+    private void HandleDamaged(TMJ_DamageInfo damageInfo)
+    {
+        // TopDownHealth invokes OnDamaged before OnDied, but CurrentHealth has already been reduced.
+        // This guard prevents a lethal hit from briefly playing a hit reaction before the death animation.
+        if (health == null || !health.IsAlive)
+        {
+            return;
+        }
+
+        PlayHit(damageInfo);
+    }
+
+    private void HandleDied()
+    {
+        PlayDeath();
     }
 
     private void Update()
@@ -195,10 +269,10 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return true;
         }
 
-        if (IsCurrentOrNextStateTagged("Hit"))
-        {
-            return true;
-        }
+        // if (IsCurrentOrNextStateTagged("Hit"))
+        // {
+        //     return true;
+        // }
 
         if (ignoreHitAnimationWhileAttacking && IsCurrentOrNextStateTagged("Attack"))
         {
@@ -227,7 +301,14 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     }
     public void PlayDeath()
     {
-        animator?.SetTrigger(DieHash);
+        if (animator == null)
+        {
+            return;
+        }
+
+        animator.ResetTrigger(HitFrontHash);
+        animator.ResetTrigger(HitBackHash);
+        animator.SetTrigger(DieHash);
     }
 
     public void SetBlocking(bool isBlocking)

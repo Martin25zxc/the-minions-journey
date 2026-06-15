@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
@@ -10,9 +11,8 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     private enum State
     {
         Idle,
-        Chase,
-        MeleeAttack,
-        LeapAttack,
+        Engage,
+        UsingAbility,
         ImpactLocked,
         Dead
     }
@@ -27,56 +27,55 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     [SerializeField]
     private EnemyMovement movement;
 
+    [Header("Positioning")]
+    [Tooltip("Componente que implementa IEnemyPositioning. Ejemplo: EnemyChasePositioning o EnemyRangedPositioning.")]
     [SerializeField]
-    private EnemyMeleeAttackAbility meleeAttack;
+    private MonoBehaviour positioningComponent;
 
+    [Tooltip("Si no se asigna Positioning Component, intenta encontrar un unico componente IEnemyPositioning en este GameObject.")]
     [SerializeField]
-    private EnemyLeapAttackAbility leapAttack;
+    private bool autoFindPositioning = true;
 
-    [Header("Impact Lock")]
-    [Tooltip("Si esta activo, un stun/knockback cancela el ataque melee actual. Queda como decision de balance a revisar.")]
+    [Header("Abilities")]
+    [Tooltip("Si esta activo, EnemyBrain busca automaticamente componentes que implementen IEnemyAbility en el mismo GameObject.")]
     [SerializeField]
-    private bool cancelMeleeAttackOnImpactLock = true;
+    private bool autoCollectAbilities = true;
 
-    [Tooltip("Si esta activo, un stun/knockback cancela el Leap actual. En esta primera version evita que el movimiento de leap pelee contra el knockback.")]
+    [Tooltip("Decision inicial: un ImpactLock cancela la ability activa para evitar que dos rutinas peleen por movimiento/estado.")]
     [SerializeField]
-    private bool cancelLeapAttackOnImpactLock = true;
+    private bool cancelActiveAbilityOnImpactLock = true;
 
     [Header("Debug")]
     [SerializeField]
     private bool logStateChanges;
 
+    [SerializeField]
+    private bool logAbilitySelection;
+
+    [SerializeField]
+    private bool logConfigurationWarnings = true;
+
+    private readonly List<IEnemyAbility> abilities = new List<IEnemyAbility>();
+    private IEnemyPositioning positioning;
     private State currentState = State.Idle;
     private Coroutine impactLockRoutine;
+    private Coroutine activeAbilityRoutine;
+    private IEnemyAbility activeAbility;
     private float impactLockEndsAt;
 
     private EnemyDefinition Definition => actor != null ? actor.Definition : null;
 
     private void Awake()
     {
-        if (actor == null)
-        {
-            actor = GetComponent<EnemyActor>();
-        }
+        if (actor == null) actor = GetComponent<EnemyActor>();
+        if (targetSensor == null) targetSensor = GetComponent<EnemyTargetSensor>();
+        if (movement == null) movement = GetComponent<EnemyMovement>();
 
-        if (targetSensor == null)
-        {
-            targetSensor = GetComponent<EnemyTargetSensor>();
-        }
+        ResolvePositioning();
 
-        if (movement == null)
+        if (autoCollectAbilities)
         {
-            movement = GetComponent<EnemyMovement>();
-        }
-
-        if (meleeAttack == null)
-        {
-            meleeAttack = GetComponent<EnemyMeleeAttackAbility>();
-        }
-
-        if (leapAttack == null)
-        {
-            leapAttack = GetComponent<EnemyLeapAttackAbility>();
+            RefreshAbilities();
         }
     }
 
@@ -94,8 +93,15 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         targetSensor?.Initialize(definition);
         movement?.Initialize(definition);
 
-        // Las abilities conservan sus propios profiles asignados en su componente.
-        // EnemyDefinition queda reservado para datos comunes del actor (vida, movimiento y deteccion).
+        if (autoCollectAbilities && abilities.Count == 0)
+        {
+            RefreshAbilities();
+        }
+
+        if (positioning == null && logConfigurationWarnings)
+        {
+            Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has no IEnemyPositioning component. Add EnemyChasePositioning for melee or EnemyRangedPositioning for ranged enemies.", this);
+        }
 
         EnterIdle();
     }
@@ -106,11 +112,13 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         {
             actor.Died -= HandleDied;
         }
+
+        CancelActiveAbility();
     }
 
     private void Update()
     {
-        if (currentState == State.Dead || currentState == State.ImpactLocked)
+        if (currentState == State.Dead || currentState == State.ImpactLocked || currentState == State.UsingAbility)
         {
             return;
         }
@@ -135,16 +143,8 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
                 UpdateIdle();
                 break;
 
-            case State.Chase:
-                UpdateChase();
-                break;
-
-            case State.MeleeAttack:
-                UpdateMeleeAttack();
-                break;
-
-            case State.LeapAttack:
-                UpdateLeapAttack();
+            case State.Engage:
+                UpdateEngage();
                 break;
         }
     }
@@ -156,14 +156,9 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
             return;
         }
 
-        if (cancelMeleeAttackOnImpactLock)
+        if (cancelActiveAbilityOnImpactLock)
         {
-            meleeAttack?.CancelCurrentAttack();
-        }
-
-        if (cancelLeapAttackOnImpactLock)
-        {
-            leapAttack?.CancelCurrentLeap();
+            CancelActiveAbility();
         }
 
         impactLockEndsAt = Mathf.Max(impactLockEndsAt, Time.time + duration);
@@ -174,17 +169,71 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         }
     }
 
-    private void UpdateIdle()
+    public void RefreshAbilities()
     {
-        movement.Stop();
+        abilities.Clear();
 
-        if (targetSensor.HasTarget)
+        MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+        for (int i = 0; i < behaviours.Length; i++)
         {
-            EnterChase();
+            if (behaviours[i] is IEnemyAbility ability)
+            {
+                abilities.Add(ability);
+            }
         }
     }
 
-    private void UpdateChase()
+    public void ResolvePositioning()
+    {
+        positioning = null;
+
+        if (positioningComponent != null)
+        {
+            if (positioningComponent is IEnemyPositioning explicitPositioning)
+            {
+                positioning = explicitPositioning;
+                return;
+            }
+
+            if (logConfigurationWarnings)
+            {
+                Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} Positioning Component does not implement IEnemyPositioning: {positioningComponent.GetType().Name}.", this);
+            }
+        }
+
+        if (!autoFindPositioning)
+        {
+            return;
+        }
+
+        MonoBehaviour[] behaviours = GetComponents<MonoBehaviour>();
+        for (int i = 0; i < behaviours.Length; i++)
+        {
+            if (behaviours[i] is IEnemyPositioning foundPositioning)
+            {
+                if (positioning != null && logConfigurationWarnings)
+                {
+                    Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has multiple IEnemyPositioning components. Assign Positioning Component explicitly to avoid ambiguity.", this);
+                    return;
+                }
+
+                positioning = foundPositioning;
+            }
+        }
+    }
+
+    private void UpdateIdle()
+    {
+        positioning?.StopPositioning();
+        movement?.Stop();
+
+        if (targetSensor.HasTarget)
+        {
+            EnterEngage();
+        }
+    }
+
+    private void UpdateEngage()
     {
         if (!targetSensor.HasTarget || targetSensor.CurrentTarget == null)
         {
@@ -193,101 +242,141 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         }
 
         Transform target = targetSensor.CurrentTarget;
-
-        // Prioridad: si esta a media distancia y el leap esta disponible, intenta Leap.
-        // Si esta demasiado cerca, CanStartLeap devuelve false por minRange y cae a melee.
-        if (leapAttack != null && leapAttack.TryStartLeap(target))
+        IEnemyAbility selectedAbility = SelectBestAbility(target);
+        if (selectedAbility != null)
         {
-            EnterLeapAttack();
+            StartAbility(selectedAbility, target);
             return;
         }
 
-        if (meleeAttack != null && meleeAttack.TryStartAttack(target))
-        {
-            EnterMeleeAttack();
-            return;
-        }
-
-        float stopDistance = Definition.ChaseStopDistance;
-        if (meleeAttack != null)
-        {
-            stopDistance = meleeAttack.GetPreferredStopDistance(stopDistance);
-        }
-
-        movement.MoveTowards(target.position, stopDistance);
+        UpdatePositioning(target);
     }
 
-    private void UpdateMeleeAttack()
+    private IEnemyAbility SelectBestAbility(Transform target)
     {
-        movement.Stop();
+        IEnemyAbility bestAbility = null;
+        float bestPriority = float.MinValue;
 
-        if (targetSensor.HasTarget && targetSensor.CurrentTarget != null)
+        for (int i = 0; i < abilities.Count; i++)
         {
-            movement.FaceTarget(targetSensor.CurrentTarget.position);
+            IEnemyAbility ability = abilities[i];
+            if (ability == null || ability.IsRunning || !ability.CanUse(target))
+            {
+                continue;
+            }
+
+            float priority = ability.GetPriority(target);
+            if (priority <= bestPriority)
+            {
+                continue;
+            }
+
+            bestPriority = priority;
+            bestAbility = ability;
         }
 
-        if (meleeAttack != null && meleeAttack.IsBusy)
+        return bestAbility;
+    }
+
+    private void StartAbility(IEnemyAbility ability, Transform target)
+    {
+        if (ability == null)
         {
             return;
+        }
+
+        ChangeState(State.UsingAbility);
+        positioning?.StopPositioning();
+        movement?.Stop();
+        activeAbility = ability;
+        activeAbilityRoutine = StartCoroutine(AbilityRoutine(ability, target));
+
+        if (logAbilitySelection)
+        {
+            Debug.Log($"[{nameof(EnemyBrain)}] {name} uses {ability.GetType().Name}.", this);
+        }
+    }
+
+    private IEnumerator AbilityRoutine(IEnemyAbility ability, Transform target)
+    {
+        yield return ability.Execute(target);
+
+        activeAbilityRoutine = null;
+        activeAbility = null;
+
+        if (currentState == State.Dead || currentState == State.ImpactLocked)
+        {
+            yield break;
         }
 
         if (targetSensor.HasTarget)
         {
-            EnterChase();
-            return;
+            EnterEngage();
+            yield break;
         }
 
         EnterIdle();
     }
 
-    private void UpdateLeapAttack()
+    private void UpdatePositioning(Transform target)
     {
-        movement.Stop();
-
-        if (leapAttack != null && leapAttack.IsBusy)
+        if (target == null)
         {
+            positioning?.StopPositioning();
+            movement?.Stop();
             return;
         }
 
-        if (targetSensor.HasTarget)
+        if (positioning == null)
         {
-            EnterChase();
+            movement?.Stop();
             return;
         }
 
-        EnterIdle();
+        positioning.UpdatePositioning(target);
+    }
+
+    private void CancelActiveAbility()
+    {
+        if (activeAbility != null)
+        {
+            activeAbility.Cancel();
+        }
+
+        if (activeAbilityRoutine != null)
+        {
+            StopCoroutine(activeAbilityRoutine);
+            activeAbilityRoutine = null;
+        }
+
+        for (int i = 0; i < abilities.Count; i++)
+        {
+            abilities[i]?.Cancel();
+        }
+
+        activeAbility = null;
     }
 
     private void EnterIdle()
     {
         ChangeState(State.Idle);
+        positioning?.StopPositioning();
         movement?.Stop();
+        movement?.ClearIdleResidualPhysics();
     }
 
-    private void EnterChase()
+    private void EnterEngage()
     {
-        ChangeState(State.Chase);
-    }
-
-    private void EnterMeleeAttack()
-    {
-        ChangeState(State.MeleeAttack);
-        movement?.Stop();
-    }
-
-    private void EnterLeapAttack()
-    {
-        ChangeState(State.LeapAttack);
-        movement?.Stop();
+        ChangeState(State.Engage);
     }
 
     private void EnterDead()
     {
         ChangeState(State.Dead);
-        movement?.Stop();
+        positioning?.StopPositioning();
+        movement?.ApplyDeathPhysics();
         targetSensor?.ClearTarget();
-        meleeAttack?.CancelCurrentAttack();
-        leapAttack?.CancelCurrentLeap();
+        CancelActiveAbility();
 
         if (impactLockRoutine != null)
         {
@@ -299,6 +388,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     private IEnumerator ImpactLockRoutine()
     {
         ChangeState(State.ImpactLocked);
+        positioning?.StopPositioning();
         movement?.Stop();
 
         while (Time.time < impactLockEndsAt && currentState != State.Dead)
@@ -332,23 +422,5 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         {
             Debug.Log($"[{nameof(EnemyBrain)}] {name} -> {currentState}", this);
         }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        EnemyDefinition definition = Definition;
-        if (definition == null && actor != null)
-        {
-            definition = actor.Definition;
-        }
-
-        if (definition == null)
-        {
-            return;
-        }
-
-        // Rojo: distancia fallback a la que deja de acercarse durante Chase.
-        Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, definition.ChaseStopDistance);
     }
 }

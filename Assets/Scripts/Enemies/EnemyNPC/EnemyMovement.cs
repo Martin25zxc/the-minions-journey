@@ -12,47 +12,42 @@ public sealed class EnemyMovement : MonoBehaviour
     [SerializeField]
     private Rigidbody rb;
 
-    [Header("Rigidbody Setup - Provisorio / Revisar")]
-    [Tooltip("Ayuda inicial para estabilizar pruebas top-down. Revisar antes de cerrar arquitectura, especialmente cuando se implemente Leap Attack.")]
+    [Header("Residual Physics")]
+    [Tooltip("Cuando el brain entra en Idle, limpia velocidad horizontal residual. No toca Y para no pelear contra gravedad, rampas o escaleras.")]
     [SerializeField]
-    private bool configureRigidbodyForTopDownOnAwake = true;
+    private bool clearPlanarVelocityOnIdle = true;
 
-    [Tooltip("Provisorio. Si el Leap mueve el root fisico en Y, esto debera apagarse. Si solo salta el Visual, podria quedar activo.")]
+    [Tooltip("Cuando el brain entra en Idle, corta giro fisico residual generado por colisiones/knockback.")]
     [SerializeField]
-    private bool freezePositionY = true;
+    private bool clearAngularVelocityOnIdle = true;
 
-    [Tooltip("Provisorio. Evita rotaciones fisicas raras en arenas planas, pero revisar con colisiones reales.")]
+    [Tooltip("Al morir, limpia velocidad horizontal residual. No toca Y.")]
     [SerializeField]
-    private bool freezeRotationXAndZ = true;
+    private bool clearPlanarVelocityOnDeath = true;
 
-    [Header("Movement")]
+    [Tooltip("Al morir, corta giro fisico residual.")]
     [SerializeField]
-    private bool useRigidbodyMovePosition = true;
+    private bool clearAngularVelocityOnDeath = true;
 
-    [Tooltip("Provisorio. Mantiene la altura inicial del root. Revisar cuando se decida si el salto mueve root o solo visual.")]
+    [Tooltip("Para enemigos sin ragdoll, deja el cuerpo quieto al morir y evita deslizamientos. Apagar si mas adelante se implementa ragdoll/cadaver fisico.")]
     [SerializeField]
-    private bool keepInitialY = true;
+    private bool makeRigidbodyKinematicOnDeath = true;
 
     private Vector3 desiredVelocity;
     private bool hasMoveRequest;
-    private float initialY;
+    private Vector3 desiredFacingDirection;
+    private bool hasRotationRequest;
 
     public bool IsMoving => hasMoveRequest && desiredVelocity.sqrMagnitude > 0.0001f;
     public Vector3 DesiredVelocity => desiredVelocity;
     public Vector3 CurrentPosition => rb != null ? rb.position : transform.position;
+    public Rigidbody Rigidbody => rb;
 
     private void Awake()
     {
         if (rb == null)
         {
             rb = GetComponent<Rigidbody>();
-        }
-
-        initialY = transform.position.y;
-
-        if (configureRigidbodyForTopDownOnAwake && rb != null)
-        {
-            ConfigureRigidbodyForTopDown();
         }
     }
 
@@ -66,13 +61,18 @@ public sealed class EnemyMovement : MonoBehaviour
 
     public void MoveTowards(Vector3 targetPosition, float stopDistance)
     {
+        MoveTowards(targetPosition, stopDistance, 1f);
+    }
+
+    public void MoveTowards(Vector3 targetPosition, float stopDistance, float speedMultiplier)
+    {
         if (definition == null)
         {
             Stop();
             return;
         }
 
-        Vector3 currentPosition = transform.position;
+        Vector3 currentPosition = CurrentPosition;
         Vector3 toTarget = targetPosition - currentPosition;
         toTarget.y = 0f;
 
@@ -83,21 +83,51 @@ public sealed class EnemyMovement : MonoBehaviour
             return;
         }
 
-        Vector3 direction = toTarget.normalized;
-        desiredVelocity = direction * definition.MoveSpeed;
-        hasMoveRequest = true;
-        RotateTowards(direction);
+        MoveInDirection(toTarget.normalized, speedMultiplier);
+    }
+
+    public void MoveInDirection(Vector3 direction, float speedMultiplier = 1f)
+    {
+        if (definition == null)
+        {
+            Stop();
+            return;
+        }
+
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= 0.0001f)
+        {
+            Stop();
+            return;
+        }
+
+        direction.Normalize();
+        desiredVelocity = direction * definition.MoveSpeed * Mathf.Max(0f, speedMultiplier);
+        hasMoveRequest = desiredVelocity.sqrMagnitude > 0.0001f;
+
+        if (hasMoveRequest)
+        {
+            RequestRotation(direction);
+        }
+    }
+
+    public void MoveAwayFrom(Vector3 threatPosition, float speedMultiplier = 1f)
+    {
+        Vector3 away = CurrentPosition - threatPosition;
+        away.y = 0f;
+        MoveInDirection(away, speedMultiplier);
     }
 
     public void Stop()
     {
         desiredVelocity = Vector3.zero;
         hasMoveRequest = false;
+        hasRotationRequest = false;
     }
 
     public void FaceTarget(Vector3 targetPosition)
     {
-        Vector3 toTarget = targetPosition - transform.position;
+        Vector3 toTarget = targetPosition - CurrentPosition;
         toTarget.y = 0f;
 
         if (toTarget.sqrMagnitude <= 0.0001f)
@@ -105,12 +135,13 @@ public sealed class EnemyMovement : MonoBehaviour
             return;
         }
 
-        RotateTowards(toTarget.normalized);
+        RequestRotation(toTarget.normalized);
     }
 
     /// <summary>
     /// Movimiento controlado inmediato para abilities como Leap.
-    /// No deja una orden de movimiento persistente: solo coloca el root en la posicion indicada.
+    /// No mantiene una orden de movimiento persistente.
+    /// Por defecto preserva la Y actual para no pelear contra gravedad ni forzar una altura global.
     /// </summary>
     public void MoveControlledTo(Vector3 worldPosition, bool preserveCurrentY = true)
     {
@@ -121,108 +152,95 @@ public sealed class EnemyMovement : MonoBehaviour
         {
             nextPosition.y = CurrentPosition.y;
         }
-        else if (keepInitialY)
-        {
-            nextPosition.y = initialY;
-        }
 
-        if (useRigidbodyMovePosition && rb != null)
+        rb.MovePosition(nextPosition);
+    }
+
+    public void ClearIdleResidualPhysics()
+    {
+        ClearResidualPhysics(clearPlanarVelocityOnIdle, clearAngularVelocityOnIdle);
+    }
+
+    public void ApplyDeathPhysics()
+    {
+        Stop();
+        ClearResidualPhysics(clearPlanarVelocityOnDeath, clearAngularVelocityOnDeath);
+
+        if (makeRigidbodyKinematicOnDeath && rb != null)
         {
-            rb.MovePosition(nextPosition);
+            rb.isKinematic = true;
+        }
+    }
+
+    public void ClearResidualPhysics(bool clearPlanarVelocity = true, bool clearAngularVelocity = true)
+    {
+        if (rb == null || rb.isKinematic)
+        {
             return;
         }
 
-        transform.position = nextPosition;
-    }
+        if (clearPlanarVelocity)
+        {
+            Vector3 velocity = rb.linearVelocity;
+            velocity.x = 0f;
+            velocity.z = 0f;
+            rb.linearVelocity = velocity;
+        }
 
-    public void SetInitialYFromCurrentPosition()
-    {
-        initialY = CurrentPosition.y;
+        if (clearAngularVelocity)
+        {
+            rb.angularVelocity = Vector3.zero;
+        }
     }
 
     private void FixedUpdate()
     {
-        if (keepInitialY)
-        {
-            KeepGroundHeight();
-        }
+        ApplyMovement();
+        ApplyRotation();
+    }
 
-        if (!hasMoveRequest)
+    private void ApplyMovement()
+    {
+        if (!hasMoveRequest || rb == null)
         {
             return;
         }
 
         Vector3 delta = desiredVelocity * Time.fixedDeltaTime;
-        Vector3 nextPosition = rb != null ? rb.position + delta : transform.position + delta;
-
-        if (keepInitialY)
-        {
-            nextPosition.y = initialY;
-        }
-
-        if (useRigidbodyMovePosition && rb != null)
-        {
-            rb.MovePosition(nextPosition);
-        }
-        else
-        {
-            transform.position = nextPosition;
-        }
+        Vector3 nextPosition = rb.position + delta;
+        rb.MovePosition(nextPosition);
     }
 
-    private void RotateTowards(Vector3 direction)
+    private void ApplyRotation()
     {
-        if (definition == null || direction.sqrMagnitude <= 0.0001f)
+        if (!hasRotationRequest || definition == null || desiredFacingDirection.sqrMagnitude <= 0.0001f || rb == null)
         {
             return;
         }
 
-        Quaternion targetRotation = Quaternion.LookRotation(direction, Vector3.up);
-        transform.rotation = Quaternion.RotateTowards(
-            transform.rotation,
+        Quaternion targetRotation = Quaternion.LookRotation(desiredFacingDirection, Vector3.up);
+        Quaternion nextRotation = Quaternion.RotateTowards(
+            rb.rotation,
             targetRotation,
-            definition.RotateSpeed * Time.deltaTime);
+            definition.RotateSpeed * Time.fixedDeltaTime);
+
+        rb.MoveRotation(nextRotation);
+
+        if (Quaternion.Angle(nextRotation, targetRotation) <= 0.1f)
+        {
+            hasRotationRequest = false;
+        }
     }
 
-    private void ConfigureRigidbodyForTopDown()
+    private void RequestRotation(Vector3 direction)
     {
-        rb.useGravity = false;
-
-        RigidbodyConstraints constraints = rb.constraints;
-
-        if (freezePositionY)
+        direction.y = 0f;
+        if (direction.sqrMagnitude <= 0.0001f)
         {
-            constraints |= RigidbodyConstraints.FreezePositionY;
-        }
-
-        if (freezeRotationXAndZ)
-        {
-            constraints |= RigidbodyConstraints.FreezeRotationX;
-            constraints |= RigidbodyConstraints.FreezeRotationZ;
-        }
-
-        rb.constraints = constraints;
-    }
-
-    private void KeepGroundHeight()
-    {
-        if (rb != null)
-        {
-            Vector3 position = rb.position;
-            if (!Mathf.Approximately(position.y, initialY))
-            {
-                position.y = initialY;
-                rb.MovePosition(position);
-            }
-
             return;
         }
 
-        Vector3 transformPosition = transform.position;
-        if (!Mathf.Approximately(transformPosition.y, initialY))
-        {
-            transformPosition.y = initialY;
-            transform.position = transformPosition;
-        }
+        desiredFacingDirection = direction.normalized;
+        hasRotationRequest = true;
     }
 }

@@ -3,6 +3,11 @@ using UnityEngine;
 [CreateAssetMenu(menuName = "Enemies/Combat/Enemy Leap Attack Profile", fileName = "EnemyLeapAttackProfile_NewLeap")]
 public sealed class EnemyLeapAttackProfile : ScriptableObject
 {
+    [Header("Prioridad")]
+    [Tooltip("Prioridad relativa frente a otras abilities. Leap recomendado: 80 para que gane frente a melee si esta a media distancia.")]
+    [SerializeField]
+    private float priority = 80f;
+
     [Header("Rango / Cooldown")]
     [SerializeField, Min(0f)]
     private float minRange = 3f;
@@ -82,6 +87,7 @@ public sealed class EnemyLeapAttackProfile : ScriptableObject
     [SerializeField]
     private bool interruptCurrentAction;
 
+    public float Priority => priority;
     public float MinRange => minRange;
     public float MaxRange => maxRange;
     public float Cooldown => cooldown;

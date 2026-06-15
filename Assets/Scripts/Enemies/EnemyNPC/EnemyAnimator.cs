@@ -10,6 +10,7 @@ using UnityEngine;
 /// - LeapStart   trigger
 /// - OnAir       bool
 /// - LeapLand    trigger
+/// - RangedAttack trigger
 /// - HitFront   trigger
 /// - HitBack    trigger
 /// - Die        trigger
@@ -23,6 +24,7 @@ public sealed class EnemyAnimator : MonoBehaviour
     private static readonly int LeapStartHash = Animator.StringToHash("LeapStart");
     private static readonly int OnAirHash = Animator.StringToHash("OnAir");
     private static readonly int LeapLandHash = Animator.StringToHash("LeapLand");
+    private static readonly int RangedAttackHash = Animator.StringToHash("RangedAttack");
     private static readonly int HitFrontHash = Animator.StringToHash("HitFront");
     private static readonly int HitBackHash = Animator.StringToHash("HitBack");
     private static readonly int DieHash = Animator.StringToHash("Die");
@@ -64,6 +66,7 @@ public sealed class EnemyAnimator : MonoBehaviour
     private bool hasLeapStart;
     private bool hasOnAir;
     private bool hasLeapLand;
+    private bool hasRangedAttack;
     private bool hasHitFront;
     private bool hasHitBack;
     private bool hasDie;
@@ -152,6 +155,18 @@ public sealed class EnemyAnimator : MonoBehaviour
         animator.SetTrigger(LeapLandHash);
     }
 
+
+    public void PlayRangedAttack()
+    {
+        if (animator == null || !hasRangedAttack)
+        {
+            return;
+        }
+
+        animator.ResetTrigger(RangedAttackHash);
+        animator.SetTrigger(RangedAttackHash);
+    }
+
     public void PlayHitFromDamage(TMJ_DamageInfo damageInfo)
     {
         if (animator == null)
@@ -194,7 +209,6 @@ public sealed class EnemyAnimator : MonoBehaviour
 
         SetLocomotionValues(0f, 0f);
         SetOnAir(false);
-
         if (!hasDie)
         {
             return;
@@ -306,6 +320,7 @@ public sealed class EnemyAnimator : MonoBehaviour
         hasLeapStart = HasParameter(LeapStartHash, AnimatorControllerParameterType.Trigger, "LeapStart");
         hasOnAir = HasParameter(OnAirHash, AnimatorControllerParameterType.Bool, "OnAir");
         hasLeapLand = HasParameter(LeapLandHash, AnimatorControllerParameterType.Trigger, "LeapLand");
+        hasRangedAttack = HasParameter(RangedAttackHash, AnimatorControllerParameterType.Trigger, "RangedAttack");
         hasHitFront = HasParameter(HitFrontHash, AnimatorControllerParameterType.Trigger, "HitFront");
         hasHitBack = HasParameter(HitBackHash, AnimatorControllerParameterType.Trigger, "HitBack");
         hasDie = HasParameter(DieHash, AnimatorControllerParameterType.Trigger, "Die");

@@ -4,7 +4,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyActor))]
-public sealed class EnemyMeleeAttackAbility : MonoBehaviour
+public sealed class EnemyMeleeAttackAbility : MonoBehaviour, IEnemyAbility
 {
     [Header("References")]
     [SerializeField]
@@ -30,32 +30,23 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour
 
     private readonly HashSet<ITopDownDamageable> processedTargets = new HashSet<ITopDownDamageable>();
     private Collider[] hitResults;
-    private Coroutine attackRoutine;
+    private Coroutine selfRoutine;
+    private bool isRunning;
+    private bool cancelRequested;
     private float nextAvailableTime;
     private Vector3 lastHitCenter;
     private bool hasLastHitCenter;
 
-    public bool IsBusy => attackRoutine != null;
+    public bool IsRunning => isRunning;
+    public bool IsBusy => isRunning;
     public bool IsOnCooldown => Time.time < nextAvailableTime;
     public EnemyMeleeAttackProfile Profile => profile;
 
     private void Awake()
     {
-        if (actor == null)
-        {
-            actor = GetComponent<EnemyActor>();
-        }
-
-        if (movement == null)
-        {
-            movement = GetComponent<EnemyMovement>();
-        }
-
-        if (enemyAnimator == null)
-        {
-            enemyAnimator = GetComponent<EnemyAnimator>();
-        }
-
+        if (actor == null) actor = GetComponent<EnemyActor>();
+        if (movement == null) movement = GetComponent<EnemyMovement>();
+        if (enemyAnimator == null) enemyAnimator = GetComponent<EnemyAnimator>();
         hitResults = new Collider[Mathf.Max(1, maxHitResults)];
     }
 
@@ -63,36 +54,104 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour
     {
         if (profile == null)
         {
-            Debug.LogWarning($"[{nameof(EnemyMeleeAttackAbility)}] {name} has no EnemyMeleeAttackProfile assigned. The enemy can still move/leap, but melee attack is disabled.", this);
+            Debug.LogWarning($"[{nameof(EnemyMeleeAttackAbility)}] {name} has no EnemyMeleeAttackProfile assigned. Melee attack is disabled.", this);
         }
     }
 
     private void OnDisable()
     {
-        CancelCurrentAttack();
+        Cancel();
     }
 
-    public void Initialize(EnemyMeleeAttackProfile newProfile)
-    {
-        if (newProfile != null)
-        {
-            profile = newProfile;
-        }
-    }
-
-    public bool CanStartAttack(Transform target)
+    public bool CanUse(Transform target)
     {
         if (actor == null || !actor.IsAlive || profile == null || target == null)
         {
             return false;
         }
 
-        if (IsBusy || IsOnCooldown)
+        if (isRunning || IsOnCooldown)
         {
             return false;
         }
 
         return IsTargetInRange(target);
+    }
+
+    public float GetPriority(Transform target)
+    {
+        return profile != null ? profile.Priority : 0f;
+    }
+
+    public float GetPreferredStopDistance(float fallback)
+    {
+        return profile != null ? profile.AttackRange : fallback;
+    }
+
+    public IEnumerator Execute(Transform target)
+    {
+        if (!CanUse(target))
+        {
+            yield break;
+        }
+
+        isRunning = true;
+        cancelRequested = false;
+        movement?.Stop();
+
+        if (target != null)
+        {
+            movement?.FaceTarget(target.position);
+        }
+
+        enemyAnimator?.PlayMeleeAttack();
+
+        yield return WaitWhileUsable(profile.StartupTime);
+        if (!CanContinueAttack())
+        {
+            Finish(false);
+            yield break;
+        }
+
+        if (target != null)
+        {
+            movement?.FaceTarget(target.position);
+        }
+
+        PerformHit();
+
+        yield return WaitWhileUsable(profile.ActiveTime + profile.RecoveryTime);
+        Finish(true);
+    }
+
+    public bool TryStartAttack(Transform target)
+    {
+        if (!CanUse(target))
+        {
+            return false;
+        }
+
+        selfRoutine = StartCoroutine(SelfExecuteRoutine(target));
+        return true;
+    }
+
+    public void CancelCurrentAttack()
+    {
+        Cancel();
+    }
+
+    public void Cancel()
+    {
+        cancelRequested = true;
+
+        if (selfRoutine != null)
+        {
+            StopCoroutine(selfRoutine);
+            selfRoutine = null;
+        }
+
+        processedTargets.Clear();
+        isRunning = false;
     }
 
     public bool IsTargetInRange(Transform target)
@@ -107,65 +166,13 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour
         return toTarget.sqrMagnitude <= profile.AttackRange * profile.AttackRange;
     }
 
-    public float GetPreferredStopDistance(float fallback)
+    private IEnumerator SelfExecuteRoutine(Transform target)
     {
-        return profile != null ? profile.AttackRange : fallback;
+        yield return Execute(target);
+        selfRoutine = null;
     }
 
-    public bool TryStartAttack(Transform target)
-    {
-        if (!CanStartAttack(target))
-        {
-            return false;
-        }
-
-        attackRoutine = StartCoroutine(AttackRoutine(target));
-        return true;
-    }
-
-    public void CancelCurrentAttack()
-    {
-        if (attackRoutine != null)
-        {
-            StopCoroutine(attackRoutine);
-            attackRoutine = null;
-        }
-
-        processedTargets.Clear();
-    }
-
-    private IEnumerator AttackRoutine(Transform target)
-    {
-        movement?.Stop();
-
-        if (target != null)
-        {
-            movement?.FaceTarget(target.position);
-        }
-
-        enemyAnimator?.PlayMeleeAttack();
-
-        yield return WaitInterruptible(profile.StartupTime);
-
-        if (!CanContinueAttack())
-        {
-            FinishAttack(false);
-            yield break;
-        }
-
-        if (target != null)
-        {
-            movement?.FaceTarget(target.position);
-        }
-
-        PerformHit();
-
-        yield return WaitInterruptible(profile.ActiveTime + profile.RecoveryTime);
-
-        FinishAttack(true);
-    }
-
-    private IEnumerator WaitInterruptible(float duration)
+    private IEnumerator WaitWhileUsable(float duration)
     {
         float endTime = Time.time + Mathf.Max(0f, duration);
         while (Time.time < endTime)
@@ -181,7 +188,8 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour
 
     private bool CanContinueAttack()
     {
-        return actor != null
+        return !cancelRequested
+            && actor != null
             && actor.IsAlive
             && profile != null
             && isActiveAndEnabled
@@ -298,11 +306,16 @@ public sealed class EnemyMeleeAttackAbility : MonoBehaviour
         return null;
     }
 
-    private void FinishAttack(bool completedNormally)
+    private void Finish(bool completedNormally)
     {
-        nextAvailableTime = Time.time + (profile != null ? profile.Cooldown : 0f);
+        if (completedNormally && profile != null)
+        {
+            nextAvailableTime = Time.time + profile.Cooldown;
+        }
+
         processedTargets.Clear();
-        attackRoutine = null;
+        isRunning = false;
+        cancelRequested = false;
     }
 
     private void OnValidate()

@@ -36,12 +36,8 @@ public sealed class EnemyDefinition : ScriptableObject
     [SerializeField, Min(0f)]
     private float targetMemoryDuration = 1.5f;
 
-    [Header("Movement")]
-    [Tooltip("Distancia minima fallback que mantiene respecto al target durante Chase. Si hay melee ability con profile, el Brain usara el rango melee como distancia principal.")]
-    [SerializeField, Min(0.05f)]
-    private float chaseStopDistance = 1.4f;
-
-    [Tooltip("Radio aproximado del cuerpo. Se usa para validar aterrizajes del Leap si el profile no define un override.")]
+    [Header("Body")]
+    [Tooltip("Radio aproximado del cuerpo. Se usa para validaciones fisicas/logicas, por ejemplo aterrizajes del Leap.")]
     [SerializeField, Min(0.05f)]
     private float bodyRadius = 0.45f;
 
@@ -56,7 +52,6 @@ public sealed class EnemyDefinition : ScriptableObject
     public float LoseAggroRange => loseAggroRange;
     public float TargetMemoryDuration => targetMemoryDuration;
 
-    public float ChaseStopDistance => chaseStopDistance;
     public float BodyRadius => bodyRadius;
 
     private void OnValidate()
@@ -73,7 +68,6 @@ public sealed class EnemyDefinition : ScriptableObject
         loseAggroRange = Mathf.Max(minimumLoseAggro, loseAggroRange);
         targetMemoryDuration = Mathf.Max(0f, targetMemoryDuration);
 
-        chaseStopDistance = Mathf.Max(0.05f, chaseStopDistance);
         bodyRadius = Mathf.Max(0.05f, bodyRadius);
     }
 }

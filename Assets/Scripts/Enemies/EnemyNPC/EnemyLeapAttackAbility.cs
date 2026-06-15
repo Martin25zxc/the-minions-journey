@@ -4,7 +4,7 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyActor))]
-public sealed class EnemyLeapAttackAbility : MonoBehaviour
+public sealed class EnemyLeapAttackAbility : MonoBehaviour, IEnemyAbility
 {
     [Header("References")]
     [SerializeField]
@@ -34,7 +34,9 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
 
     private readonly HashSet<ITopDownDamageable> processedTargets = new HashSet<ITopDownDamageable>();
     private Collider[] hitResults;
-    private Coroutine leapRoutine;
+    private Coroutine selfRoutine;
+    private bool isRunning;
+    private bool cancelRequested;
     private float nextAvailableTime;
     private Vector3 visualBaseLocalPosition;
     private bool hasVisualBaseLocalPosition;
@@ -42,26 +44,16 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
     private Vector3 lastLandingDamageCenter;
     private bool hasLastLandingPosition;
 
-    public bool IsBusy => leapRoutine != null;
+    public bool IsRunning => isRunning;
+    public bool IsBusy => isRunning;
     public bool IsOnCooldown => Time.time < nextAvailableTime;
     public EnemyLeapAttackProfile Profile => profile;
 
     private void Awake()
     {
-        if (actor == null)
-        {
-            actor = GetComponent<EnemyActor>();
-        }
-
-        if (movement == null)
-        {
-            movement = GetComponent<EnemyMovement>();
-        }
-
-        if (enemyAnimator == null)
-        {
-            enemyAnimator = GetComponent<EnemyAnimator>();
-        }
+        if (actor == null) actor = GetComponent<EnemyActor>();
+        if (movement == null) movement = GetComponent<EnemyMovement>();
+        if (enemyAnimator == null) enemyAnimator = GetComponent<EnemyAnimator>();
 
         if (visualRoot == null)
         {
@@ -91,25 +83,17 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
 
     private void OnDisable()
     {
-        CancelCurrentLeap();
+        Cancel();
     }
 
-    public void Initialize(EnemyLeapAttackProfile newProfile)
-    {
-        if (newProfile != null)
-        {
-            profile = newProfile;
-        }
-    }
-
-    public bool CanStartLeap(Transform target)
+    public bool CanUse(Transform target)
     {
         if (actor == null || !actor.IsAlive || profile == null || target == null)
         {
             return false;
         }
 
-        if (IsBusy || IsOnCooldown)
+        if (isRunning || IsOnCooldown)
         {
             return false;
         }
@@ -122,62 +106,25 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
         return TryFindLandingPosition(target, out _);
     }
 
-    public bool TryStartLeap(Transform target)
+    public float GetPriority(Transform target)
     {
-        if (actor == null || !actor.IsAlive || profile == null || target == null)
-        {
-            return false;
-        }
-
-        if (IsBusy || IsOnCooldown)
-        {
-            return false;
-        }
-
-        if (!IsTargetInLeapRange(target))
-        {
-            return false;
-        }
-
-        if (!TryFindLandingPosition(target, out Vector3 landingPosition))
-        {
-            return false;
-        }
-
-        // El cooldown empieza al iniciar la habilidad: si el jugador la cancela con stun/knockback,
-        // no se reintenta inmediatamente en el frame siguiente.
-        nextAvailableTime = Time.time + profile.Cooldown;
-        leapRoutine = StartCoroutine(LeapRoutine(target, landingPosition));
-        return true;
+        return profile != null ? profile.Priority : 0f;
     }
 
-    public void CancelCurrentLeap()
+
+    public IEnumerator Execute(Transform target)
     {
-        if (leapRoutine != null)
+        if (!CanUse(target))
         {
-            StopCoroutine(leapRoutine);
-            leapRoutine = null;
+            yield break;
         }
 
-        RestoreVisualRoot();
-        enemyAnimator?.SetOnAir(false);
-        processedTargets.Clear();
-    }
-
-    public bool IsTargetInLeapRange(Transform target)
-    {
-        if (profile == null || target == null)
-        {
-            return false;
-        }
-
-        float distance = HorizontalDistance(transform.position, target.position);
-        return profile.IsDistanceInRange(distance);
-    }
-
-    private IEnumerator LeapRoutine(Transform target, Vector3 initialLandingPosition)
-    {
+        isRunning = true;
+        cancelRequested = false;
         movement?.Stop();
+
+        // El cooldown empieza al iniciar la habilidad: si se cancela, no se reintenta inmediatamente.
+        nextAvailableTime = Time.time + profile.Cooldown;
 
         if (target != null)
         {
@@ -186,18 +133,17 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
 
         enemyAnimator?.PlayLeapStart();
 
-        yield return WaitWhileAlive(profile.TelegraphTime);
-
+        yield return WaitWhileUsable(profile.TelegraphTime);
         if (!CanContinueLeap())
         {
-            FinishLeap(false);
+            Finish(false);
             yield break;
         }
 
-        Vector3 landingPosition = initialLandingPosition;
-        if (target != null && TryFindLandingPosition(target, out Vector3 refreshedLandingPosition))
+        if (!TryFindLandingPosition(target, out Vector3 landingPosition))
         {
-            landingPosition = refreshedLandingPosition;
+            Finish(false);
+            yield break;
         }
 
         lastLandingPosition = landingPosition;
@@ -216,7 +162,7 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
         {
             if (!CanContinueLeap())
             {
-                FinishLeap(false);
+                Finish(false);
                 yield break;
             }
 
@@ -237,12 +183,60 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
         enemyAnimator?.PlayLeapLand();
         PerformLandingDamage(landingPosition);
 
-        yield return WaitWhileAlive(profile.RecoveryTime);
-
-        FinishLeap(true);
+        yield return WaitWhileUsable(profile.RecoveryTime);
+        Finish(true);
     }
 
-    private IEnumerator WaitWhileAlive(float duration)
+    public bool TryStartLeap(Transform target)
+    {
+        if (!CanUse(target))
+        {
+            return false;
+        }
+
+        selfRoutine = StartCoroutine(SelfExecuteRoutine(target));
+        return true;
+    }
+
+    public void CancelCurrentLeap()
+    {
+        Cancel();
+    }
+
+    public void Cancel()
+    {
+        cancelRequested = true;
+
+        if (selfRoutine != null)
+        {
+            StopCoroutine(selfRoutine);
+            selfRoutine = null;
+        }
+
+        RestoreVisualRoot();
+        enemyAnimator?.SetOnAir(false);
+        processedTargets.Clear();
+        isRunning = false;
+    }
+
+    public bool IsTargetInLeapRange(Transform target)
+    {
+        if (profile == null || target == null)
+        {
+            return false;
+        }
+
+        float distance = HorizontalDistance(transform.position, target.position);
+        return profile.IsDistanceInRange(distance);
+    }
+
+    private IEnumerator SelfExecuteRoutine(Transform target)
+    {
+        yield return Execute(target);
+        selfRoutine = null;
+    }
+
+    private IEnumerator WaitWhileUsable(float duration)
     {
         float endTime = Time.time + Mathf.Max(0f, duration);
         while (Time.time < endTime)
@@ -258,19 +252,21 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
 
     private bool CanContinueLeap()
     {
-        return actor != null
+        return !cancelRequested
+            && actor != null
             && actor.IsAlive
             && profile != null
             && isActiveAndEnabled
             && gameObject.activeInHierarchy;
     }
 
-    private void FinishLeap(bool completedNormally)
+    private void Finish(bool completedNormally)
     {
         RestoreVisualRoot();
         enemyAnimator?.SetOnAir(false);
         processedTargets.Clear();
-        leapRoutine = null;
+        isRunning = false;
+        cancelRequested = false;
     }
 
     private void ApplyVisualArc(float t)
@@ -334,7 +330,6 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
             return true;
         }
 
-        // Busqueda principal: puntos alrededor del target, manteniendo distancia segura al jugador.
         int steps = Mathf.Max(1, profile.LandingSearchSteps);
         Vector3 baseDirectionFromTarget = -enemyToTarget;
         for (int i = 0; i < steps; i++)
@@ -350,7 +345,6 @@ public sealed class EnemyLeapAttackAbility : MonoBehaviour
             }
         }
 
-        // Busqueda secundaria: pequeñas variaciones alrededor del punto ideal.
         float extraRadius = profile.LandingSearchRadius;
         if (extraRadius <= 0f)
         {
