@@ -20,7 +20,7 @@ MonoBehaviour:
   rarity: 0
   damageBonusMin: 10
   damageBonusMax: 15
-  weaponType: 0
+  weaponType: 1
   equippedModelPrefab: {fileID: 433687607784990684, guid: d5f90141112282c4394a5391cfe041b9, type: 3}
   handLocalPosition: {x: 0, y: 0.9, z: 0}
   handLocalEulerAngles: {x: 0, y: 0, z: 0}
