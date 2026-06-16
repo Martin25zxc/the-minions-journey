@@ -128,6 +128,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 93624627}
+  - component: {fileID: 93624628}
   m_Layer: 5
   m_Name: MainMenuController
   m_TagString: Untagged
@@ -154,6 +155,21 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &93624628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 93624626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23ed28acbb72dc643a8e4ec786b02295, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TMJ_MainMenuController
+  newGameSceneName: Nivel-1
+  newGameButton: {fileID: 2025373124}
+  versionText: {fileID: 0}
 --- !u!1 &249632266
 GameObject:
   m_ObjectHideFlags: 0
@@ -1354,6 +1370,17 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 8246409941650694003, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
   m_PrefabInstance: {fileID: 8075447271896691361}
   m_PrefabAsset: {fileID: 0}
+--- !u!114 &2025373124 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
+  m_PrefabInstance: {fileID: 8075447271896691361}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e29b1a8efbd4b44bb3f3716e73f07ff, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Button
 --- !u!1001 &8075447271896691361
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1396,7 +1423,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_FadeDuration
-      value: 0.12
+      value: 0.9
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_NormalColor.a
@@ -1427,16 +1454,20 @@ PrefabInstance:
       value: 0.8784314
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
+      propertyPath: m_Colors.m_DisabledColor.a
+      value: 0.47058824
+      objectReference: {fileID: 0}
+    - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_DisabledColor.b
-      value: 0.28627452
+      value: 0.16470589
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_DisabledColor.g
-      value: 0.29411766
+      value: 0.36862746
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_DisabledColor.r
-      value: 0.30980393
+      value: 0.65882355
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_SelectedColor.b
