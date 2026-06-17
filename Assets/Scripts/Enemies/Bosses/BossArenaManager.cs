@@ -320,6 +320,7 @@ public class BossArenaManager : MonoBehaviour
         fightActive = false;
         StopAllCoroutines();
         rockManager?.DeactivateRocks();
+        battleStartController?.EndBossBattle();
         Debug.Log("[FSM] Jefe derrotado.");
     }
 

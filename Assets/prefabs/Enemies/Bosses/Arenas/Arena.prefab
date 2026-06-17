@@ -272,6 +272,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BossBattleStartController
   arenaDoor: {fileID: 5621106846780115985}
+  arenaWalls: {fileID: 9136818424965999732}
 --- !u!1 &3274654534126159315
 GameObject:
   m_ObjectHideFlags: 0

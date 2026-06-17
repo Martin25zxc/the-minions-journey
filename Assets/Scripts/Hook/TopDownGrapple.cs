@@ -6,42 +6,67 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(TopDownPlayerController))]
 public sealed class TopDownGrapple : MonoBehaviour
 {
-    [SerializeField] GameObject hookPrefab;
-    [SerializeField, Min(1f)] float pullSpeed = 16f;
-    [SerializeField, Min(0.1f)] float arrivalThreshold = 1.5f;
-    [SerializeField, Min(0f)] float hookSpawnDistance = 2.2f;
+    [Header("Input")]
+    [SerializeField]
+    private bool readInputDirectly = true;
+
+    [SerializeField]
+    private bool pressQAgainCancels = true;
+
+    [Header("Hook")]
+    [SerializeField]
+    private GameObject hookPrefab;
+
+    [SerializeField, Min(1f)]
+    private float pullSpeed = 16f;
+
+    [SerializeField, Min(0.1f)]
+    private float arrivalThreshold = 1.5f;
+
+    [SerializeField, Min(0f)]
+    private float hookSpawnDistance = 2.2f;
 
     [Header("Rope Visual")]
-    [SerializeField, Min(0.005f)] float ropeWidth = 0.04f;
-    [SerializeField] Color ropeColor = new Color(0.85f, 0.7f, 0.4f, 1f);
-    [SerializeField, Min(0f)] float ropeOriginHeightOffset = 0.5f;
+    [SerializeField, Min(0.005f)]
+    private float ropeWidth = 0.04f;
 
-    Rigidbody body;
-    TopDownPlayerController controller;
-    GrapplingHookProjectile activeHook;
-    LineRenderer rope;
-    Vector3 hookTarget;
-    bool pulling;
+    [SerializeField]
+    private Color ropeColor = new Color(0.85f, 0.7f, 0.4f, 1f);
 
-    void Awake()
+    [SerializeField, Min(0f)]
+    private float ropeOriginHeightOffset = 0.5f;
+
+    private Rigidbody body;
+    private TopDownPlayerController controller;
+    private GrapplingHookProjectile activeHook;
+    private LineRenderer rope;
+
+    private Vector3 hookTarget;
+    private bool pulling;
+
+    private void Awake()
     {
         body = GetComponent<Rigidbody>();
         controller = GetComponent<TopDownPlayerController>();
         rope = BuildRopeRenderer();
     }
 
-    void Update()
+    private void Update()
     {
-        Keyboard kb = Keyboard.current;
-        if (kb != null && kb.rKey.wasPressedThisFrame && activeHook == null && !pulling)
-            FireHook();
+        if (readInputDirectly)
+        {
+            ReadDirectInput();
+        }
 
         UpdateRopeVisual();
     }
 
-    void FixedUpdate()
+    private void FixedUpdate()
     {
-        if (!pulling) return;
+        if (!pulling)
+        {
+            return;
+        }
 
         Vector3 toTarget = hookTarget - transform.position;
         toTarget.y = 0f;
@@ -52,60 +77,162 @@ public sealed class TopDownGrapple : MonoBehaviour
             return;
         }
 
-        body.linearVelocity = toTarget.normalized * pullSpeed;
+        Vector3 horizontalVelocity = toTarget.normalized * pullSpeed;
+
+        body.linearVelocity = new Vector3(
+            horizontalVelocity.x,
+            body.linearVelocity.y,
+            horizontalVelocity.z
+        );
     }
 
-    void FireHook()
+    private void ReadDirectInput()
     {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return;
+        }
+
+        if (!keyboard.qKey.wasPressedThisFrame)
+        {
+            return;
+        }
+
+        if (activeHook != null || pulling)
+        {
+            if (pressQAgainCancels)
+            {
+                CancelGrapple();
+            }
+
+            return;
+        }
+
+        FireHook();
+    }
+
+    private void FireHook()
+    {
+        if (activeHook != null || pulling)
+        {
+            return;
+        }
+
         if (hookPrefab == null)
         {
             Debug.LogWarning("TopDownGrapple: hookPrefab not assigned.", this);
             return;
         }
 
-        Vector3 dir = controller.AimDirection;
-        if (dir.sqrMagnitude < 0.001f) return;
+        if (!TryGetPlanarAimDirection(out Vector3 direction))
+        {
+            return;
+        }
 
-        Vector3 spawnPos = transform.position + dir * hookSpawnDistance + Vector3.up * ropeOriginHeightOffset;
-        GameObject hookObj = Instantiate(hookPrefab, spawnPos, Quaternion.LookRotation(dir));
+        Vector3 spawnPosition = transform.position
+                              + direction * hookSpawnDistance
+                              + Vector3.up * ropeOriginHeightOffset;
 
-        activeHook = hookObj.GetComponent<GrapplingHookProjectile>();
+        GameObject hookObject = Instantiate(
+            hookPrefab,
+            spawnPosition,
+            Quaternion.LookRotation(direction, Vector3.up)
+        );
+
+        activeHook = hookObject.GetComponent<GrapplingHookProjectile>();
         if (activeHook == null)
         {
-            Destroy(hookObj);
+            Debug.LogWarning("TopDownGrapple: hookPrefab does not have GrapplingHookProjectile.", hookObject);
+            Destroy(hookObject);
             return;
         }
 
         activeHook.OnHookLanded += HandleHookLanded;
         activeHook.OnHookMissed += CancelGrapple;
-        activeHook.Launch(dir);
+
+        activeHook.Launch(direction, transform);
     }
 
-    void HandleHookLanded(Vector3 hitPoint)
+    private bool TryGetPlanarAimDirection(out Vector3 direction)
     {
+        direction = controller != null ? controller.AimDirection : transform.forward;
+        direction.y = 0f;
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = transform.forward;
+            direction.y = 0f;
+        }
+
+        if (direction.sqrMagnitude <= 0.001f)
+        {
+            direction = Vector3.forward;
+        }
+
+        direction.Normalize();
+        return true;
+    }
+
+    private void HandleHookLanded(Vector3 hitPoint)
+    {
+        if (activeHook == null)
+        {
+            return;
+        }
+
         hookTarget = new Vector3(hitPoint.x, transform.position.y, hitPoint.z);
         pulling = true;
-        controller.enabled = false;
+
+        if (controller != null)
+        {
+            controller.enabled = false;
+        }
+
+        Vector3 velocity = body.linearVelocity;
+        velocity.x = 0f;
+        velocity.z = 0f;
+        body.linearVelocity = velocity;
     }
 
-    void CancelGrapple()
+    private void CancelGrapple()
     {
         pulling = false;
-        controller.enabled = true;
+
+        if (controller != null)
+        {
+            controller.enabled = true;
+        }
+
+        if (body != null)
+        {
+            Vector3 velocity = body.linearVelocity;
+            velocity.x = 0f;
+            velocity.z = 0f;
+            body.linearVelocity = velocity;
+        }
 
         if (activeHook != null)
         {
             activeHook.OnHookLanded -= HandleHookLanded;
             activeHook.OnHookMissed -= CancelGrapple;
-            Destroy(activeHook.gameObject);
+            activeHook.CancelSilently();
             activeHook = null;
         }
 
-        rope.enabled = false;
+        if (rope != null)
+        {
+            rope.enabled = false;
+        }
     }
 
-    void UpdateRopeVisual()
+    private void UpdateRopeVisual()
     {
+        if (rope == null)
+        {
+            return;
+        }
+
         if (activeHook == null)
         {
             rope.enabled = false;
@@ -117,63 +244,89 @@ public sealed class TopDownGrapple : MonoBehaviour
         rope.SetPosition(1, activeHook.transform.position);
     }
 
-    LineRenderer BuildRopeRenderer()
+    private LineRenderer BuildRopeRenderer()
     {
-        GameObject ropeObj = new GameObject("GrappleRope");
-        ropeObj.transform.SetParent(transform, false);
+        GameObject ropeObject = new GameObject("GrappleRope");
+        ropeObject.transform.SetParent(transform, false);
 
-        LineRenderer lr = ropeObj.AddComponent<LineRenderer>();
-        lr.useWorldSpace = true;
-        lr.positionCount = 2;
-        lr.startWidth = ropeWidth;
-        lr.endWidth = ropeWidth * 0.5f;
-        lr.startColor = ropeColor;
-        lr.endColor = ropeColor;
-        lr.alignment = LineAlignment.View;
-        lr.numCapVertices = 4;
-        lr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        lr.receiveShadows = false;
-        lr.sharedMaterial = BuildRopeMaterial(ropeColor);
-        lr.enabled = false;
+        LineRenderer lineRenderer = ropeObject.AddComponent<LineRenderer>();
+        lineRenderer.useWorldSpace = true;
+        lineRenderer.positionCount = 2;
+        lineRenderer.startWidth = ropeWidth;
+        lineRenderer.endWidth = ropeWidth * 0.5f;
+        lineRenderer.startColor = ropeColor;
+        lineRenderer.endColor = ropeColor;
+        lineRenderer.alignment = LineAlignment.View;
+        lineRenderer.numCapVertices = 4;
+        lineRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        lineRenderer.receiveShadows = false;
+        lineRenderer.sharedMaterial = BuildRopeMaterial(ropeColor);
+        lineRenderer.enabled = false;
 
-        return lr;
+        return lineRenderer;
     }
 
-    static Material BuildRopeMaterial(Color color)
+    private static Material BuildRopeMaterial(Color color)
     {
         Shader shader = Shader.Find("Universal Render Pipeline/Unlit")
                      ?? Shader.Find("Sprites/Default")
                      ?? Shader.Find("Unlit/Color");
 
-        var mat = new Material(shader) { hideFlags = HideFlags.HideAndDontSave };
+        Material material = new Material(shader)
+        {
+            hideFlags = HideFlags.HideAndDontSave
+        };
 
-        if (mat.HasProperty("_BaseColor"))
-            mat.SetColor("_BaseColor", color);
-        else if (mat.HasProperty("_Color"))
-            mat.SetColor("_Color", color);
+        if (material.HasProperty("_BaseColor"))
+        {
+            material.SetColor("_BaseColor", color);
+        }
+        else if (material.HasProperty("_Color"))
+        {
+            material.SetColor("_Color", color);
+        }
 
-        return mat;
+        return material;
     }
 
-    void OnDrawGizmos()
+    private void OnDisable()
+    {
+        CancelGrapple();
+    }
+
+    private void OnDrawGizmos()
     {
         if (pulling)
         {
-            // Play mode: arrival zone at hook landing point
             Gizmos.color = new Color(0f, 1f, 0.4f, 0.2f);
             Gizmos.DrawSphere(hookTarget, arrivalThreshold);
+
             Gizmos.color = new Color(0f, 1f, 0.4f, 1f);
             Gizmos.DrawWireSphere(hookTarget, arrivalThreshold);
-            float c = arrivalThreshold * 0.3f;
-            Gizmos.DrawLine(hookTarget - Vector3.right * c, hookTarget + Vector3.right * c);
-            Gizmos.DrawLine(hookTarget - Vector3.forward * c, hookTarget + Vector3.forward * c);
+
+            float crossSize = arrivalThreshold * 0.3f;
+            Gizmos.DrawLine(hookTarget - Vector3.right * crossSize, hookTarget + Vector3.right * crossSize);
+            Gizmos.DrawLine(hookTarget - Vector3.forward * crossSize, hookTarget + Vector3.forward * crossSize);
         }
         else
         {
-            // Editor preview: spawn point indicator
-            Vector3 preview = transform.position + transform.forward * hookSpawnDistance + Vector3.up * ropeOriginHeightOffset;
+            Vector3 forward = transform.forward;
+            forward.y = 0f;
+
+            if (forward.sqrMagnitude <= 0.001f)
+            {
+                forward = Vector3.forward;
+            }
+
+            forward.Normalize();
+
+            Vector3 preview = transform.position
+                            + forward * hookSpawnDistance
+                            + Vector3.up * ropeOriginHeightOffset;
+
             Gizmos.color = new Color(1f, 0.9f, 0f, 0.15f);
             Gizmos.DrawSphere(preview, 0.15f);
+
             Gizmos.color = new Color(1f, 0.9f, 0f, 0.9f);
             Gizmos.DrawWireSphere(preview, 0.15f);
         }
