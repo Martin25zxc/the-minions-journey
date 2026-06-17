@@ -37,7 +37,7 @@ MonoBehaviour:
     m_Bits: 8
   blockingLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 2097152
   applyImpact: 0
   knockbackDistance: 0
   knockbackDuration: 0

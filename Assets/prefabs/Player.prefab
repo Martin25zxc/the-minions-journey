@@ -308,8 +308,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b4964607a6cec5c41bf59d3c601723d2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TMJ_WeaponLoadout
-  startingLightAttackWeapon: {fileID: 11400000, guid: d31a4d2a23fb9474397a0a5b5dd04894, type: 2}
-  startingHeavyAttackWeapon: {fileID: 11400000, guid: 0621e7ccdc273af45981e9b420b5cce1, type: 2}
+  startingLightAttackWeapon: {fileID: 0}
+  startingHeavyAttackWeapon: {fileID: 0}
 --- !u!114 &3094259167709346370
 MonoBehaviour:
   m_ObjectHideFlags: 0
