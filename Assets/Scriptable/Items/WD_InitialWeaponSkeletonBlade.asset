@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a98e0e2f0b9dad4d92fc7821077bdc7, type: 3}
-  m_Name: WD_InitialWeaponGarroteSkeletonBlade
+  m_Name: WD_InitialWeaponSkeletonBlade
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  itemName: Sable esqueleto
+  itemName: Uncommon_SkeletonBlade
   displayName: Sable esqueleto
   description: 
   icon: {fileID: 21300000, guid: c278ec36abbc540489a08ba8765cd092, type: 3}
   worldModelPrefab: {fileID: 919132149155446097, guid: 346e67132d2659847882969b197d923a, type: 3}
-  rarity: 0
+  rarity: 1
   damageBonusMin: 20
   damageBonusMax: 30
   weaponType: 0
