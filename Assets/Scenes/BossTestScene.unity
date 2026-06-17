@@ -565,11 +565,20 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7882577078635724833, guid: 0ccf833df97e20f4c87c00eadb7e473b, type: 3}
+      propertyPath: arenaWalls
+      value: 
+      objectReference: {fileID: 2578110425731862298}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0ccf833df97e20f4c87c00eadb7e473b, type: 3}
+--- !u!1 &2578110425731862298 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9136818424965999732, guid: 0ccf833df97e20f4c87c00eadb7e473b, type: 3}
+  m_PrefabInstance: {fileID: 2578110425731862297}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

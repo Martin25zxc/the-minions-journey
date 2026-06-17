@@ -9,6 +9,9 @@ public class BossBattleStartController : MonoBehaviour
 
     //Inspector
     [SerializeField] GameObject arenaDoor; //La puerta que se cerrará al iniciar la batalla.
+    [SerializeField] GameObject arenaWalls; //Las paredes que se desctaivaran al terminar la batalla.
+
+    private bool battleStarted = false; //Para asegurarnos de que la batalla solo se inicie una vez.
 
     private void Awake()
     {
@@ -27,11 +30,18 @@ public class BossBattleStartController : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        if (battleStarted) return; //Si la batalla ya ha comenzado, no hacer nada.
         if (other.CompareTag("Player"))
         {
             StartBossBattle();
-            //Desactivar este script para que no se vuelva a activar la batalla si el jugador sale y vuelve a entrar.
-            this.enabled = false;
+            battleStarted = true;
+            
         }
+    }
+
+    public void EndBossBattle()
+    {
+        arenaDoor.SetActive(false); //Abrir la puerta del arena.
+        arenaWalls.SetActive(false); //Desactivar las paredes del arena.
     }
 }
