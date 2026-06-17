@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl --max-time 5 -o /dev/null -w \"%{http_code}\" http://localhost:8080/mcp)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('mcpServers:', 'mcpServers' in d\\)\")",
+      "Bash(ls \"C:\\\\Users\\\\RSant\\\\.claude\\\\\" 2>/dev/null; ls \"C:\\\\Users\\\\RSant\\\\Desktop\\\\prog2\\\\.claude\\\\\" 2>/dev/null)",
+      "Read(//c/Users/RSant/.claude\" 2>/dev/**)",
+      "Bash(curl -si --max-time 5 http://127.0.0.1:8080/mcp)",
+      "mcp__UnityMCP__find_gameobjects",
+      "mcp__UnityMCP__manage_camera"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "UnityMCP"
+  ]
+}
