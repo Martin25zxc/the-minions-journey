@@ -54,6 +54,7 @@ GameObject:
   - component: {fileID: 6582138216227320886}
   - component: {fileID: 2500056293456726093}
   - component: {fileID: 7001349735635071850}
+  - component: {fileID: 4568917047187759288}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -376,6 +377,25 @@ MonoBehaviour:
   logStun: 1
   logImpactLock: 1
   logNoEffect: 1
+--- !u!114 &4568917047187759288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2914608821614472329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddd34f6cc03c0af41886ded7b200fc4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TopDownGrapple
+  hookPrefab: {fileID: 4945238613741055245, guid: 0a7b5a94984785d48aacfb23dc966d4f, type: 3}
+  pullSpeed: 16
+  arrivalThreshold: 1.5
+  hookSpawnDistance: 2.2
+  ropeWidth: 0.04
+  ropeColor: {r: 0.85, g: 0.7, b: 0.4, a: 1}
+  ropeOriginHeightOffset: 0.5
 --- !u!1 &5264341155113123503
 GameObject:
   m_ObjectHideFlags: 0
