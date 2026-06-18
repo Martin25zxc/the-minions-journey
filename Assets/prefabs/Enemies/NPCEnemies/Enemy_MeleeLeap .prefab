@@ -24,6 +24,8 @@ GameObject:
   - component: {fileID: 3105043542537409122}
   - component: {fileID: -1119356911490372276}
   - component: {fileID: -2840190919998109374}
+  - component: {fileID: 1358242531976633005}
+  - component: {fileID: 5942049904469329581}
   m_Layer: 7
   m_Name: 'Enemy_MeleeLeap '
   m_TagString: Untagged
@@ -203,11 +205,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBrain
   actor: {fileID: 4977548276265067759}
   targetSensor: {fileID: 6768200277397548457}
+  awareness: {fileID: 0}
   movement: {fileID: 3305012326699863611}
   positioningComponent: {fileID: 0}
   autoFindPositioning: 1
   autoCollectAbilities: 1
   cancelActiveAbilityOnImpactLock: 1
+  investigationStopDistance: 1
+  investigationSpeedMultiplier: 1
+  faceInvestigationPointOnArrival: 1
   logStateChanges: 1
   logAbilitySelection: 0
   logConfigurationWarnings: 1
@@ -337,6 +343,47 @@ MonoBehaviour:
   changeLayerOnDeath: 0
   corpseLayerName: 
   applyLayerToChildren: 1
+--- !u!114 &1358242531976633005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4582433032069939127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 030909e264c37504dae0d920e938b9e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyAwareness
+  actor: {fileID: 0}
+  useDefinitionTargetMemory: 1
+  combatTargetMemoryDuration: 1.5
+  investigationMemoryDuration: 4
+  logStimuli: 0
+  logMemoryChanges: 0
+--- !u!114 &5942049904469329581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4582433032069939127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 957f3a0a784cc5a4da9a449f6a4096a5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDamageResponder
+  actor: {fileID: 0}
+  awareness: {fileID: 0}
+  useInstigatorAsCombatTarget: 1
+  validCombatTargetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  resolveInstigatorHealthRoot: 1
+  damageCombatMemoryDuration: 4
+  investigateUnknownDamage: 1
+  unknownDamageInvestigationDuration: 4
+  logDamageStimuli: 1
 --- !u!1 &6282313687799593545
 GameObject:
   m_ObjectHideFlags: 0
