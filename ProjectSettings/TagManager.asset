@@ -15,14 +15,14 @@ TagManager:
   - Player
   - Water
   - UI
-  - Loot
+  - Pickup
   - Enemy
-  - Projectile
+  - EnemyProjectile
   - Corpse
-  - 
-  - 
-  - 
-  - 
+  - Ground
+  - Obstacle
+  - Boundary
+  - Decoration
   - 
   - 
   - 

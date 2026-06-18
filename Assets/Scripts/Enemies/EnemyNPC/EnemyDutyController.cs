@@ -13,6 +13,7 @@ using UnityEngine;
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyMovement))]
+[RequireComponent(typeof(EnemyNavigator))]
 public sealed class EnemyDutyController : MonoBehaviour
 {
     [Header("References")]
@@ -23,6 +24,10 @@ public sealed class EnemyDutyController : MonoBehaviour
     [Tooltip("Componente que ejecuta el movimiento fisico con Rigidbody. Si queda vacio, se busca automaticamente en el mismo GameObject.")]
     [SerializeField]
     private EnemyMovement movement;
+
+    [Tooltip("Capa de navegacion que decide el proximo punto antes de delegar el movimiento fisico en EnemyMovement. Si queda vacio, se busca automaticamente en el mismo GameObject.")]
+    [SerializeField]
+    private EnemyNavigator navigator;
 
     [Header("Duty Mode")]
     [Tooltip("Rutina fuera de combate. Guard = se queda custodiando una posicion. Patrol = recorre una ruta de puntos.")]
@@ -158,7 +163,7 @@ public sealed class EnemyDutyController : MonoBehaviour
         RefreshDebugSnapshot();
     }
 
-    public void Initialize(EnemyActor newActor, EnemyMovement newMovement)
+    public void Initialize(EnemyActor newActor, EnemyMovement newMovement, EnemyNavigator newNavigator)
     {
         if (newActor != null)
         {
@@ -170,10 +175,20 @@ public sealed class EnemyDutyController : MonoBehaviour
             movement = newMovement;
         }
 
+        if (newNavigator != null)
+        {
+            navigator = newNavigator;
+        }
+
         ResolveReferences();
         CaptureInitialPoseIfNeeded();
         EnsurePatrolIndex();
         RefreshDebugSnapshot();
+    }
+
+    public void Initialize(EnemyActor newActor, EnemyMovement newMovement)
+    {
+        Initialize(newActor, newMovement, null);
     }
 
     public void EnterDuty()
@@ -190,7 +205,7 @@ public sealed class EnemyDutyController : MonoBehaviour
             case EnemyDutyMode.Guard:
             default:
                 isWaiting = false;
-                movement?.Stop();
+                StopNavigationAndMovement();
                 movement?.ClearIdleResidualPhysics();
 
                 if (restoreInitialFacing)
@@ -213,7 +228,7 @@ public sealed class EnemyDutyController : MonoBehaviour
 
             case EnemyDutyMode.Guard:
             default:
-                movement?.Stop();
+                StopNavigationAndMovement();
                 break;
         }
 
@@ -225,7 +240,7 @@ public sealed class EnemyDutyController : MonoBehaviour
         isWaiting = false;
         isReturning = false;
         returnCompleted = false;
-        movement?.Stop();
+        StopNavigationAndMovement();
         RefreshDebugSnapshot();
     }
 
@@ -265,7 +280,7 @@ public sealed class EnemyDutyController : MonoBehaviour
         isWaiting = false;
         isReturning = false;
         returnCompleted = false;
-        movement?.Stop();
+        StopNavigationAndMovement();
         RefreshDebugSnapshot();
     }
 
@@ -278,7 +293,7 @@ public sealed class EnemyDutyController : MonoBehaviour
                 Debug.LogWarning($"[{nameof(EnemyDutyController)}] {name} is in Patrol mode but has no valid Patrol Route.", this);
             }
 
-            movement?.Stop();
+            StopNavigationAndMovement();
             return;
         }
 
@@ -286,7 +301,7 @@ public sealed class EnemyDutyController : MonoBehaviour
 
         if (isWaiting)
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             if (Time.time < waitUntil)
             {
                 return;
@@ -298,12 +313,12 @@ public sealed class EnemyDutyController : MonoBehaviour
 
         if (HasReachedPatrolPoint(currentPatrolIndex))
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             StartWaitAtCurrentPatrolPoint();
             return;
         }
 
-        movement?.MoveTowards(patrolRoute.GetPointPosition(currentPatrolIndex), patrolArrivalDistance, patrolSpeedMultiplier);
+        MoveToDestination(patrolRoute.GetPointPosition(currentPatrolIndex), patrolArrivalDistance, patrolSpeedMultiplier);
     }
 
     private void TickReturnToGuard()
@@ -312,7 +327,7 @@ public sealed class EnemyDutyController : MonoBehaviour
 
         if (HasReachedHorizontalPoint(guardPoint, returnArrivalDistance))
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             movement?.ClearIdleResidualPhysics();
 
             if (restoreInitialFacing)
@@ -325,14 +340,14 @@ public sealed class EnemyDutyController : MonoBehaviour
             return;
         }
 
-        movement?.MoveTowards(guardPoint, returnArrivalDistance, guardReturnSpeedMultiplier);
+        MoveToDestination(guardPoint, returnArrivalDistance, guardReturnSpeedMultiplier);
     }
 
     private void TickReturnToPatrol()
     {
         if (!HasValidPatrolRoute())
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             isReturning = false;
             returnCompleted = true;
             return;
@@ -345,7 +360,7 @@ public sealed class EnemyDutyController : MonoBehaviour
 
         if (!patrolRoute.IsIndexValid(returnPatrolIndex))
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             isReturning = false;
             returnCompleted = true;
             return;
@@ -353,7 +368,7 @@ public sealed class EnemyDutyController : MonoBehaviour
 
         if (HasReachedHorizontalPoint(patrolRoute.GetPointPosition(returnPatrolIndex), returnArrivalDistance))
         {
-            movement?.Stop();
+            StopNavigationAndMovement();
             currentPatrolIndex = returnPatrolIndex;
             isReturning = false;
             returnCompleted = true;
@@ -366,7 +381,29 @@ public sealed class EnemyDutyController : MonoBehaviour
             return;
         }
 
-        movement?.MoveTowards(patrolRoute.GetPointPosition(returnPatrolIndex), returnArrivalDistance, patrolReturnSpeedMultiplier);
+        MoveToDestination(patrolRoute.GetPointPosition(returnPatrolIndex), returnArrivalDistance, patrolReturnSpeedMultiplier);
+    }
+
+    private bool MoveToDestination(Vector3 destination, float arrivalDistance, float speedMultiplier)
+    {
+        if (navigator == null)
+        {
+            if (logConfigurationWarnings)
+            {
+                Debug.LogWarning($"[{nameof(EnemyDutyController)}] {name} has no EnemyNavigator. Add EnemyNavigator + DirectPathProvider or NavMeshPathProvider.", this);
+            }
+
+            movement?.Stop();
+            return false;
+        }
+
+        return navigator.MoveTo(destination, arrivalDistance, speedMultiplier);
+    }
+
+    private void StopNavigationAndMovement()
+    {
+        navigator?.StopNavigation();
+        movement?.Stop();
     }
 
     private void ResolveReferences()
@@ -379,6 +416,11 @@ public sealed class EnemyDutyController : MonoBehaviour
         if (movement == null)
         {
             movement = GetComponent<EnemyMovement>();
+        }
+
+        if (navigator == null)
+        {
+            navigator = GetComponent<EnemyNavigator>();
         }
     }
 

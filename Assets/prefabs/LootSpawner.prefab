@@ -49,7 +49,7 @@ MonoBehaviour:
   projectToGround: 1
   groundLayers:
     serializedVersion: 2
-    m_Bits: 1
+    m_Bits: 1025
   raycastStartHeight: 2
   raycastDistance: 5
   groundOffset: 0.3

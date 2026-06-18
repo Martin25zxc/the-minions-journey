@@ -6,6 +6,7 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyActor))]
 [RequireComponent(typeof(EnemyTargetSensor))]
 [RequireComponent(typeof(EnemyMovement))]
+[RequireComponent(typeof(EnemyNavigator))]
 [RequireComponent(typeof(EnemyAwareness))]
 public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
 {
@@ -32,6 +33,9 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
 
     [SerializeField]
     private EnemyMovement movement;
+
+    [SerializeField]
+    private EnemyNavigator navigator;
 
     [Header("Duty - Fuera de combate")]
     [Tooltip("Controla la rutina fuera de combate: Guard o Patrol. Si queda vacio, se intenta buscar en el mismo GameObject.")]
@@ -121,6 +125,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         if (targetSensor == null) targetSensor = GetComponent<EnemyTargetSensor>();
         if (awareness == null) awareness = GetComponent<EnemyAwareness>();
         if (movement == null) movement = GetComponent<EnemyMovement>();
+        if (navigator == null) navigator = GetComponent<EnemyNavigator>();
         if (dutyController == null) dutyController = GetComponent<EnemyDutyController>();
 
         ResolvePositioning();
@@ -145,11 +150,17 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         targetSensor?.Initialize(definition);
         awareness?.Initialize(definition);
         movement?.Initialize(definition);
-        dutyController?.Initialize(actor, movement);
+        navigator?.Initialize(movement);
+        dutyController?.Initialize(actor, movement, navigator);
 
         if (autoCollectAbilities && abilities.Count == 0)
         {
             RefreshAbilities();
+        }
+
+        if (navigator == null && logConfigurationWarnings)
+        {
+            Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has no EnemyNavigator. Add EnemyNavigator + DirectPathProvider for direct navigation, or NavMeshPathProvider for baked NavMesh scenes.", this);
         }
 
         if (dutyController == null && logConfigurationWarnings)
@@ -174,6 +185,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
 
         CancelActiveAbility();
         dutyController?.StopDuty();
+        navigator?.StopNavigation();
     }
 
     private void Update()
@@ -360,6 +372,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         Vector3 targetPoint = awareness.InvestigationPoint;
         if (HasReachedHorizontalPoint(targetPoint, investigationStopDistance))
         {
+            navigator?.StopNavigation();
             movement?.Stop();
 
             if (faceInvestigationPointOnArrival)
@@ -372,7 +385,14 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
             return;
         }
 
-        movement?.MoveTowards(targetPoint, investigationStopDistance, investigationSpeedMultiplier);
+        if (navigator != null)
+        {
+            navigator.MoveTo(targetPoint, investigationStopDistance, investigationSpeedMultiplier);
+        }
+        else
+        {
+            movement?.Stop();
+        }
     }
 
     private void UpdateCombat()
@@ -576,6 +596,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         ChangeState(State.Duty);
         positioning?.StopPositioning();
+        navigator?.StopNavigation();
 
         if (dutyController != null)
         {
@@ -592,12 +613,14 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         ChangeState(State.Investigate);
         positioning?.StopPositioning();
+        navigator?.StopNavigation();
         dutyController?.ExitDuty();
     }
 
     private void EnterCombat()
     {
         ChangeState(State.Combat);
+        navigator?.StopNavigation();
         dutyController?.ExitDuty();
     }
 
@@ -605,6 +628,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         ChangeState(State.ReturnToDuty);
         positioning?.StopPositioning();
+        navigator?.StopNavigation();
         movement?.Stop();
         dutyController?.EnterReturnToDuty();
 
@@ -618,11 +642,13 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         ChangeState(State.Dead);
         positioning?.StopPositioning();
+        navigator?.StopNavigation();
         movement?.ApplyDeathPhysics();
         awareness?.ClearAll();
         targetSensor?.ClearTarget();
         CancelActiveAbility();
         dutyController?.StopDuty();
+        navigator?.StopNavigation();
 
         if (impactLockRoutine != null)
         {
@@ -636,6 +662,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         ChangeState(State.ImpactLocked);
         positioning?.StopPositioning();
         dutyController?.StopDuty();
+        navigator?.StopNavigation();
         movement?.Stop();
 
         while (Time.time < impactLockEndsAt && currentState != State.Dead)

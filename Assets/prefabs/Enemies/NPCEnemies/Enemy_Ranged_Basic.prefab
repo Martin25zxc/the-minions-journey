@@ -26,6 +26,8 @@ GameObject:
   - component: {fileID: 7167668829892332073}
   - component: {fileID: 4838027835262658819}
   - component: {fileID: 4472713311342481454}
+  - component: {fileID: 3591986163114149435}
+  - component: {fileID: 7223538237006819537}
   m_Layer: 7
   m_Name: Enemy_Ranged_Basic
   m_TagString: Untagged
@@ -208,6 +210,7 @@ MonoBehaviour:
   targetSensor: {fileID: 6834550474560183192}
   awareness: {fileID: 0}
   movement: {fileID: 1663821737322943007}
+  navigator: {fileID: 0}
   dutyController: {fileID: 0}
   positioningComponent: {fileID: 0}
   autoFindPositioning: 1
@@ -276,6 +279,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyRangedPositioning
   movement: {fileID: 0}
+  navigator: {fileID: 0}
   tooCloseDistance: 2.5
   preferredDistance: 6
   preferredDistanceTolerance: 1
@@ -396,10 +400,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDutyController
   actor: {fileID: 0}
   movement: {fileID: 0}
+  navigator: {fileID: 0}
   mode: 0
   useInitialPositionAsGuardPoint: 1
   guardPointOverride: {fileID: 0}
-  guardReturnStopDistance: 0.35
   guardReturnSpeedMultiplier: 1
   restoreInitialFacing: 1
   patrolRoute: {fileID: 0}
@@ -410,6 +414,7 @@ MonoBehaviour:
   returnToClosestPatrolPoint: 1
   patrolReturnSpeedMultiplier: 1
   waitAfterReturn: 1
+  returnArrivalDistance: 0.35
   logConfigurationWarnings: 1
   drawGuardGizmo: 1
   guardGizmoRadius: 0.25
@@ -418,6 +423,51 @@ MonoBehaviour:
   debugIsReturning: 0
   debugCurrentPatrolIndex: -1
   debugActiveDestination: {x: 0, y: 0, z: 0}
+--- !u!114 &3591986163114149435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2364045781912701925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff867a1905ea9ea499e3343a4795377b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNavigator
+  movement: {fileID: 0}
+  pathProviderComponent: {fileID: 0}
+  autoFindPathProvider: 1
+  waypointArrivalDistance: 0.25
+  faceDestinationOnArrival: 1
+  logConfigurationWarnings: 1
+  logPathFailures: 0
+  drawDebugGizmos: 1
+  debugPathProvider: None
+  debugLastStatus: 0
+  debugDestination: {x: 0, y: 0, z: 0}
+  debugNextPoint: {x: 0, y: 0, z: 0}
+  debugHasActiveDestination: 0
+  debugReachedDestination: 0
+--- !u!114 &7223538237006819537
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2364045781912701925}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d5af78835ef7f4199a9d41ed24b856, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NavMeshPathProvider
+  sampleRadius: 1
+  areaMask: -1
+  allowPartialPath: 0
+  repathInterval: 0.2
+  destinationRepathDistance: 0.5
+  logPathFailures: 0
+  drawDebugPath: 1
 --- !u!1 &4016858465895438041
 GameObject:
   m_ObjectHideFlags: 0

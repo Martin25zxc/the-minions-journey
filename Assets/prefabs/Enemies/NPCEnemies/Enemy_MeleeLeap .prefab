@@ -26,6 +26,9 @@ GameObject:
   - component: {fileID: -2840190919998109374}
   - component: {fileID: 1358242531976633005}
   - component: {fileID: 5942049904469329581}
+  - component: {fileID: 6465427939398457558}
+  - component: {fileID: -5042548188193273747}
+  - component: {fileID: -8870517039886659270}
   m_Layer: 7
   m_Name: 'Enemy_MeleeLeap '
   m_TagString: Untagged
@@ -207,6 +210,8 @@ MonoBehaviour:
   targetSensor: {fileID: 6768200277397548457}
   awareness: {fileID: 0}
   movement: {fileID: 3305012326699863611}
+  navigator: {fileID: 0}
+  dutyController: {fileID: 0}
   positioningComponent: {fileID: 0}
   autoFindPositioning: 1
   autoCollectAbilities: 1
@@ -217,6 +222,13 @@ MonoBehaviour:
   logStateChanges: 1
   logAbilitySelection: 0
   logConfigurationWarnings: 1
+  debugCurrentState: Duty
+  debugDutyMode: None
+  debugHasDutyDestination: 0
+  debugDutyDestination: {x: 0, y: 0, z: 0}
+  debugCombatTarget: {fileID: 0}
+  debugHasInvestigationPoint: 0
+  debugInvestigationPoint: {x: 0, y: 0, z: 0}
 --- !u!114 &1552892975558030643
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -287,6 +299,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyChasePositioning
   movement: {fileID: 0}
+  navigator: {fileID: 0}
   stopDistance: 1.2
   speedMultiplier: 1
   faceTargetAtStop: 1
@@ -384,6 +397,88 @@ MonoBehaviour:
   investigateUnknownDamage: 1
   unknownDamageInvestigationDuration: 4
   logDamageStimuli: 1
+--- !u!114 &6465427939398457558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4582433032069939127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff867a1905ea9ea499e3343a4795377b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyNavigator
+  movement: {fileID: 0}
+  pathProviderComponent: {fileID: 0}
+  autoFindPathProvider: 1
+  waypointArrivalDistance: 0.25
+  faceDestinationOnArrival: 1
+  logConfigurationWarnings: 1
+  logPathFailures: 0
+  drawDebugGizmos: 1
+  debugPathProvider: None
+  debugLastStatus: 0
+  debugDestination: {x: 0, y: 0, z: 0}
+  debugNextPoint: {x: 0, y: 0, z: 0}
+  debugHasActiveDestination: 0
+  debugReachedDestination: 0
+--- !u!114 &-5042548188193273747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4582433032069939127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d592e56af0cb08942aa0289cbcd3b30c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDutyController
+  actor: {fileID: 0}
+  movement: {fileID: 0}
+  navigator: {fileID: 0}
+  mode: 0
+  useInitialPositionAsGuardPoint: 1
+  guardPointOverride: {fileID: 0}
+  guardReturnSpeedMultiplier: 1
+  restoreInitialFacing: 1
+  patrolRoute: {fileID: 0}
+  startPointIndex: 0
+  patrolArrivalDistance: 0.4
+  patrolSpeedMultiplier: 1
+  defaultWaitTimeAtPoint: 0.5
+  returnToClosestPatrolPoint: 1
+  patrolReturnSpeedMultiplier: 1
+  waitAfterReturn: 1
+  returnArrivalDistance: 0.35
+  logConfigurationWarnings: 1
+  drawGuardGizmo: 1
+  guardGizmoRadius: 0.25
+  debugMode: Guard
+  debugIsWaiting: 0
+  debugIsReturning: 0
+  debugCurrentPatrolIndex: -1
+  debugActiveDestination: {x: 0, y: 0, z: 0}
+--- !u!114 &-8870517039886659270
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4582433032069939127}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f6d5af78835ef7f4199a9d41ed24b856, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NavMeshPathProvider
+  sampleRadius: 1
+  areaMask: -1
+  allowPartialPath: 0
+  repathInterval: 0.2
+  destinationRepathDistance: 0.5
+  logPathFailures: 0
+  drawDebugPath: 1
 --- !u!1 &6282313687799593545
 GameObject:
   m_ObjectHideFlags: 0

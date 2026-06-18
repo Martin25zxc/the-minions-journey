@@ -1,18 +1,23 @@
 using UnityEngine;
 
 /// <summary>
-/// Componente opcional para enemigos ranged.
+/// Posicionamiento para enemigos ranged.
 ///
-/// Si esta presente, EnemyBrain lo usa para mantener distancia en vez de perseguir como melee.
-/// No dispara, no decide habilidades y no conoce perfiles de proyectiles.
+/// El acercamiento al target usa EnemyNavigator, por lo que puede funcionar con path directo
+/// o NavMesh. El retroceso se mantiene como movimiento direccional simple por ahora, porque
+/// buscar un punto seguro de retreat sobre NavMesh es una mejora tactica posterior.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyMovement))]
+[RequireComponent(typeof(EnemyNavigator))]
 public sealed class EnemyRangedPositioning : MonoBehaviour, IEnemyPositioning
 {
     [Header("References")]
     [SerializeField]
     private EnemyMovement movement;
+
+    [SerializeField]
+    private EnemyNavigator navigator;
 
     [Header("Distances")]
     [SerializeField, Min(0.05f)]
@@ -49,13 +54,18 @@ public sealed class EnemyRangedPositioning : MonoBehaviour, IEnemyPositioning
         {
             movement = GetComponent<EnemyMovement>();
         }
+
+        if (navigator == null)
+        {
+            navigator = GetComponent<EnemyNavigator>();
+        }
     }
 
     public void UpdatePositioning(Transform target)
     {
-        if (movement == null || target == null)
+        if (target == null)
         {
-            movement?.Stop();
+            StopPositioning();
             return;
         }
 
@@ -65,18 +75,20 @@ public sealed class EnemyRangedPositioning : MonoBehaviour, IEnemyPositioning
 
         if (distance <= 0.0001f)
         {
-            movement.Stop();
+            StopPositioning();
             return;
         }
 
         if (distance < tooCloseDistance)
         {
+            navigator?.StopNavigation();
+
             Vector3 away = -toTarget.normalized;
-            movement.MoveInDirection(away, retreatSpeedMultiplier);
+            movement?.MoveInDirection(away, retreatSpeedMultiplier);
 
             if (faceTargetWhileRetreating)
             {
-                movement.FaceTarget(target.position);
+                movement?.FaceTarget(target.position);
             }
 
             return;
@@ -84,20 +96,30 @@ public sealed class EnemyRangedPositioning : MonoBehaviour, IEnemyPositioning
 
         if (distance > preferredDistance + preferredDistanceTolerance)
         {
-            movement.MoveTowards(target.position, preferredDistance, approachSpeedMultiplier);
+            if (navigator != null)
+            {
+                navigator.MoveTo(target.position, preferredDistance, approachSpeedMultiplier);
+            }
+            else
+            {
+                movement?.Stop();
+            }
+
             return;
         }
 
         if (stopAtComfortRange)
         {
-            movement.Stop();
+            navigator?.StopNavigation();
+            movement?.Stop();
         }
 
-        movement.FaceTarget(target.position);
+        movement?.FaceTarget(target.position);
     }
 
     public void StopPositioning()
     {
+        navigator?.StopNavigation();
         movement?.Stop();
     }
 
