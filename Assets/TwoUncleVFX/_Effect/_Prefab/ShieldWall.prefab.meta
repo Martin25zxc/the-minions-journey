@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: e18b205ce206c954cbafc3ea6b5e3feb
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 302283
+  packageName: VFX Graph - Shield Wall
+  packageVersion: 1.0
+  assetPath: Assets/TwoUncleVFX/_Effect/_Prefab/ShieldWall.prefab
+  uploadId: 710685

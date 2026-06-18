@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 037cfa483cfc9db4fa9453b6f9d84aba
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 302283
+  packageName: VFX Graph - Shield Wall
+  packageVersion: 1.0
+  assetPath: Assets/TwoUncleVFX/_Effect/Mesh/license.txt
+  uploadId: 710685
