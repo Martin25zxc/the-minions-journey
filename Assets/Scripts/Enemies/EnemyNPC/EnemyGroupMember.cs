@@ -76,10 +76,6 @@ public sealed class EnemyGroupMember : MonoBehaviour
     [SerializeField]
     private bool logReceivedAlerts;
 
-    [Tooltip("Muestra advertencias de configuracion incompleta.")]
-    [SerializeField]
-    private bool logConfigurationWarnings = true;
-
     [Header("Runtime Debug - Solo lectura conceptual")]
     [Tooltip("Nombre del grupo actual. 'None' significa enemigo individual.")]
     [SerializeField]
