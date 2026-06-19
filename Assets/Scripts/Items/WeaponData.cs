@@ -16,16 +16,17 @@ public class WeaponData : ItemData
 
     [Header("Visual")]
     [SerializeField] GameObject equippedModelPrefab;
-
+    
+    [Header("Back Left Pose Offset")]
+    [SerializeField] EquipmentVisualPose equipmentVisualBackLeftPose;
+    
+    [Header("Back Right Pose Offset")]
+    [SerializeField]
+    EquipmentVisualPose equipmentVisualBackRightPose;
+    
     [Header("Hand Pose Offset")]
-    [SerializeField] Vector3 handLocalPosition;
-    [SerializeField] Vector3 handLocalEulerAngles;
-    [SerializeField] Vector3 handLocalScale = Vector3.one;
-
-    [Header("Back Pose Offset")]
-    [SerializeField] Vector3 backLocalPosition;
-    [SerializeField] Vector3 backLocalEulerAngles;
-    [SerializeField] Vector3 backLocalScale = Vector3.one;
+    [SerializeField]
+    EquipmentVisualPose equipmentVisualHandPose;
 
     public WeaponType WeaponType => weaponType;
 
@@ -41,13 +42,21 @@ public class WeaponData : ItemData
 
     public GameObject EquippedModelPrefab => equippedModelPrefab;
 
-    public Vector3 HandLocalPosition => handLocalPosition;
-    public Quaternion HandLocalRotation => Quaternion.Euler(handLocalEulerAngles);
-    public Vector3 HandLocalScale => handLocalScale;
+    public Vector3 HandLocalPosition => equipmentVisualHandPose.LocalPosition;
+    public Quaternion HandLocalRotation => Quaternion.Euler(equipmentVisualHandPose.LocalEulerAngles);
+    public Vector3 HandLocalScale => equipmentVisualHandPose.LocalScale;
 
     public Vector3 BackLocalPosition => backLocalPosition;
     public Quaternion BackLocalRotation => Quaternion.Euler(backLocalEulerAngles);
     public Vector3 BackLocalScale => backLocalScale;
+
+    public Vector3 BackLeftLocalPosition => equipmentVisualBackLeftPose.LocalPosition;
+    public Quaternion BackLeftLocalRotation => Quaternion.Euler(equipmentVisualBackLeftPose.LocalEulerAngles);
+    public Vector3 BackLeftLocalScale => equipmentVisualBackLeftPose.LocalScale;
+
+    public Vector3 BackRightLocalPosition => equipmentVisualBackRightPose.LocalPosition;
+    public Quaternion BackRightLocalRotation => Quaternion.Euler(equipmentVisualBackRightPose.LocalEulerAngles);
+    public Vector3 BackRightLocalScale => equipmentVisualBackRightPose.LocalScale;
 
     void OnValidate()
     {

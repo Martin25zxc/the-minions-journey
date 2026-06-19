@@ -4,25 +4,26 @@ using UnityEngine;
 public sealed class TopDownEquipmentVisualManager : MonoBehaviour
 {
     [Header("Sockets")]
-    [SerializeField] Transform rightHandSocket;
-    [SerializeField] Transform backSocket;
+    [SerializeField] private Transform rightHandSocket;
+    [SerializeField] private Transform backSocket;
 
     [Header("Weapon Loadout")]
-    [SerializeField] TMJ_WeaponLoadout weaponLoadout;
+    [SerializeField] private TMJ_WeaponLoadout weaponLoadout;
 
     [Header("Behaviour")]
-    [SerializeField] TopDownWeaponVisualPose startingPose = TopDownWeaponVisualPose.LightInHand;
+    [SerializeField] private TopDownWeaponVisualPose startingPose = TopDownWeaponVisualPose.LightInHand;
 
-    WeaponVisualInstance lightWeapon;
-    WeaponVisualInstance heavyWeapon;
-    TopDownWeaponVisualPose currentPose;
+    private WeaponVisualInstance lightWeapon;
+    private WeaponVisualInstance heavyWeapon;
+    private TopDownWeaponVisualPose currentPose;
 
-    public WeaponData CurrentLightWeapon => weaponLoadout != null ? weaponLoadout.CurrentLightAttackWeapon : lightWeapon.weaponData;
-    public WeaponData CurrentHeavyWeapon => weaponLoadout != null ? weaponLoadout.CurrentHeavyAttackWeapon : heavyWeapon.weaponData;
+    public WeaponData CurrentLightWeapon =>
+        weaponLoadout != null ? weaponLoadout.CurrentLightAttackWeapon : lightWeapon.weaponData;
 
-    bool UsesSharedWeapon => CurrentLightWeapon != null && CurrentLightWeapon == CurrentHeavyWeapon;
+    public WeaponData CurrentHeavyWeapon =>
+        weaponLoadout != null ? weaponLoadout.CurrentHeavyAttackWeapon : heavyWeapon.weaponData;
 
-    void Awake()
+    private void Awake()
     {
         if (weaponLoadout == null)
         {
@@ -30,7 +31,7 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
     }
 
-    void OnEnable()
+    private void OnEnable()
     {
         if (weaponLoadout != null)
         {
@@ -38,7 +39,7 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
     }
 
-    void OnDisable()
+    private void OnDisable()
     {
         if (weaponLoadout != null)
         {
@@ -46,7 +47,7 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
     }
 
-    void Start()
+    private void Start()
     {
         currentPose = startingPose;
         RefreshVisuals();
@@ -72,24 +73,21 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         {
             case TopDownWeaponVisualPose.LightInHand:
                 AttachToHand(ref lightWeapon);
-                AttachToBack(ref heavyWeapon);
+                AttachToBack(ref heavyWeapon, TMJ_WeaponUseSlot.HeavyAttack);
                 break;
 
             case TopDownWeaponVisualPose.HeavyInHand:
-                if (UsesSharedWeapon)
-                {
-                    AttachToHand(ref lightWeapon);
-                }
-                else
-                {
-                    AttachToHand(ref heavyWeapon);
-                    AttachToBack(ref lightWeapon);
-                }
+                AttachToHand(ref heavyWeapon);
+                AttachToBack(ref lightWeapon, TMJ_WeaponUseSlot.LightAttack);
                 break;
 
             case TopDownWeaponVisualPose.BothOnBack:
-                AttachToBack(ref lightWeapon);
-                AttachToBack(ref heavyWeapon);
+                AttachToBack(ref lightWeapon, TMJ_WeaponUseSlot.LightAttack);
+                AttachToBack(ref heavyWeapon, TMJ_WeaponUseSlot.HeavyAttack);
+                break;
+
+            default:
+                Debug.LogWarning($"Unhandled weapon visual pose: {pose}");
                 break;
         }
     }
@@ -103,7 +101,8 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
 
         DestroyVisual(ref lightWeapon);
-        lightWeapon = CreateVisual(weaponData);
+        lightWeapon = CreateVisual(weaponData, TMJ_WeaponUseSlot.LightAttack);
+
         SetVisualPose(currentPose);
     }
 
@@ -116,33 +115,33 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
 
         DestroyVisual(ref heavyWeapon);
-        heavyWeapon = CreateVisual(weaponData);
+        heavyWeapon = CreateVisual(weaponData, TMJ_WeaponUseSlot.HeavyAttack);
+
         SetVisualPose(currentPose);
     }
 
-    void RefreshVisuals()
+    private void RefreshVisuals()
     {
         DestroyVisual(ref lightWeapon);
         DestroyVisual(ref heavyWeapon);
 
-        WeaponData lightWeaponData = weaponLoadout.CurrentLightAttackWeapon;
-        WeaponData heavyWeaponData = weaponLoadout.CurrentHeavyAttackWeapon;
+        WeaponData lightWeaponData = weaponLoadout != null
+            ? weaponLoadout.CurrentLightAttackWeapon
+            : null;
 
-        lightWeapon = CreateVisual(lightWeaponData);
+        WeaponData heavyWeaponData = weaponLoadout != null
+            ? weaponLoadout.CurrentHeavyAttackWeapon
+            : null;
 
-        if (heavyWeaponData != null && heavyWeaponData != lightWeaponData)
-        {
-            heavyWeapon = CreateVisual(heavyWeaponData);
-        }
-        else
-        {
-            heavyWeapon = default;
-        }
+        lightWeapon = CreateVisual(lightWeaponData, TMJ_WeaponUseSlot.LightAttack);
+        heavyWeapon = CreateVisual(heavyWeaponData, TMJ_WeaponUseSlot.HeavyAttack);
 
         SetVisualPose(currentPose);
     }
 
-    WeaponVisualInstance CreateVisual(WeaponData weaponData)
+    private WeaponVisualInstance CreateVisual(
+        WeaponData weaponData,
+        TMJ_WeaponUseSlot useSlot)
     {
         if (weaponData == null)
         {
@@ -150,6 +149,7 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
 
         GameObject prefab = weaponData.EquippedModelPrefab;
+
         if (prefab == null)
         {
             Debug.LogWarning($"{weaponData.ItemName} has no equipped visual prefab.");
@@ -157,46 +157,94 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
 
         GameObject instance = Instantiate(prefab);
-        instance.name = $"Visual_{weaponData.ItemName}";
+        instance.name = $"Visual_{useSlot}_{weaponData.ItemName}";
 
         DisablePhysics(instance);
 
         return new WeaponVisualInstance
         {
             weaponData = weaponData,
+            useSlot = useSlot,
             instance = instance
         };
     }
 
-    void AttachToHand(ref WeaponVisualInstance visual)
+    private void AttachToHand(ref WeaponVisualInstance visual)
     {
-        if (!visual.HasInstance || rightHandSocket == null)
+        if (!visual.HasInstance)
         {
             return;
         }
 
-        visual.instance.transform.SetParent(rightHandSocket, false);
-        visual.instance.transform.localPosition = visual.weaponData.HandLocalPosition;
-        visual.instance.transform.localRotation = visual.weaponData.HandLocalRotation;
-        visual.instance.transform.localScale = visual.weaponData.HandLocalScale;
+        if (rightHandSocket == null)
+        {
+            Debug.LogWarning($"{name} has no right hand socket assigned.");
+            visual.instance.SetActive(false);
+            return;
+        }
+
+        Transform visualTransform = visual.instance.transform;
+
+        visualTransform.SetParent(rightHandSocket, false);
+        visualTransform.localPosition = visual.weaponData.HandLocalPosition;
+        visualTransform.localRotation = visual.weaponData.HandLocalRotation;
+        visualTransform.localScale = visual.weaponData.HandLocalScale;
+
         visual.instance.SetActive(true);
     }
 
-    void AttachToBack(ref WeaponVisualInstance visual)
+    private void AttachToBack(
+        ref WeaponVisualInstance visual,
+        TMJ_WeaponUseSlot useSlot)
     {
-        if (!visual.HasInstance || backSocket == null)
+        if (!visual.HasInstance)
         {
             return;
         }
 
-        visual.instance.transform.SetParent(backSocket, false);
-        visual.instance.transform.localPosition = visual.weaponData.BackLocalPosition;
-        visual.instance.transform.localRotation = visual.weaponData.BackLocalRotation;
-        visual.instance.transform.localScale = visual.weaponData.BackLocalScale;
+        if (backSocket == null)
+        {
+            Debug.LogWarning($"{name} has no back socket assigned.");
+            visual.instance.SetActive(false);
+            return;
+        }
+
+        Transform visualTransform = visual.instance.transform;
+
+        visualTransform.SetParent(backSocket, false);
+        ApplyBackPose(visual.weaponData, visualTransform, useSlot);
+
         visual.instance.SetActive(true);
     }
 
-    void DestroyVisual(ref WeaponVisualInstance visual)
+    private static void ApplyBackPose(
+        WeaponData weaponData,
+        Transform visualTransform,
+        TMJ_WeaponUseSlot useSlot)
+    {
+        switch (useSlot)
+        {
+            case TMJ_WeaponUseSlot.LightAttack:
+                visualTransform.localPosition = weaponData.BackLeftLocalPosition;
+                visualTransform.localRotation = weaponData.BackLeftLocalRotation;
+                visualTransform.localScale = weaponData.BackLeftLocalScale;
+                break;
+
+            case TMJ_WeaponUseSlot.HeavyAttack:
+                visualTransform.localPosition = weaponData.BackRightLocalPosition;
+                visualTransform.localRotation = weaponData.BackRightLocalRotation;
+                visualTransform.localScale = weaponData.BackRightLocalScale;
+                break;
+
+            default:
+                visualTransform.localPosition = weaponData.BackLocalPosition;
+                visualTransform.localRotation = weaponData.BackLocalRotation;
+                visualTransform.localScale = weaponData.BackLocalScale;
+                break;
+        }
+    }
+
+    private void DestroyVisual(ref WeaponVisualInstance visual)
     {
         if (visual.instance != null)
         {
@@ -206,7 +254,7 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         visual = default;
     }
 
-    static void DisablePhysics(GameObject weaponObject)
+    private static void DisablePhysics(GameObject weaponObject)
     {
         Rigidbody[] rigidbodies = weaponObject.GetComponentsInChildren<Rigidbody>(true);
         Collider[] colliders = weaponObject.GetComponentsInChildren<Collider>(true);
@@ -223,9 +271,10 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
         }
     }
 
-    struct WeaponVisualInstance
+    private struct WeaponVisualInstance
     {
         public WeaponData weaponData;
+        public TMJ_WeaponUseSlot useSlot;
         public GameObject instance;
 
         public bool HasInstance => weaponData != null && instance != null;

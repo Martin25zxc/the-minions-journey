@@ -288,7 +288,6 @@ MonoBehaviour:
   receiveGroupAlerts: 1
   logBroadcastAlerts: 0
   logReceivedAlerts: 0
-  logConfigurationWarnings: 1
   debugGroupName: campfire
   debugLastBroadcastReason: None
   debugLastReceivedReason: None
@@ -1472,6 +1471,14 @@ PrefabInstance:
       propertyPath: lightAttackProfile
       value: 
       objectReference: {fileID: 11400000, guid: 59afdee14c974fa4db0542f0fb4e44be, type: 2}
+    - target: {fileID: 5950943861634213783, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: startingHeavyAttackWeapon
+      value: 
+      objectReference: {fileID: 11400000, guid: d31a4d2a23fb9474397a0a5b5dd04894, type: 2}
+    - target: {fileID: 5950943861634213783, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: startingLightAttackWeapon
+      value: 
+      objectReference: {fileID: 11400000, guid: d31a4d2a23fb9474397a0a5b5dd04894, type: 2}
     - target: {fileID: 8161935023551896534, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
       propertyPath: equipmentVisuals
       value: 
@@ -1932,7 +1939,6 @@ MonoBehaviour:
   receiveGroupAlerts: 1
   logBroadcastAlerts: 0
   logReceivedAlerts: 0
-  logConfigurationWarnings: 1
   debugGroupName: campfire
   debugLastBroadcastReason: None
   debugLastReceivedReason: None
