@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMeleeAttackProfile
   displayName: Spin Slash
   weaponUseSlot: 1
-  baseDamage: 2.2
+  baseDamage: 2.4
   attackRange: 1.4
   attackArc: 360
   impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.55
   cooldown: 1
   applyImpact: 1
-  knockbackDistance: 0.45
-  knockbackDuration: 0.14
-  stunDuration: 0
+  knockbackDistance: 2
+  knockbackDuration: 0.3
+  stunDuration: 0.1
   interruptCurrentAction: 0
   visualDuration: 0.28
   visualWidth: 0.42

@@ -6,14 +6,18 @@ using UnityEngine;
 [RequireComponent(typeof(EnemyActor))]
 [RequireComponent(typeof(EnemyTargetSensor))]
 [RequireComponent(typeof(EnemyMovement))]
+[RequireComponent(typeof(EnemyNavigator))]
+[RequireComponent(typeof(EnemyAwareness))]
 public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
 {
     private enum State
     {
-        Idle,
-        Engage,
+        Duty,
+        Investigate,
+        Combat,
         UsingAbility,
         ImpactLocked,
+        ReturnToDuty,
         Dead
     }
 
@@ -25,9 +29,20 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     private EnemyTargetSensor targetSensor;
 
     [SerializeField]
+    private EnemyAwareness awareness;
+
+    [SerializeField]
     private EnemyMovement movement;
 
-    [Header("Positioning")]
+    [SerializeField]
+    private EnemyNavigator navigator;
+
+    [Header("Duty - Fuera de combate")]
+    [Tooltip("Controla la rutina fuera de combate: Guard o Patrol. Si queda vacio, se intenta buscar en el mismo GameObject.")]
+    [SerializeField]
+    private EnemyDutyController dutyController;
+
+    [Header("Positioning - Combate")]
     [Tooltip("Componente que implementa IEnemyPositioning. Ejemplo: EnemyChasePositioning o EnemyRangedPositioning.")]
     [SerializeField]
     private MonoBehaviour positioningComponent;
@@ -45,6 +60,17 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     [SerializeField]
     private bool cancelActiveAbilityOnImpactLock = true;
 
+    [Header("Investigation")]
+    [SerializeField, Min(0.05f)]
+    private float investigationStopDistance = 1f;
+
+    [SerializeField, Min(0f)]
+    private float investigationSpeedMultiplier = 1f;
+
+    [Tooltip("Cuando llega al punto sospechoso, mira hacia ese punto antes de volver a Duty.")]
+    [SerializeField]
+    private bool faceInvestigationPointOnArrival = true;
+
     [Header("Debug")]
     [SerializeField]
     private bool logStateChanges;
@@ -55,9 +81,37 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     [SerializeField]
     private bool logConfigurationWarnings = true;
 
+    [Header("Runtime Debug - Solo lectura conceptual")]
+    [Tooltip("Estado actual de runtime. Usar para inspeccionar en Play Mode; no editar manualmente.")]
+    [SerializeField]
+    private string debugCurrentState = State.Duty.ToString();
+
+    [Tooltip("Rutina fuera de combate activa segun EnemyDutyController.")]
+    [SerializeField]
+    private string debugDutyMode = "None";
+
+    [Tooltip("Indica si EnemyDutyController tiene un destino activo de guardia/patrol.")]
+    [SerializeField]
+    private bool debugHasDutyDestination;
+
+    [SerializeField]
+    private Vector3 debugDutyDestination;
+
+    [Tooltip("Target actual segun EnemyAwareness. Usar para inspeccionar en Play Mode; no editar manualmente.")]
+    [SerializeField]
+    private Transform debugCombatTarget;
+
+    [Tooltip("Indica si EnemyAwareness tiene un punto de investigacion activo.")]
+    [SerializeField]
+    private bool debugHasInvestigationPoint;
+
+    [Tooltip("Punto de investigacion actual, si existe.")]
+    [SerializeField]
+    private Vector3 debugInvestigationPoint;
+
     private readonly List<IEnemyAbility> abilities = new List<IEnemyAbility>();
     private IEnemyPositioning positioning;
-    private State currentState = State.Idle;
+    private State currentState = State.Duty;
     private Coroutine impactLockRoutine;
     private Coroutine activeAbilityRoutine;
     private IEnemyAbility activeAbility;
@@ -69,7 +123,10 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         if (actor == null) actor = GetComponent<EnemyActor>();
         if (targetSensor == null) targetSensor = GetComponent<EnemyTargetSensor>();
+        if (awareness == null) awareness = GetComponent<EnemyAwareness>();
         if (movement == null) movement = GetComponent<EnemyMovement>();
+        if (navigator == null) navigator = GetComponent<EnemyNavigator>();
+        if (dutyController == null) dutyController = GetComponent<EnemyDutyController>();
 
         ResolvePositioning();
 
@@ -91,11 +148,24 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         EnemyDefinition definition = Definition;
         targetSensor?.Initialize(definition);
+        awareness?.Initialize(definition);
         movement?.Initialize(definition);
+        navigator?.Initialize(movement);
+        dutyController?.Initialize(actor, movement, navigator);
 
         if (autoCollectAbilities && abilities.Count == 0)
         {
             RefreshAbilities();
+        }
+
+        if (navigator == null && logConfigurationWarnings)
+        {
+            Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has no EnemyNavigator. Add EnemyNavigator + DirectPathProvider for direct navigation, or NavMeshPathProvider for baked NavMesh scenes.", this);
+        }
+
+        if (dutyController == null && logConfigurationWarnings)
+        {
+            Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has no EnemyDutyController. Add one to configure Guard or Patrol outside combat.", this);
         }
 
         if (positioning == null && logConfigurationWarnings)
@@ -103,7 +173,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
             Debug.LogWarning($"[{nameof(EnemyBrain)}] {name} has no IEnemyPositioning component. Add EnemyChasePositioning for melee or EnemyRangedPositioning for ranged enemies.", this);
         }
 
-        EnterIdle();
+        EnterDuty();
     }
 
     private void OnDisable()
@@ -114,6 +184,8 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         }
 
         CancelActiveAbility();
+        dutyController?.StopDuty();
+        navigator?.StopNavigation();
     }
 
     private void Update()
@@ -135,18 +207,28 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
             return;
         }
 
-        targetSensor.Tick();
+        TickPerception();
 
         switch (currentState)
         {
-            case State.Idle:
-                UpdateIdle();
+            case State.Duty:
+                UpdateDuty();
                 break;
 
-            case State.Engage:
-                UpdateEngage();
+            case State.Investigate:
+                UpdateInvestigate();
+                break;
+
+            case State.Combat:
+                UpdateCombat();
+                break;
+
+            case State.ReturnToDuty:
+                UpdateReturnToDuty();
                 break;
         }
+
+        RefreshDebugSnapshot();
     }
 
     public void ApplyImpactLock(float duration)
@@ -167,6 +249,18 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         {
             impactLockRoutine = StartCoroutine(ImpactLockRoutine());
         }
+    }
+
+    public void ReceiveStimulus(EnemyStimulus stimulus)
+    {
+        awareness?.ReceiveStimulus(stimulus);
+
+        if (currentState == State.Dead || currentState == State.ImpactLocked || currentState == State.UsingAbility)
+        {
+            return;
+        }
+
+        EvaluateNextState();
     }
 
     public void RefreshAbilities()
@@ -222,26 +316,94 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         }
     }
 
-    private void UpdateIdle()
+    private void TickPerception()
     {
-        positioning?.StopPositioning();
-        movement?.Stop();
+        targetSensor?.Tick();
 
-        if (targetSensor.HasTarget)
+        if (targetSensor != null && targetSensor.HasVisibleTarget && targetSensor.CurrentTarget != null)
         {
-            EnterEngage();
+            awareness?.ReportVisibleTarget(targetSensor.CurrentTarget);
         }
+
+        awareness?.Tick();
+        RefreshDebugSnapshot();
     }
 
-    private void UpdateEngage()
+    private void UpdateDuty()
     {
-        if (!targetSensor.HasTarget || targetSensor.CurrentTarget == null)
+        positioning?.StopPositioning();
+
+        if (awareness != null && awareness.HasCombatTarget)
         {
-            EnterIdle();
+            EnterCombat();
             return;
         }
 
-        Transform target = targetSensor.CurrentTarget;
+        if (awareness != null && awareness.HasInvestigationPoint)
+        {
+            EnterInvestigate();
+            return;
+        }
+
+        if (dutyController == null)
+        {
+            movement?.Stop();
+            movement?.ClearIdleResidualPhysics();
+            return;
+        }
+
+        dutyController.TickDuty();
+    }
+
+    private void UpdateInvestigate()
+    {
+        if (awareness != null && awareness.HasCombatTarget)
+        {
+            EnterCombat();
+            return;
+        }
+
+        if (awareness == null || !awareness.HasInvestigationPoint)
+        {
+            EnterReturnToDuty();
+            return;
+        }
+
+        Vector3 targetPoint = awareness.InvestigationPoint;
+        if (HasReachedHorizontalPoint(targetPoint, investigationStopDistance))
+        {
+            navigator?.StopNavigation();
+            movement?.Stop();
+
+            if (faceInvestigationPointOnArrival)
+            {
+                movement?.FaceTarget(targetPoint);
+            }
+
+            awareness.ClearInvestigation();
+            EnterReturnToDuty();
+            return;
+        }
+
+        if (navigator != null)
+        {
+            navigator.MoveTo(targetPoint, investigationStopDistance, investigationSpeedMultiplier);
+        }
+        else
+        {
+            movement?.Stop();
+        }
+    }
+
+    private void UpdateCombat()
+    {
+        Transform target = awareness != null ? awareness.CombatTarget : null;
+        if (target == null)
+        {
+            EvaluateNextState();
+            return;
+        }
+
         IEnemyAbility selectedAbility = SelectBestAbility(target);
         if (selectedAbility != null)
         {
@@ -250,6 +412,34 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         }
 
         UpdatePositioning(target);
+    }
+
+    private void UpdateReturnToDuty()
+    {
+        if (awareness != null && awareness.HasCombatTarget)
+        {
+            EnterCombat();
+            return;
+        }
+
+        if (awareness != null && awareness.HasInvestigationPoint)
+        {
+            EnterInvestigate();
+            return;
+        }
+
+        if (dutyController == null)
+        {
+            EnterDuty();
+            return;
+        }
+
+        dutyController.TickReturnToDuty();
+
+        if (dutyController.HasReturnedToDuty)
+        {
+            EnterDuty();
+        }
     }
 
     private IEnemyAbility SelectBestAbility(Transform target)
@@ -309,13 +499,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
             yield break;
         }
 
-        if (targetSensor.HasTarget)
-        {
-            EnterEngage();
-            yield break;
-        }
-
-        EnterIdle();
+        EvaluateNextState();
     }
 
     private void UpdatePositioning(Transform target)
@@ -357,26 +541,114 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
         activeAbility = null;
     }
 
-    private void EnterIdle()
+    private void EvaluateNextState()
     {
-        ChangeState(State.Idle);
-        positioning?.StopPositioning();
-        movement?.Stop();
-        movement?.ClearIdleResidualPhysics();
+        if (currentState == State.Dead)
+        {
+            return;
+        }
+
+        if (actor == null || !actor.IsAlive)
+        {
+            EnterDead();
+            return;
+        }
+
+        awareness?.Tick();
+
+        if (awareness != null && awareness.HasCombatTarget)
+        {
+            EnterCombat();
+            return;
+        }
+
+        if (awareness != null && awareness.HasInvestigationPoint)
+        {
+            EnterInvestigate();
+            return;
+        }
+
+        if (ShouldReturnToDuty())
+        {
+            EnterReturnToDuty();
+            return;
+        }
+
+        EnterDuty();
     }
 
-    private void EnterEngage()
+    private bool ShouldReturnToDuty()
     {
-        ChangeState(State.Engage);
+        if (dutyController == null)
+        {
+            return false;
+        }
+
+        if (currentState == State.Duty)
+        {
+            return false;
+        }
+
+        return !dutyController.HasReturnedToDuty;
+    }
+
+    private void EnterDuty()
+    {
+        ChangeState(State.Duty);
+        positioning?.StopPositioning();
+        navigator?.StopNavigation();
+
+        if (dutyController != null)
+        {
+            dutyController.EnterDuty();
+        }
+        else
+        {
+            movement?.Stop();
+            movement?.ClearIdleResidualPhysics();
+        }
+    }
+
+    private void EnterInvestigate()
+    {
+        ChangeState(State.Investigate);
+        positioning?.StopPositioning();
+        navigator?.StopNavigation();
+        dutyController?.ExitDuty();
+    }
+
+    private void EnterCombat()
+    {
+        ChangeState(State.Combat);
+        navigator?.StopNavigation();
+        dutyController?.ExitDuty();
+    }
+
+    private void EnterReturnToDuty()
+    {
+        ChangeState(State.ReturnToDuty);
+        positioning?.StopPositioning();
+        navigator?.StopNavigation();
+        movement?.Stop();
+        dutyController?.EnterReturnToDuty();
+
+        if (dutyController == null)
+        {
+            movement?.ClearIdleResidualPhysics();
+        }
     }
 
     private void EnterDead()
     {
         ChangeState(State.Dead);
         positioning?.StopPositioning();
+        navigator?.StopNavigation();
         movement?.ApplyDeathPhysics();
+        awareness?.ClearAll();
         targetSensor?.ClearTarget();
         CancelActiveAbility();
+        dutyController?.StopDuty();
+        navigator?.StopNavigation();
 
         if (impactLockRoutine != null)
         {
@@ -389,6 +661,8 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         ChangeState(State.ImpactLocked);
         positioning?.StopPositioning();
+        dutyController?.StopDuty();
+        navigator?.StopNavigation();
         movement?.Stop();
 
         while (Time.time < impactLockEndsAt && currentState != State.Dead)
@@ -400,7 +674,7 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
 
         if (currentState != State.Dead)
         {
-            EnterIdle();
+            EvaluateNextState();
         }
     }
 
@@ -413,14 +687,45 @@ public sealed class EnemyBrain : MonoBehaviour, IImpactLockable
     {
         if (currentState == newState)
         {
+            RefreshDebugSnapshot();
             return;
         }
 
         currentState = newState;
+        RefreshDebugSnapshot();
 
         if (logStateChanges)
         {
             Debug.Log($"[{nameof(EnemyBrain)}] {name} -> {currentState}", this);
         }
+    }
+
+    private void RefreshDebugSnapshot()
+    {
+        debugCurrentState = currentState.ToString();
+        debugDutyMode = dutyController != null ? dutyController.DebugLabel : "None";
+        debugHasDutyDestination = dutyController != null && dutyController.HasActiveDestination;
+        debugDutyDestination = debugHasDutyDestination && dutyController != null
+            ? dutyController.ActiveDestination
+            : Vector3.zero;
+        debugCombatTarget = awareness != null ? awareness.CombatTarget : null;
+        debugHasInvestigationPoint = awareness != null && awareness.HasInvestigationPoint;
+        debugInvestigationPoint = debugHasInvestigationPoint && awareness != null
+            ? awareness.InvestigationPoint
+            : Vector3.zero;
+    }
+
+    private bool HasReachedHorizontalPoint(Vector3 point, float distance)
+    {
+        Vector3 current = transform.position;
+        current.y = 0f;
+        point.y = 0f;
+        return (current - point).sqrMagnitude <= distance * distance;
+    }
+
+    private void OnValidate()
+    {
+        investigationStopDistance = Mathf.Max(0.05f, investigationStopDistance);
+        investigationSpeedMultiplier = Mathf.Max(0f, investigationSpeedMultiplier);
     }
 }

@@ -14,15 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMeleeAttackProfile
   displayName: Heavy Attack
   weaponUseSlot: 1
-  baseDamage: 5
+  baseDamage: 2.2
   attackRange: 1.8
   attackArc: 120
   impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.32
   cooldown: 0.65
   applyImpact: 1
-  knockbackDistance: 0.2
-  knockbackDuration: 0.08
+  knockbackDistance: 0.4
+  knockbackDuration: 0.1
   stunDuration: 0
   interruptCurrentAction: 0
   visualDuration: 0.16

@@ -28,7 +28,7 @@ MonoBehaviour:
   projectilePrefab: {fileID: 790463367074272646, guid: 7382377d9bc50f24ab2b62f5174c4e5c, type: 3}
   firePointLocalOffset: {x: 0, y: 0.8, z: 0.8}
   projectileSpeed: 8
-  projectileDamage: 4
+  projectileDamage: 3
   projectileLifetime: 4
   projectilesPerShot: 1
   spreadAngle: 0
@@ -37,7 +37,7 @@ MonoBehaviour:
     m_Bits: 8
   blockingLayers:
     serializedVersion: 2
-    m_Bits: 2097152
+    m_Bits: 2099200
   applyImpact: 0
   knockbackDistance: 0
   knockbackDuration: 0

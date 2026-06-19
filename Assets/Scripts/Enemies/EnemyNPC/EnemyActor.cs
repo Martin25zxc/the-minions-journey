@@ -110,13 +110,9 @@ public sealed class EnemyActor : MonoBehaviour
     private void HandleDamaged(TMJ_DamageInfo damageInfo)
     {
         // TopDownHealth dispara OnDamaged antes de OnDied.
-        // Si el golpe fue letal, dejamos que la animacion de muerte tenga prioridad
-        // y evitamos disparar HitFront/HitBack justo antes de Die.
-        if (health != null && health.CurrentHealth <= 0f)
-        {
-            return;
-        }
-
+        // EnemyAnimator ya evita reproducir HitFront/HitBack si la vida llego a 0.
+        // Mantener este evento incluso en daño letal permite que sistemas de IA
+        // como EnemyDamageResponder / alerta grupal futura reaccionen a un aliado one-shotteado.
         Damaged?.Invoke(this, damageInfo);
     }
 

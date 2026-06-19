@@ -1,18 +1,22 @@
 using UnityEngine;
 
 /// <summary>
-/// Posicionamiento basico para enemigos que persiguen al target hasta una distancia segura.
+/// Posicionamiento basico para enemigos melee que persiguen al target hasta una distancia segura.
 ///
-/// Este componente reemplaza el uso implicito de una distancia fallback dentro de EnemyDefinition.
-/// La distancia de frenado queda explicitamente en el prefab que la necesita.
+/// Usa EnemyNavigator para poder funcionar con DirectPathProvider o NavMeshPathProvider.
+/// EnemyMovement sigue siendo el dueno fisico del movimiento.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(EnemyMovement))]
+[RequireComponent(typeof(EnemyNavigator))]
 public sealed class EnemyChasePositioning : MonoBehaviour, IEnemyPositioning
 {
     [Header("References")]
     [SerializeField]
     private EnemyMovement movement;
+
+    [SerializeField]
+    private EnemyNavigator navigator;
 
     [Header("Chase")]
     [Tooltip("Distancia a la que el enemigo deja de avanzar. Debe estar cerca o por debajo del rango real del ataque melee.")]
@@ -34,31 +38,37 @@ public sealed class EnemyChasePositioning : MonoBehaviour, IEnemyPositioning
         {
             movement = GetComponent<EnemyMovement>();
         }
+
+        if (navigator == null)
+        {
+            navigator = GetComponent<EnemyNavigator>();
+        }
     }
 
     public void UpdatePositioning(Transform target)
     {
-        if (movement == null || target == null)
+        if (target == null)
+        {
+            StopPositioning();
+            return;
+        }
+
+        if (navigator == null)
         {
             movement?.Stop();
             return;
         }
 
-        movement.MoveTowards(target.position, stopDistance, speedMultiplier);
-
-        if (faceTargetAtStop)
+        bool reached = navigator.MoveTo(target.position, stopDistance, speedMultiplier);
+        if (faceTargetAtStop && reached)
         {
-            Vector3 toTarget = target.position - transform.position;
-            toTarget.y = 0f;
-            if (toTarget.sqrMagnitude <= stopDistance * stopDistance)
-            {
-                movement.FaceTarget(target.position);
-            }
+            movement?.FaceTarget(target.position);
         }
     }
 
     public void StopPositioning()
     {
+        navigator?.StopNavigation();
         movement?.Stop();
     }
 

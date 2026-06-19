@@ -1,15 +1,17 @@
 using UnityEngine;
 
 /// <summary>
-/// Contrato de posicionamiento para enemigos.
+/// Contrato de posicionamiento tactico de combate.
 ///
 /// EnemyBrain decide target y abilities. El posicionamiento decide como moverse
-/// cuando no se esta ejecutando una ability.
+/// cuando el enemigo esta en Combat y no esta ejecutando una ability.
 ///
 /// Ejemplos:
 /// - EnemyChasePositioning para melee / melee-leap.
 /// - EnemyRangedPositioning para enemigos que mantienen distancia.
-/// - Futuro: patrol, orbit, guard, flee, etc.
+/// - Futuro: orbit, flee, flank.
+///
+/// Patrol/Guard/Wander NO deberian implementarse aca: pertenecen al futuro sistema Duty.
 /// </summary>
 public interface IEnemyPositioning
 {
