@@ -46,10 +46,6 @@ public class WeaponData : ItemData
     public Quaternion HandLocalRotation => Quaternion.Euler(equipmentVisualHandPose.LocalEulerAngles);
     public Vector3 HandLocalScale => equipmentVisualHandPose.LocalScale;
 
-    public Vector3 BackLocalPosition => backLocalPosition;
-    public Quaternion BackLocalRotation => Quaternion.Euler(backLocalEulerAngles);
-    public Vector3 BackLocalScale => backLocalScale;
-
     public Vector3 BackLeftLocalPosition => equipmentVisualBackLeftPose.LocalPosition;
     public Quaternion BackLeftLocalRotation => Quaternion.Euler(equipmentVisualBackLeftPose.LocalEulerAngles);
     public Vector3 BackLeftLocalScale => equipmentVisualBackLeftPose.LocalScale;

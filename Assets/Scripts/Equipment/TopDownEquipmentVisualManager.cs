@@ -237,9 +237,6 @@ public sealed class TopDownEquipmentVisualManager : MonoBehaviour
                 break;
 
             default:
-                visualTransform.localPosition = weaponData.BackLocalPosition;
-                visualTransform.localRotation = weaponData.BackLocalRotation;
-                visualTransform.localScale = weaponData.BackLocalScale;
                 break;
         }
     }
