@@ -21,9 +21,9 @@ MonoBehaviour:
   impactDelaySeconds: 0.52
   cooldown: 0.85
   applyImpact: 1
-  knockbackDistance: 0.05
-  knockbackDuration: 0.05
-  stunDuration: 0.2
+  knockbackDistance: 1.5
+  knockbackDuration: 0.3
+  stunDuration: 0.3
   interruptCurrentAction: 0
   visualDuration: 0.22
   visualWidth: 0.35
