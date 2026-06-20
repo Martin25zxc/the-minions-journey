@@ -150,6 +150,17 @@ MonoBehaviour:
   aimRotationDeadZoneDegrees: 2
   movementAcceleration: 40
   movementFriction: 24
+  useBodyBlocking: 1
+  bodyCollider: {fileID: 0}
+  bodyBlockingLayers:
+    serializedVersion: 2
+    m_Bits: 128
+  bodyBlockProbeDistance: 0.08
+  bodyBlockSkinWidth: 0.03
+  slideAlongBlockedSurfaces: 1
+  clearVelocityIntoBlocker: 1
+  bodyBlockTriggerInteraction: 1
+  drawBodyBlockDebug: 0
   facingIndicatorColor: {r: 0.95, g: 0.95, b: 0.95, a: 1}
 --- !u!114 &5771361122577566460
 MonoBehaviour:
@@ -259,6 +270,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InventoryManager
   maxItems: 16
+  autoEquipWeaponsOnPickup: 1
+  weaponLoadout: {fileID: 0}
   items: []
 --- !u!114 &7627498029192174704
 MonoBehaviour:
