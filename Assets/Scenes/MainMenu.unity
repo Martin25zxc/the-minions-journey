@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23ed28acbb72dc643a8e4ec786b02295, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TMJ_MainMenuController
-  newGameSceneName: Nivel-1
+  newGameSceneName: SC_LevelIntro_01
   newGameButton: {fileID: 2025373124}
   versionText: {fileID: 0}
 --- !u!1 &249632266

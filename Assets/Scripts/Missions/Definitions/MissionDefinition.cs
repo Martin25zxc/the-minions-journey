@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "TMJ/Missions/Mission Definition", fileName = "MD_NewMission")]
+[CreateAssetMenu(menuName = "Game/Missions/Mission Definition", fileName = "MD_NewMission")]
 public sealed class MissionDefinition : ScriptableObject
 {
     [Header("Identidad")]

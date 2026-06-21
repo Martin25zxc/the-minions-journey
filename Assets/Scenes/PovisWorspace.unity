@@ -1467,6 +1467,7 @@ GameObject:
   - component: {fileID: 686232925}
   - component: {fileID: 686232924}
   - component: {fileID: 686232926}
+  - component: {fileID: 686232927}
   m_Layer: 0
   m_Name: GameSystems
   m_TagString: Untagged
@@ -1538,6 +1539,25 @@ MonoBehaviour:
   warnIfFlagIdIsNotSnakeCase: 1
   logChanges: 0
   activeFlagsDebug: []
+--- !u!114 &686232927
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 686232922}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00aa3ff5d1761054b85fb7654ba49d45, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionManager
+  missionCatalog: {fileID: 11400000, guid: 67c564edb62f0244586b2854a17760e8, type: 2}
+  actionGate: {fileID: 686232924}
+  makeInteractionMissionsAvailableOnAwake: 1
+  acceptAutoStartMissionsOnStart: 1
+  allowRuntimeRegistration: 0
+  logChanges: 0
+  debugStates: []
 --- !u!1 &694865346
 GameObject:
   m_ObjectHideFlags: 0
@@ -1796,6 +1816,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 694865348}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &938951494
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 938951495}
+  - component: {fileID: 938951496}
+  m_Layer: 0
+  m_Name: _Debug_MissionManagerTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &938951495
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 938951494}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1155611727}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &938951496
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 938951494}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b2ec06340a47de4791d4b14bdd8187f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionManagerDebugTester
+  missionManager: {fileID: 686232927}
+  selectedMission: {fileID: 11400000, guid: 258001d40de4bf743b4999f5f5fd3cf0, type: 2}
+  originalGiverId: survivor_01
+  turnInTargetId: survivor_01
+  eventType: 4
+  eventTargetId: hook_artifact
+  eventAmount: 1
+  makeAvailableKey: 41
+  acceptMissionKey: 42
+  reportEventKey: 43
+  turnInMissionKey: 44
+  trackMissionKey: 45
+  logSelectedMissionKey: 46
+  logAllMissionsKey: 47
 --- !u!1 &940422489
 GameObject:
   m_ObjectHideFlags: 0
@@ -1975,6 +2053,8 @@ Transform:
   - {fileID: 1537436291}
   - {fileID: 250267040}
   - {fileID: 2128561297}
+  - {fileID: 1809198078}
+  - {fileID: 938951495}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1388105441
@@ -2493,6 +2573,64 @@ Transform:
   m_Children: []
   m_Father: {fileID: 694865348}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1809198077
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1809198078}
+  - component: {fileID: 1809198079}
+  m_Layer: 0
+  m_Name: _Debug_MissionRuntimeTester
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 0
+--- !u!4 &1809198078
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1809198077}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1155611727}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1809198079
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1809198077}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b92a5957a9040dc459ec13ff0afefe59, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionRuntimeDebugTester
+  missionDefinition: {fileID: 11400000, guid: 2559d9fa626cf254ebf0f557562c0d69, type: 2}
+  originalGiverId: nature_being_01
+  objectiveId: collect_apples
+  progressAmount: 1
+  turnInTargetId: nature_being_01
+  startAsAvailable: 1
+  resetKey: 50
+  markAvailableKey: 41
+  acceptKey: 42
+  progressKey: 43
+  turnInKey: 44
+  logStateKey: 45
+  toggleTrackedKey: 46
+  logActions: 1
 --- !u!4 &1821311723 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1584135009235796213, guid: 5727087bf2d499c4db6b33bcbc8a47f0, type: 3}
