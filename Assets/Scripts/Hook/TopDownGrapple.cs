@@ -4,8 +4,11 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(TopDownPlayerController))]
-public sealed class TopDownGrapple : MonoBehaviour
+public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
+
 {
+    public string SkillID => "hook";
+
     [Header("Input")]
     [SerializeField]
     private bool readInputDirectly = true;
@@ -152,6 +155,12 @@ public sealed class TopDownGrapple : MonoBehaviour
         activeHook.OnHookMissed += CancelGrapple;
 
         activeHook.Launch(direction, transform);
+    }
+
+    public void Execute()
+    {
+        FireHook();
+        Debug.Log("¡Lanzando el gancho! (Ejecutando Grapple)");
     }
 
     private bool TryGetPlanarAimDirection(out Vector3 direction)
