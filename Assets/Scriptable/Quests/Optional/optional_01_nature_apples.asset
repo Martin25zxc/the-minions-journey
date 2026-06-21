@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
+  m_Name: optional_01_nature_apples
+  m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
+  missionId: optional_01_nature_mercy
+  category: 1
+  displayOrder: 0
+  title: Favor del bosque
+  shortDescription: "e\xFAne manzanas para el ent"
+  fullDescription: "Bau desconf\xEDa de los humanos del pueblo, pero parece dispuesto
+    a ayudarte si le traes frutos del valle"
+  startMode: 2
+  completionMode: 1
+  turnInTargetMode: 0
+  turnInTargetId: 
+  requiredForLevelCompletion: 0
+  objectives:
+  - objectiveId: collect_apples
+    objectiveType: 1
+    importance: 0
+    description: Busca manzanas de los aires
+    requiredAmount: 3
+    targetId: apple
+    hiddenUntilActive: 0
+    showProgress: 1
+  rewards:
+  - rewardId: unlock_heal
+    rewardType: 3
+    displayName: "Curaci\xF3n"
+    amount: 1
+    bonusReward: 0
+    designerNote: 
+  showInHUD: 1
+  showInJournal: 1
+  autoTrackOnAccept: 1

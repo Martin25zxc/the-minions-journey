@@ -1,20 +1,15 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-
-#if UNITY_EDITOR
-using UnityEditor;
-#endif
 
 [DisallowMultipleComponent]
 public sealed class TMJ_MainMenuController : MonoBehaviour
 {
     [Header("Scene Loading")]
     [SerializeField]
-    private string newGameSceneName = "Nivel-1";
+    private string newGameSceneName = "SC_LevelIntro_01";
 
     [Header("Main Buttons")]
     [SerializeField]
@@ -27,12 +22,11 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
 
     private void Awake()
     {
+        Time.timeScale = 1f;
+
         BindButtons();
         RefreshVersionText();
-    }
-
-    private void Start()
-    {
+        SetButtonsInteractable(true);
     }
 
     private void OnDestroy()
@@ -52,7 +46,7 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
             newGameButton.onClick.RemoveListener(StartNewGame);
     }
 
-    private void StartNewGame()
+    public void StartNewGame()
     {
         if (isLoading)
             return;
@@ -94,5 +88,4 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
         if (newGameButton != null)
             newGameButton.interactable = interactable;
     }
-
 }

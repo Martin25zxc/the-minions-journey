@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
+  m_Name: main_01_01_find_hook
+  m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
+  missionId: main_01_01_find_hook
+  category: 0
+  displayOrder: 0
+  title: Sobreviviente
+  shortDescription: 
+  fullDescription: 
+  startMode: 2
+  completionMode: 1
+  turnInTargetMode: 0
+  turnInTargetId: 
+  requiredForLevelCompletion: 0
+  objectives:
+  - objectiveId: acquire_hook
+    objectiveType: 4
+    importance: 0
+    description: "Busca la herramienta m\xE1gica "
+    requiredAmount: 1
+    targetId: hook_artifact
+    hiddenUntilActive: 0
+    showProgress: 1
+  rewards: []
+  showInHUD: 1
+  showInJournal: 1
+  autoTrackOnAccept: 1
