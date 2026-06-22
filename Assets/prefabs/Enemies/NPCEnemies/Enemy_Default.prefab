@@ -25,6 +25,7 @@ GameObject:
   - component: {fileID: 2849850654687201696}
   - component: {fileID: 5836856184111565607}
   - component: {fileID: 2644271839652928777}
+  - component: {fileID: -1019449691687852758}
   m_Layer: 7
   m_Name: Enemy_Default
   m_TagString: Untagged
@@ -398,6 +399,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 063f6e0998758294f854272c916ef37c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DirectPathProvider
+--- !u!114 &-1019449691687852758
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4926070763307618463}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca408c379a46964449e3f315e8a94806, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyPlayerCombatReporter
+  actor: {fileID: 7002014681225443993}
+  awareness: {fileID: 9157969431832122464}
+  syncCurrentTargetOnEnable: 1
+  searchPlayerStateInParents: 1
+  logChanges: 0
+  debugRegisteredPlayerState: {fileID: 0}
+  debugRegisteredTarget: {fileID: 0}
 --- !u!1 &5816615873868455281
 GameObject:
   m_ObjectHideFlags: 0

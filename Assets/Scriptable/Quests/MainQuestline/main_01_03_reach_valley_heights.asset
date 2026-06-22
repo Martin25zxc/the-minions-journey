@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
+  m_Name: main_01_03_reach_valley_heights
+  m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
+  missionId: main_01_03_confront_valley_leader
+  category: 0
+  displayOrder: 0
+  title: El amo del valle
+  shortDescription: "Tras atravesar el pueblo enemigo, llegaste a lo alto del valle.
+    El amo del valle est\xE1 solo, pero su presencia domina el lugar."
+  fullDescription: "Contra todo pron\xF3stico, el pueblo enemigo qued\xF3 atr\xE1s.\n\nAun
+    as\xED, la inquietud no se fue con ellos.\n\nEl viento resopla cortante entre
+    las piedras. Ves una casa solitaria en lo alto, y junto a ella, una figura m\xE1s
+    imponente que el propio valle. Sientes que el camino se cierra a tu espalda.\n\nNo
+    necesita gritar \xF3rdenes. No necesita estar rodeado de guerreros. Su sola presencia
+    basta para que todo parezca m\xE1s peque\xF1o.\n\nEs el mismo que quebr\xF3 a
+    tu grupo casi sin esfuerzo.\n\nDefinitivamente, es el amo del valle.\n\nEl artefacto
+    que perdi\xF3 est\xE1 en tus manos. Quiz\xE1 esta sea la \xFAnica vez que puedas
+    enfrentarlo.\n\nQuiz\xE1 sea la \xFAltima."
+  startMode: 3
+  completionMode: 0
+  turnInTargetMode: 99
+  turnInTargetId: 
+  requiredForLevelCompletion: 0
+  objectives:
+  - objectiveId: defeat_valley_leader
+    objectiveType: 2
+    importance: 0
+    description: Derrota al amo del valle.
+    requiredAmount: 1
+    targetId: valley_leader
+    hiddenUntilActive: 0
+    showProgress: 0
+  rewards: []
+  showInHUD: 1
+  showInJournal: 1
+  autoTrackOnAccept: 1

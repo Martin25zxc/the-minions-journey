@@ -167,7 +167,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 23ed28acbb72dc643a8e4ec786b02295, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TMJ_MainMenuController
-  newGameSceneName: Nivel-1
+  newGameSceneName: SC_LevelIntro_01
   newGameButton: {fileID: 2025373124}
   versionText: {fileID: 0}
 --- !u!1 &249632266
@@ -1398,10 +1398,6 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 21300000, guid: 7609974ca15c009448190bec2a02e957, type: 3}
     - target: {fileID: 3883885814466328858, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
-      propertyPath: m_Color.a
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3883885814466328858, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Color.b
       value: 1
       objectReference: {fileID: 0}
@@ -1418,16 +1414,8 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
-      propertyPath: m_Enabled
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_FadeDuration
       value: 0.9
-      objectReference: {fileID: 0}
-    - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
-      propertyPath: m_Colors.m_NormalColor.a
-      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_NormalColor.b
@@ -1452,10 +1440,6 @@ PrefabInstance:
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_PressedColor.r
       value: 0.8784314
-      objectReference: {fileID: 0}
-    - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
-      propertyPath: m_Colors.m_DisabledColor.a
-      value: 0.47058824
       objectReference: {fileID: 0}
     - target: {fileID: 4920762391532367684, guid: d0a8adc4367e30b43871d182cc333c99, type: 3}
       propertyPath: m_Colors.m_DisabledColor.b

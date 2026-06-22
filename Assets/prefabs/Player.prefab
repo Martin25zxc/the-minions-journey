@@ -55,6 +55,9 @@ GameObject:
   - component: {fileID: 2500056293456726093}
   - component: {fileID: 7001349735635071850}
   - component: {fileID: 4568917047187759288}
+  - component: {fileID: -6567643544910266374}
+  - component: {fileID: 5302703719537960001}
+  - component: {fileID: 3224131469388374966}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -412,6 +415,79 @@ MonoBehaviour:
   ropeWidth: 0.04
   ropeColor: {r: 0.85, g: 0.7, b: 0.4, a: 1}
   ropeOriginHeightOffset: 0.5
+--- !u!114 &-6567643544910266374
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2914608821614472329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fa46935e8875f7747a2b3ad4e4452c2e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractionController
+  interactKey: 20
+  playReactionOnInput: 1
+  sheatheWeaponsOnInput: 1
+  sheatheWeaponsOnlyOutsideCombat: 1
+  allowSheatheWhenCombatStateMissing: 0
+  playerAnimator: {fileID: 7627498029192174704}
+  equipmentVisuals: {fileID: 6209150160497060292}
+  combatState: {fileID: 0}
+  enableContextualInteraction: 1
+  interactionOrigin: {fileID: 1833050559653338466}
+  interactionRadius: 1.8
+  interactableLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  triggerInteraction: 2
+  maxCandidates: 16
+  ignoreOwnColliders: 1
+  logInteractions: 0
+  logConfigurationWarnings: 1
+  logWhenBufferIsFull: 1
+  drawGizmos: 1
+--- !u!114 &5302703719537960001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2914608821614472329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 825b12e3404e7454bb1f3eae22032ca4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractionScanner
+  controller: {fileID: -6567643544910266374}
+  interactionOrigin: {fileID: 1833050559653338466}
+  interactionRadius: 1.8
+  interactableLayers:
+    serializedVersion: 2
+    m_Bits: 16384
+  triggerInteraction: 2
+  maxCandidates: 16
+  ignoreOwnColliders: 1
+  logConfigurationWarnings: 1
+  logWhenBufferIsFull: 1
+  drawGizmos: 1
+--- !u!114 &3224131469388374966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2914608821614472329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2762cfac169b71c4ba83e618f69e0ac3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractionFocusController
+  scanner: {fileID: 5302703719537960001}
+  refreshInterval: 0.15
+  keepCurrentFocusWhenStillValid: 1
+  logFocusChanges: 0
 --- !u!1 &4744928077737002777
 GameObject:
   m_ObjectHideFlags: 0

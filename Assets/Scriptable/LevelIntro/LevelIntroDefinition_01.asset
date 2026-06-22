@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96d716a140dad7843be2bc08e6547281, type: 3}
+  m_Name: LevelIntroDefinition_01
+  m_EditorClassIdentifier: Assembly-CSharp::TMJ_LevelIntroDefinition
+  gameplaySceneName: Nivel-1
+  chapterLabel: "CAP\xCDTULO 1"
+  missionTitle: El vientre del Valle
+  locationName: Valle de los Aires
+  description: "La guerra entre el Imperio del Alba y la Legi\xF3n de Erebus consume
+    tierras enteras, pero en este valle solo queda el eco de una misi\xF3n fallida.\r\n\r\nLos
+    Hopplos, tu grupo dentro de Erebus, fueron enviados a abrir paso hacia un fuerte
+    del Alba, pero quedaron deshechos antes de cruzar el valle. Pocos, mal armados
+    y sin apoyo, fueron arrojados a una misi\xF3n que nunca pareci\xF3 pensada para
+    que alguien volviera.\r\n\r\nNo hay gloria entre las ruinas: solo tiendas destrozadas,
+    armas rotas y una misi\xF3n que ahora te pertenece.\r\n"
+  levelImage: {fileID: 21300000, guid: e6bb7e979618d2743844ab1a7f498be7, type: 3}
+  loadingTip: "Los combos causan m\xE1s da\xF1o que los ataques simples, aprende
+    a utilizarlos."
+  requirePlayerConfirmation: 1
