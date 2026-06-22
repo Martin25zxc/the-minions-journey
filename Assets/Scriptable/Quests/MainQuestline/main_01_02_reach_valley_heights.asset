@@ -15,9 +15,15 @@ MonoBehaviour:
   missionId: main_01_02_reach_valley_heights
   category: 0
   displayOrder: 0
-  title: Alto del valle
-  shortDescription: 
-  fullDescription: 
+  title: Hacia lo alto del valle
+  shortDescription: "Somnus cree que el l\xEDder enemigo volver\xE1 por el artefacto.
+    Aprovecha el factor sorpresa y s\xEDguelo hacia lo alto del valle."
+  fullDescription: "Lo encontraste... Entonces todav\xEDa tenemos una oportunidad.\n\nEse
+    artefacto lo usaba con gran habilidad, pero su furia hizo que lo perdiera. No
+    va a tardar en notar que ya no lo tiene. Volver\xE1 por \xE9l.\n\nLo escuch\xE9
+    gritar que disfrutar\xEDa de un fest\xEDn en lo alto del valle. Si vas ahora,
+    quiz\xE1 puedas alcanzarlo antes de que se prepare.\n\nYo voy a tardar en curarme.
+    Vos todav\xEDa pod\xE9s moverte.\n\nVe. Persigue tu destino."
   startMode: 2
   completionMode: 0
   turnInTargetMode: 99
@@ -27,11 +33,11 @@ MonoBehaviour:
   - objectiveId: reach_valley_heights
     objectiveType: 0
     importance: 0
-    description: 'Ve a lo alto del valle '
+    description: Atraviesa el pueblo enemigo y alcanza lo alto del valle.
     requiredAmount: 1
     targetId: valley_heights
     hiddenUntilActive: 0
-    showProgress: 1
+    showProgress: 0
   rewards: []
   showInHUD: 1
   showInJournal: 1
