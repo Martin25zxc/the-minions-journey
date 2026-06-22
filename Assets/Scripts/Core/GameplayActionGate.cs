@@ -8,7 +8,7 @@ public sealed class GameplayActionGate : MonoBehaviour
     [SerializeField] private GameStateController gameStateController;
 
     [Tooltip("Estado de combate del jugador. Si queda vacío, las reglas funcionan pero nunca detectan combate.")]
-    [SerializeField] private PlayerCombatState playerCombatState;
+    [SerializeField] private PlayerThreatTracker PlayerThreatTracker;
 
     [Header("Mensajes de bloqueo")]
     [Tooltip("Mensaje cuando el jugador intenta abrir el diario mientras está en combate.")]
@@ -26,7 +26,7 @@ public sealed class GameplayActionGate : MonoBehaviour
     private void Reset()
     {
         gameStateController = FindFirstObjectByType<GameStateController>();
-        playerCombatState = FindFirstObjectByType<PlayerCombatState>();
+        PlayerThreatTracker = FindFirstObjectByType<PlayerThreatTracker>();
     }
 
     public bool CanExecute(GameplayActionType actionType)
@@ -41,7 +41,7 @@ public sealed class GameplayActionGate : MonoBehaviour
             return GameplayActionBlockResult.Blocked($"Falta asignar {nameof(GameStateController)} en {nameof(GameplayActionGate)}.");
         }
 
-        bool isInCombat = playerCombatState != null && playerCombatState.IsInCombat;
+        bool isInCombat = PlayerThreatTracker != null && PlayerThreatTracker.IsInCombat;
 
         switch (actionType)
         {

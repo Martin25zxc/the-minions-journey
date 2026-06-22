@@ -3,8 +3,19 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Estado agregado de amenaza/combat del jugador.
+///
+/// Responsabilidad:
+/// - No detecta enemigos por su cuenta.
+/// - No consulta EnemyBrain, paths ni sensores.
+/// - Solo agrega fuentes que otros sistemas registran/desregistran.
+///
+/// Fuente recomendada actual:
+/// EnemyAwareness.CombatTargetChanged -> EnemyPlayerCombatReporter -> PlayerThreatTracker.
+/// </summary>
 [DisallowMultipleComponent]
-public sealed class PlayerCombatState : MonoBehaviour
+public sealed class PlayerThreatTracker : MonoBehaviour
 {
     [Header("Salida de combate")]
     [Tooltip("Segundos que espera antes de salir de combate cuando ya no hay enemigos con aggro. Evita parpadeos raros.")]
@@ -17,6 +28,9 @@ public sealed class PlayerCombatState : MonoBehaviour
     [Header("Debug")]
     [Tooltip("Activalo solo mientras probamos. Después conviene apagarlo.")]
     [SerializeField] private bool logChanges;
+
+    [Tooltip("Solo lectura conceptual en Play Mode. Ayuda a validar qué enemigos están manteniendo al jugador en combate.")]
+    [SerializeField] private List<string> debugAggroSourceNames = new();
 
     private readonly HashSet<UnityEngine.Object> aggroSources = new();
 
@@ -40,7 +54,7 @@ public sealed class PlayerCombatState : MonoBehaviour
     {
         if (source == null)
         {
-            Debug.LogWarning($"{nameof(PlayerCombatState)} recibió una fuente de aggro vacía.", this);
+            Debug.LogWarning($"{nameof(PlayerThreatTracker)} recibió una fuente de aggro vacía.", this);
             return;
         }
 
@@ -49,6 +63,7 @@ public sealed class PlayerCombatState : MonoBehaviour
             return;
         }
 
+        RefreshDebugAggroSources();
         StopExitCombatRoutineIfNeeded();
         SetCombatState(true);
     }
@@ -65,12 +80,14 @@ public sealed class PlayerCombatState : MonoBehaviour
             return;
         }
 
+        RefreshDebugAggroSources();
         ScheduleExitCombatIfNoSources();
     }
 
     public void ClearAllAggroSources()
     {
         aggroSources.Clear();
+        RefreshDebugAggroSources();
         StopExitCombatRoutineIfNeeded();
         SetCombatState(false);
     }
@@ -84,10 +101,13 @@ public sealed class PlayerCombatState : MonoBehaviour
 
         bool removedAny = aggroSources.RemoveWhere(source => source == null) > 0;
 
-        if (removedAny)
+        if (!removedAny)
         {
-            ScheduleExitCombatIfNoSources();
+            return;
         }
+
+        RefreshDebugAggroSources();
+        ScheduleExitCombatIfNoSources();
     }
 
     private void ScheduleExitCombatIfNoSources()
@@ -135,15 +155,31 @@ public sealed class PlayerCombatState : MonoBehaviour
 
         if (logChanges)
         {
-            Debug.Log($"Estado de combate del jugador: {isInCombat}", this);
+            Debug.Log($"Estado de combate del jugador: {isInCombat}. Fuentes: {AggroEnemyCount}", this);
         }
 
         CombatStateChanged?.Invoke(isInCombat);
     }
 
+    private void RefreshDebugAggroSources()
+    {
+        debugAggroSourceNames.Clear();
+
+        foreach (UnityEngine.Object source in aggroSources)
+        {
+            if (source == null)
+            {
+                continue;
+            }
+
+            debugAggroSourceNames.Add(source.name);
+        }
+    }
+
     private void OnDisable()
     {
         aggroSources.Clear();
+        RefreshDebugAggroSources();
         StopExitCombatRoutineIfNeeded();
         SetCombatState(false);
     }

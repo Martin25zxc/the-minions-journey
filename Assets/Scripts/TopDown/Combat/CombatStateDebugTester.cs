@@ -8,7 +8,7 @@ public sealed class CombatStateDebugTester : MonoBehaviour
 {
     [Header("Referencias")]
     [Tooltip("Estado de combate del jugador que queremos probar.")]
-    [SerializeField] private PlayerCombatState playerCombatState;
+    [SerializeField] private PlayerThreatTracker PlayerThreatTracker;
 
 #if ENABLE_INPUT_SYSTEM
     [Header("Input System - Debug")]
@@ -24,7 +24,7 @@ public sealed class CombatStateDebugTester : MonoBehaviour
 
     private void Reset()
     {
-        playerCombatState = FindFirstObjectByType<PlayerCombatState>();
+        PlayerThreatTracker = FindFirstObjectByType<PlayerThreatTracker>();
     }
 
     private void Update()
@@ -39,9 +39,9 @@ public sealed class CombatStateDebugTester : MonoBehaviour
 
     public void ToggleFakeAggro()
     {
-        if (playerCombatState == null)
+        if (PlayerThreatTracker == null)
         {
-            Debug.LogWarning($"Falta asignar {nameof(PlayerCombatState)}.", this);
+            Debug.LogWarning($"Falta asignar {nameof(PlayerThreatTracker)}.", this);
             return;
         }
 
@@ -49,7 +49,7 @@ public sealed class CombatStateDebugTester : MonoBehaviour
 
         if (fakeEnemyHasAggro)
         {
-            playerCombatState.RegisterAggroSource(this);
+            PlayerThreatTracker.RegisterAggroSource(this);
 
             if (logActions)
             {
@@ -58,7 +58,7 @@ public sealed class CombatStateDebugTester : MonoBehaviour
         }
         else
         {
-            playerCombatState.UnregisterAggroSource(this);
+            PlayerThreatTracker.UnregisterAggroSource(this);
 
             if (logActions)
             {

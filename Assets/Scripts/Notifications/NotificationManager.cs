@@ -7,7 +7,7 @@ public sealed class NotificationManager : MonoBehaviour
 {
     [Header("Referencias")]
     [Tooltip("Opcional. Sirve para aplicar reglas especiales cuando el jugador está en combate.")]
-    [SerializeField] private PlayerCombatState playerCombatState;
+    [SerializeField] private PlayerThreatTracker PlayerThreatTracker;
 
     [Header("Reglas de visualización")]
     [Tooltip("Cantidad máxima de notificaciones visibles al mismo tiempo.")]
@@ -45,7 +45,7 @@ public sealed class NotificationManager : MonoBehaviour
 
     private void Reset()
     {
-        playerCombatState = FindFirstObjectByType<PlayerCombatState>();
+        PlayerThreatTracker = FindFirstObjectByType<PlayerThreatTracker>();
     }
 
     public bool ShowSystem(string message, NotificationPriority priority = NotificationPriority.Normal, string title = null)
@@ -128,8 +128,8 @@ public sealed class NotificationManager : MonoBehaviour
     {
         if (suppressLowPriorityInCombat &&
             notification.Priority == NotificationPriority.Low &&
-            playerCombatState != null &&
-            playerCombatState.IsInCombat)
+            PlayerThreatTracker != null &&
+            PlayerThreatTracker.IsInCombat)
         {
             return true;
         }
