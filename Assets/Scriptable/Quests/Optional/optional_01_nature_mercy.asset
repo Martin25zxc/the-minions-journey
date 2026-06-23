@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
-  m_Name: optional_01_nature_apples
+  m_Name: optional_01_nature_mercy
   m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
   missionId: optional_01_nature_mercy
   category: 1
@@ -25,12 +25,12 @@ MonoBehaviour:
   turnInTargetId: 
   requiredForLevelCompletion: 0
   objectives:
-  - objectiveId: collect_apples
+  - objectiveId: collect_luminous_mushroom
     objectiveType: 1
     importance: 0
     description: Busca manzanas de los aires
     requiredAmount: 3
-    targetId: apple
+    targetId: luminous_mushroom
     hiddenUntilActive: 0
     showProgress: 1
   rewards:

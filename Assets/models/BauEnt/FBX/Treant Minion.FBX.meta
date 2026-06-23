@@ -1,5 +1,13 @@
 fileFormatVersion: 2
-guid: dfc0f48eaccdafa478a062bc064d0476
+guid: 63814134650d27a4fbb7b51c3a2d0ddb
+AssetOrigin:
+  serializedVersion: 1
+  productId: 237084
+  packageName: Monsters Ultimate Pack 09 Cute Series
+  packageVersion: 1.0
+  assetPath: Assets/Monsters Ultimate Pack 09 Cute Series/Treant Minion Cute Series/FBX/Treant
+    Minion.FBX
+  uploadId: 537454
 ModelImporter:
   serializedVersion: 24200
   internalIDToNameTable: []
@@ -14,7 +22,7 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
-    removeConstantScaleCurves: 0
+    removeConstantScaleCurves: 1
     motionNodeName: 
     animationImportErrors: 
     animationImportWarnings: 
@@ -22,7 +30,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 3
+    animationCompression: 1
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -92,18 +100,18 @@ ModelImporter:
     legStretch: 0.05
     feetSpacing: 0
     globalScale: 1
-    rootMotionBoneName: 
+    rootMotionBoneName: RigPelvis
     hasTranslationDoF: 0
-    hasExtraRoot: 1
+    hasExtraRoot: 0
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
-  animationType: 3
+  animationType: 2
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
-  importBlendShapeDeformPercent: 1
-  remapMaterialsIfMaterialImportModeIsNone: 0
+  importBlendShapeDeformPercent: 0
+  remapMaterialsIfMaterialImportModeIsNone: 1
   additionalBone: 0
   userData: 
   assetBundleName: 

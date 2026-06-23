@@ -11,7 +11,7 @@ using UnityEngine;
 /// Si en el futuro se unifica LootPickup + WorldEventPickup bajo una abstracción común,
 /// este asset será una base útil para migrar datos sin hardcodear pickups por escena.
 /// </summary>
-[CreateAssetMenu(menuName = "TMJ/Pickups/World Event Pickup Definition")]
+[CreateAssetMenu(menuName = "Game/Pickups/World Event Pickup Definition")]
 public sealed class WorldEventPickupDefinition : ScriptableObject
 {
     [Header("Identity")]
