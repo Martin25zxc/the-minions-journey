@@ -56,6 +56,7 @@ GameObject:
   - component: {fileID: 7001349735635071850}
   - component: {fileID: 4568917047187759288}
   - component: {fileID: -6567643544910266374}
+  - component: {fileID: 3742851126546039961}
   - component: {fileID: 5302703719537960001}
   - component: {fileID: 3224131469388374966}
   m_Layer: 3
@@ -428,26 +429,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteractionController
   interactKey: 20
+  interactInputDisplayText: F
   playReactionOnInput: 1
   sheatheWeaponsOnInput: 1
-  sheatheWeaponsOnlyOutsideCombat: 1
-  allowSheatheWhenCombatStateMissing: 0
+  sheatheWeaponsOnlyWhenNotThreatened: 1
+  allowSheatheWhenThreatTrackerMissing: 0
   playerAnimator: {fileID: 7627498029192174704}
   equipmentVisuals: {fileID: 6209150160497060292}
-  combatState: {fileID: 0}
+  threatTracker: {fileID: 0}
   enableContextualInteraction: 1
-  interactionOrigin: {fileID: 1833050559653338466}
-  interactionRadius: 1.8
-  interactableLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  triggerInteraction: 2
-  maxCandidates: 16
-  ignoreOwnColliders: 1
+  focusController: {fileID: 0}
+  scanner: {fileID: 0}
+  useFocusedInteractableWhenAvailable: 1
+  scanWhenNoValidFocus: 1
   logInteractions: 0
   logConfigurationWarnings: 1
-  logWhenBufferIsFull: 1
-  drawGizmos: 1
+--- !u!114 &3742851126546039961
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2914608821614472329}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00800f1380eae81409deed2f2063e5dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatState
+  exitCombatDelay: 2.5
+  pruneDestroyedSourcesEveryFrame: 1
+  logChanges: 1
+  debugAggroSourceNames: []
 --- !u!114 &5302703719537960001
 MonoBehaviour:
   m_ObjectHideFlags: 0

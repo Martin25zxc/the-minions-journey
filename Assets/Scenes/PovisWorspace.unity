@@ -1215,22 +1215,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1833050559653338466, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
   m_PrefabInstance: {fileID: 724186284}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &478385346
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 478385343}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 00800f1380eae81409deed2f2063e5dd, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PlayerCombatState
-  exitCombatDelay: 2.5
-  pruneDestroyedSourcesEveryFrame: 1
-  logChanges: 1
-  debugAggroSourceNames: []
 --- !u!114 &478385347
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1657,7 +1641,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameplayActionGate
   gameStateController: {fileID: 686232925}
-  PlayerThreatTracker: {fileID: 0}
+  playerThreatTracker: {fileID: 0}
   combatJournalBlockedMessage: No puedes abrir el diario en combate.
   combatMissionBlockedMessage: No puedes gestionar misiones en combate.
   combatDialogueBlockedMessage: Hablar ahora parece poco saludable.
@@ -1900,11 +1884,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 2914608821614472329, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
-      insertIndex: -1
+      insertIndex: 15
       addedObject: {fileID: 478385344}
-    - targetCorrespondingSourceObject: {fileID: 2914608821614472329, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 478385346}
     - targetCorrespondingSourceObject: {fileID: 2914608821614472329, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
       insertIndex: -1
       addedObject: {fileID: 478385347}

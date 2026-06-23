@@ -180,8 +180,17 @@ public sealed class LootPickup : MonoBehaviour
             return;
         }
 
+        // Importante: el pickup solo se consume si el inventario aceptó realmente el item.
+        // Esto evita perder loot cuando el inventario está lleno.
+        bool added = inventoryManager.AddItem(itemData);
+
+        if (!added)
+        {
+            Debug.Log($"Loot pickup rejected by inventory: {itemData.ItemName}", this);
+            return;
+        }
+
         wasPickedUp = true;
-        inventoryManager.AddItem(itemData);
 
         Debug.Log($"Picked up loot: {itemData.ItemName}", this);
 
