@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a041b0098ea1804cbf6f9d4c61dabb8, type: 3}
+  m_Name: MCD_Level01_MainChain
+  m_EditorClassIdentifier: Assembly-CSharp::MissionChainDefinition
+  chainId: level01_main_chain
+  displayName: Level 01 Main Chain
+  rules:
+  - sourceMission: {fileID: 11400000, guid: 258001d40de4bf743b4999f5f5fd3cf0, type: 2}
+    trigger: 2
+    targetMission: {fileID: 11400000, guid: 5d5c5b26de219d24c947dc01dbc95960, type: 2}
+    action: 0
+    executeOnce: 1
+    acceptOriginalGiverId: 
+    trackTargetAfterAction: 0
+    developerNote: "Al entregar el Hook, se habilita la misi\xF3n de avanzar hacia
+      lo alto del valle"

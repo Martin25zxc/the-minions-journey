@@ -1,421 +1,296 @@
-using System;
 using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Puente entre un NpcInteractable y el sistema de misiones.
-/// No reemplaza al NPC interactuable: escucha cuando el jugador habla con el NPC y delega
-/// aceptación/entrega/progreso al MissionManager.
+/// Puente entre NpcInteractable y MissionManager para actores de misión.
+///
+/// Ahora no configura MissionSet ni ActorId directamente: consume MissionActor.
+/// Así evitamos que interacción e indicador apunten a sets distintos.
 /// </summary>
 [DisallowMultipleComponent]
 [RequireComponent(typeof(NpcInteractable))]
+[RequireComponent(typeof(MissionActor))]
 public sealed class MissionActorInteraction : MonoBehaviour
 {
     [Header("Referencias")]
-    [Tooltip("NPC interactuable que emite el evento TalkedTo. Normalmente está en el mismo GameObject.")]
-    [SerializeField]
-    private NpcInteractable npcInteractable;
+    [SerializeField, Tooltip("Componente central del actor. Define ActorId y MissionActorMissionSet.")]
+    private MissionActor missionActor;
 
-    [Tooltip("Manager runtime de misiones. Es quien guarda estado real, acepta, progresa y entrega misiones.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Manager runtime de misiones. Es quien guarda estado real, acepta, progresa y entrega misiones.")]
     private MissionManager missionManager;
 
-    [Tooltip("Opcional. Solo se usa para feedback local cuando no hay cambio de estado o falla una interacción.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Opcional. Solo se usa para feedback local cuando no hay cambio de estado o falla una interacción.")]
     private NotificationManager notificationManager;
 
-    [Header("Misión")]
-    [Tooltip("Misión asociada a este actor. Recomendado para evitar escribir MissionId a mano. Debe estar en el MissionCatalog del nivel para contenido estable.")]
-    [SerializeField]
-    private MissionDefinition missionDefinition;
-
-    [Tooltip("Fallback si no se asigna MissionDefinition. Usar solo para prototipos o pruebas rápidas.")]
-    [SerializeField]
-    private string missionIdOverride;
-
-    [Tooltip("Si se completa, reemplaza el InteractableId del NPC como giver/turn-in target. Dejar vacío para usar el ID del NpcInteractable.")]
-    [SerializeField]
-    private string actorIdOverride;
-
-    [Header("Comportamiento")]
-    [Tooltip("Si está activo, al hablar con el NPC se acepta la misión cuando su estado es Available.")]
-    [SerializeField]
-    private bool acceptWhenAvailable = true;
-
-    [Tooltip("Si está activo, al hablar con el NPC se entrega la misión cuando está ReadyToTurnIn y este actor coincide con el target esperado.")]
-    [SerializeField]
-    private bool turnInWhenReady = true;
-
-    [Tooltip("Permite aceptar la misión incluso si sigue Inactive. Mantener apagado salvo prototipos controlados, para no saltar condiciones futuras.")]
-    [SerializeField]
-    private bool acceptFromInactiveState;
-
-    [Tooltip("Reporta un GameWorldEvent ActorTalkedTo al MissionManager después de resolver aceptación/entrega. Mantener apagado salvo objetivos que realmente dependan de hablar con este actor.")]
-    [SerializeField]
-    private bool reportActorTalkedToEvent;
-
     [Header("Feedback local")]
-    [Tooltip("Muestra mensajes locales para estados que no generan eventos de MissionManager, por ejemplo misión activa o ya completada.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Muestra mensajes locales para estados que no generan eventos de MissionManager, por ejemplo misión activa o ya completada.")]
     private bool showLocalFeedback = true;
 
-    [Tooltip("Si está activo, también muestra feedback local en aceptación/entrega exitosa. Normalmente conviene dejarlo apagado porque MissionNotificationBridge ya muestra esos toasts.")]
-    [SerializeField]
-    private bool showSuccessFeedback;
-
-    [Tooltip("Canal usado para feedback local de este puente. Los eventos reales de misión los debería mostrar MissionNotificationBridge.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Canal usado para feedback local de este puente. Los eventos reales de misión los debería mostrar MissionNotificationBridge.")]
     private NotificationChannel localFeedbackChannel = NotificationChannel.Mission;
 
-    [Tooltip("Mensaje cuando la misión ya está activa y el NPC no tiene una acción adicional configurada.")]
-    [SerializeField, TextArea(2, 4)]
-    private string activeMissionMessage = "Ya tienes esta misión activa.";
+    [SerializeField, TextArea(2, 4), Tooltip("Mensaje cuando hay una misión activa relacionada con este actor, pero todavía no está lista para entregar.")]
+    private string activeMissionMessage = "Todavía no terminaste lo que este personaje te pidió.";
 
-    [Tooltip("Mensaje cuando la misión ya fue completada.")]
-    [SerializeField, TextArea(2, 4)]
-    private string completedMissionMessage = "Ya completaste esta misión.";
+    [SerializeField, TextArea(2, 4), Tooltip("Mensaje cuando solo se encontraron misiones ya completadas y no hay otra acción disponible.")]
+    private string completedMissionMessage = "Ya completaste lo que este personaje podía pedirte.";
 
-    [Tooltip("Mensaje cuando la misión todavía no está disponible para este actor.")]
-    [SerializeField, TextArea(2, 4)]
+    [SerializeField, TextArea(2, 4), Tooltip("Mensaje cuando no hay ninguna acción de misión disponible para este actor.")]
     private string unavailableMissionMessage = "Este personaje todavía no tiene una misión disponible.";
 
-    [Tooltip("Mensaje genérico cuando MissionManager rechaza la acción. Puede ocurrir por combate, estado de juego o target inválido.")]
-    [SerializeField, TextArea(2, 4)]
+    [SerializeField, TextArea(2, 4), Tooltip("Mensaje genérico cuando MissionManager rechaza la acción. Puede ocurrir por combate, estado de juego o target inválido.")]
     private string failedMissionActionMessage = "No se pudo gestionar la misión ahora.";
 
     [Header("Debug")]
-    [Tooltip("Muestra logs útiles durante la integración del primer quest giver.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Muestra logs útiles durante la integración de actores con múltiples misiones.")]
     private bool logInteractions = true;
 
     [Header("Eventos")]
-    [Tooltip("Se invoca cuando este actor logra aceptar la misión configurada.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando este actor logra aceptar una misión de su MissionActorMissionSet.")]
     private UnityEvent onMissionAccepted;
 
-    [Tooltip("Se invoca cuando este actor logra entregar/completar la misión configurada.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando este actor logra entregar/completar una misión de su MissionActorMissionSet.")]
     private UnityEvent onMissionTurnedIn;
 
-    [Tooltip("Se invoca cuando el jugador habla con el actor pero la misión ya está activa.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando el jugador habla con el actor pero la misión relacionada sigue activa/incompleta.")]
     private UnityEvent onMissionAlreadyActive;
 
-    [Tooltip("Se invoca cuando el jugador habla con el actor pero la misión ya está completada.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando el jugador habla con el actor y solo hay misiones completadas, sin otra acción mejor.")]
     private UnityEvent onMissionAlreadyCompleted;
 
-    [Tooltip("Se invoca cuando la misión no está disponible para este actor.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando no hay ninguna acción de misión disponible para este actor.")]
     private UnityEvent onMissionUnavailable;
 
-    [Tooltip("Se invoca cuando MissionManager rechaza la acción solicitada.")]
-    [SerializeField]
+    [SerializeField, Tooltip("Se invoca cuando MissionManager rechaza una acción que el resolver consideraba posible.")]
     private UnityEvent onMissionActionFailed;
 
-    public string MissionId => ResolveMissionId();
-    public string ActorId => ResolveActorId();
+    private NpcInteractable npcInteractable;
+    private bool subscribed;
 
-    public event Action<MissionActorInteraction, MissionRuntimeState> MissionAcceptedByActor;
-    public event Action<MissionActorInteraction, MissionRuntimeState> MissionTurnedInByActor;
-    public event Action<MissionActorInteraction, MissionRuntimeState> MissionAlreadyActive;
-    public event Action<MissionActorInteraction, MissionRuntimeState> MissionAlreadyCompleted;
-    public event Action<MissionActorInteraction> MissionUnavailable;
-    public event Action<MissionActorInteraction> MissionActionFailed;
+    public MissionActor MissionActor => ResolveMissionActor();
+    public MissionActorMissionSet MissionSet => ResolveMissionActor() != null ? ResolveMissionActor().MissionSet : null;
+    public string ActorId => ResolveMissionActor() != null ? ResolveMissionActor().ActorId : string.Empty;
 
     private void Reset()
     {
+        missionActor = GetComponent<MissionActor>();
         npcInteractable = GetComponent<NpcInteractable>();
         missionManager = FindFirstObjectByType<MissionManager>();
         notificationManager = FindFirstObjectByType<NotificationManager>();
     }
 
+    private void Awake()
+    {
+        ResolveMissionActor();
+        ResolveNpcInteractable();
+    }
+
     private void OnEnable()
     {
-        if (npcInteractable == null)
-        {
-            npcInteractable = GetComponent<NpcInteractable>();
-        }
-
-        if (npcInteractable != null)
-        {
-            npcInteractable.TalkedTo += HandleNpcTalkedTo;
-        }
+        Subscribe();
     }
 
     private void OnDisable()
     {
-        if (npcInteractable != null)
-        {
-            npcInteractable.TalkedTo -= HandleNpcTalkedTo;
-        }
+        Unsubscribe();
     }
 
     private void OnValidate()
     {
-        missionIdOverride = CleanId(missionIdOverride);
-        actorIdOverride = CleanId(actorIdOverride);
+        if (missionActor == null)
+        {
+            missionActor = GetComponent<MissionActor>();
+        }
     }
 
-    private void HandleNpcTalkedTo(NpcInteractable npc, InteractionContext context)
+    public void HandleTalkedTo(NpcInteractable npc, InteractionContext context)
     {
-        if (!CanUseMissionInteraction())
+        ResolveAndExecute();
+    }
+
+    public void ResolveAndExecute()
+    {
+        MissionActor resolvedActor = ResolveMissionActor();
+
+        if (resolvedActor == null)
         {
+            HandleUnavailable(MissionActorResolvedAction.Unavailable("Falta MissionActor."));
             return;
         }
 
-        string missionId = ResolveMissionId();
-        string actorId = ResolveActorId();
+        string actorId = resolvedActor.ActorId;
+        MissionActorMissionSet missionSet = resolvedActor.MissionSet;
 
-        if (string.IsNullOrWhiteSpace(missionId))
-        {
-            Debug.LogWarning($"{nameof(MissionActorInteraction)} en '{name}' no tiene misión configurada.", this);
-            HandleMissionUnavailable();
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(actorId))
-        {
-            Debug.LogWarning($"{nameof(MissionActorInteraction)} en '{name}' no pudo resolver ActorId. Configurar InteractableId en NpcInteractable o ActorId Override.", this);
-            HandleMissionUnavailable();
-            return;
-        }
-
-        MissionRuntimeState runtimeState = missionManager.GetMissionState(missionId);
-
-        if (runtimeState == null)
-        {
-            Debug.LogWarning($"La misión '{missionId}' no está registrada en MissionManager. Revisar MissionCatalog del nivel.", this);
-            HandleMissionUnavailable();
-            return;
-        }
+        MissionActorResolvedAction resolvedAction = MissionActorMissionResolver.ResolveBestAction(
+            missionManager,
+            missionSet,
+            actorId);
 
         if (logInteractions)
         {
-            Debug.Log($"{nameof(MissionActorInteraction)} actor '{actorId}' habló para misión '{missionId}' en estado {runtimeState.State}.", this);
+            Debug.Log($"{nameof(MissionActorInteraction)} actor '{actorId}' resolvió {resolvedAction.ActionType} para misión '{resolvedAction.MissionId}'. {resolvedAction.Reason}", this);
         }
 
-        switch (runtimeState.State)
+        switch (resolvedAction.ActionType)
         {
-            case MissionState.Inactive:
-                HandleInactiveMission(runtimeState, missionId, actorId);
+            case MissionActorResolvedActionType.TurnInMission:
+                ExecuteTurnIn(resolvedAction, actorId);
                 break;
 
-            case MissionState.Available:
-                HandleAvailableMission(runtimeState, missionId, actorId);
+            case MissionActorResolvedActionType.AcceptMission:
+                ExecuteAccept(resolvedAction, actorId);
                 break;
 
-            case MissionState.Active:
-                HandleActiveMission(runtimeState);
+            case MissionActorResolvedActionType.ShowPendingMission:
+                HandlePending(resolvedAction);
                 break;
 
-            case MissionState.ReadyToTurnIn:
-                HandleReadyToTurnInMission(runtimeState, missionId, actorId);
+            case MissionActorResolvedActionType.ShowCompletedMission:
+                HandleCompleted(resolvedAction);
                 break;
 
-            case MissionState.Completed:
-                HandleCompletedMission(runtimeState);
-                break;
-
+            case MissionActorResolvedActionType.Unavailable:
+            case MissionActorResolvedActionType.None:
             default:
-                HandleMissionUnavailable();
+                HandleUnavailable(resolvedAction);
                 break;
         }
-
-        if (reportActorTalkedToEvent)
-        {
-            ReportActorTalkedTo(actorId);
-        }
     }
 
-    private bool CanUseMissionInteraction()
+    private void ExecuteAccept(MissionActorResolvedAction resolvedAction, string actorId)
     {
-        if (missionManager != null)
-        {
-            return true;
-        }
+        MissionRuntimeState runtimeState = resolvedAction.MissionState;
 
-        Debug.LogWarning($"Falta MissionManager en {nameof(MissionActorInteraction)} de '{name}'.", this);
-        HandleMissionActionFailed();
-        return false;
-    }
-
-    private void HandleInactiveMission(MissionRuntimeState runtimeState, string missionId, string actorId)
-    {
-        if (!acceptFromInactiveState)
+        if (runtimeState == null)
         {
-            HandleMissionUnavailable();
+            HandleFailure();
             return;
         }
 
-        TryAcceptMission(runtimeState, missionId, actorId);
-    }
-
-    private void HandleAvailableMission(MissionRuntimeState runtimeState, string missionId, string actorId)
-    {
-        if (!acceptWhenAvailable)
-        {
-            HandleMissionUnavailable();
-            return;
-        }
-
-        TryAcceptMission(runtimeState, missionId, actorId);
-    }
-
-    private void HandleActiveMission(MissionRuntimeState runtimeState)
-    {
-        ShowLocalFeedback(activeMissionMessage, NotificationPriority.Low, $"mission_actor_active:{runtimeState.MissionId}:{ActorId}");
-        onMissionAlreadyActive?.Invoke();
-        MissionAlreadyActive?.Invoke(this, runtimeState);
-    }
-
-    private void HandleReadyToTurnInMission(MissionRuntimeState runtimeState, string missionId, string actorId)
-    {
-        if (!turnInWhenReady)
-        {
-            HandleActiveMission(runtimeState);
-            return;
-        }
-
-        bool turnedIn = missionManager.TryTurnInMission(missionId, actorId);
-
-        if (!turnedIn)
-        {
-            HandleMissionActionFailed();
-            return;
-        }
-
-        ShowLocalFeedbackIfSuccess($"Misión entregada: {GetMissionTitle(runtimeState)}", NotificationPriority.High, $"mission_actor_turnin:{missionId}");
-        onMissionTurnedIn?.Invoke();
-        MissionTurnedInByActor?.Invoke(this, runtimeState);
-    }
-
-    private void HandleCompletedMission(MissionRuntimeState runtimeState)
-    {
-        ShowLocalFeedback(completedMissionMessage, NotificationPriority.Low, $"mission_actor_completed:{runtimeState.MissionId}:{ActorId}");
-        onMissionAlreadyCompleted?.Invoke();
-        MissionAlreadyCompleted?.Invoke(this, runtimeState);
-    }
-
-    private void TryAcceptMission(MissionRuntimeState runtimeState, string missionId, string actorId)
-    {
-        bool accepted = missionManager.TryAcceptMission(missionId, actorId);
+        bool accepted = missionManager != null && missionManager.TryAcceptMission(runtimeState.MissionId, actorId);
 
         if (!accepted)
         {
-            HandleMissionActionFailed();
+            HandleFailure();
             return;
         }
 
-        ShowLocalFeedbackIfSuccess($"Misión iniciada: {GetMissionTitle(runtimeState)}", NotificationPriority.Normal, $"mission_actor_accept:{missionId}");
         onMissionAccepted?.Invoke();
-        MissionAcceptedByActor?.Invoke(this, runtimeState);
     }
 
-    private void HandleMissionUnavailable()
+    private void ExecuteTurnIn(MissionActorResolvedAction resolvedAction, string actorId)
     {
-        ShowLocalFeedback(unavailableMissionMessage, NotificationPriority.Low, $"mission_actor_unavailable:{MissionId}:{ActorId}");
+        MissionRuntimeState runtimeState = resolvedAction.MissionState;
+
+        if (runtimeState == null)
+        {
+            HandleFailure();
+            return;
+        }
+
+        bool turnedIn = missionManager != null && missionManager.TryTurnInMission(runtimeState.MissionId, actorId);
+
+        if (!turnedIn)
+        {
+            HandleFailure();
+            return;
+        }
+
+        onMissionTurnedIn?.Invoke();
+    }
+
+    private void HandlePending(MissionActorResolvedAction resolvedAction)
+    {
+        onMissionAlreadyActive?.Invoke();
+        ShowLocalFeedback(activeMissionMessage, NotificationPriority.Low, $"mission_actor_active:{resolvedAction.MissionId}:{ActorId}");
+    }
+
+    private void HandleCompleted(MissionActorResolvedAction resolvedAction)
+    {
+        onMissionAlreadyCompleted?.Invoke();
+        ShowLocalFeedback(completedMissionMessage, NotificationPriority.Low, $"mission_actor_completed:{resolvedAction.MissionId}:{ActorId}");
+    }
+
+    private void HandleUnavailable(MissionActorResolvedAction resolvedAction)
+    {
         onMissionUnavailable?.Invoke();
-        MissionUnavailable?.Invoke(this);
+        ShowLocalFeedback(unavailableMissionMessage, NotificationPriority.Low, $"mission_actor_unavailable:{ActorId}");
     }
 
-    private void HandleMissionActionFailed()
+    private void HandleFailure()
     {
-        ShowLocalFeedback(failedMissionActionMessage, NotificationPriority.Normal, $"mission_actor_failed:{MissionId}:{ActorId}");
         onMissionActionFailed?.Invoke();
-        MissionActionFailed?.Invoke(this);
+        ShowLocalFeedback(failedMissionActionMessage, NotificationPriority.Normal, $"mission_actor_failed:{ActorId}");
     }
 
-    private void ReportActorTalkedTo(string actorId)
+    private MissionActor ResolveMissionActor()
     {
-        if (string.IsNullOrWhiteSpace(actorId) || missionManager == null)
+        if (missionActor == null)
+        {
+            missionActor = GetComponent<MissionActor>();
+        }
+
+        return missionActor;
+    }
+
+    private NpcInteractable ResolveNpcInteractable()
+    {
+        if (npcInteractable == null)
+        {
+            MissionActor resolvedActor = ResolveMissionActor();
+            npcInteractable = resolvedActor != null && resolvedActor.NpcInteractable != null
+                ? resolvedActor.NpcInteractable
+                : GetComponent<NpcInteractable>();
+        }
+
+        return npcInteractable;
+    }
+
+    private void Subscribe()
+    {
+        if (subscribed)
         {
             return;
         }
 
-        GameWorldEvent worldEvent = new GameWorldEvent(
-            GameWorldEventType.ActorTalkedTo,
-            actorId,
-            1,
-            name);
+        NpcInteractable resolvedNpc = ResolveNpcInteractable();
 
-        missionManager.TryReportWorldEvent(worldEvent);
+        if (resolvedNpc == null)
+        {
+            Debug.LogWarning($"{nameof(MissionActorInteraction)} no encontró NpcInteractable.", this);
+            return;
+        }
+
+        resolvedNpc.TalkedTo += HandleTalkedTo;
+        subscribed = true;
     }
 
-    private void ShowLocalFeedbackIfSuccess(string message, NotificationPriority priority, string groupKey)
+    private void Unsubscribe()
     {
-        if (!showSuccessFeedback)
+        NpcInteractable resolvedNpc = ResolveNpcInteractable();
+
+        if (!subscribed || resolvedNpc == null)
         {
             return;
         }
 
-        ShowLocalFeedback(message, priority, groupKey);
+        resolvedNpc.TalkedTo -= HandleTalkedTo;
+        subscribed = false;
     }
 
     private void ShowLocalFeedback(string message, NotificationPriority priority, string groupKey)
     {
-        if (!showLocalFeedback || string.IsNullOrWhiteSpace(message))
+        if (!showLocalFeedback || notificationManager == null || string.IsNullOrWhiteSpace(message))
         {
             return;
         }
 
-        if (notificationManager != null)
-        {
-            notificationManager.Show(NotificationData.Create(
-                message: message,
-                channel: localFeedbackChannel,
-                priority: priority,
-                duration: -1f,
-                title: "Misión",
-                groupKey: groupKey));
-            return;
-        }
-
-        Debug.Log($"[MissionActorInteraction] {message}", this);
-    }
-
-    private string ResolveMissionId()
-    {
-        if (missionDefinition != null && !string.IsNullOrWhiteSpace(missionDefinition.MissionId))
-        {
-            return CleanId(missionDefinition.MissionId);
-        }
-
-        return CleanId(missionIdOverride);
-    }
-
-    private string ResolveActorId()
-    {
-        if (!string.IsNullOrWhiteSpace(actorIdOverride))
-        {
-            return CleanId(actorIdOverride);
-        }
-
-        if (npcInteractable != null && !string.IsNullOrWhiteSpace(npcInteractable.InteractableId))
-        {
-            return CleanId(npcInteractable.InteractableId);
-        }
-
-        return string.Empty;
-    }
-
-    private static string GetMissionTitle(MissionRuntimeState runtimeState)
-    {
-        if (runtimeState == null || runtimeState.Definition == null)
-        {
-            return "Misión";
-        }
-
-        if (!string.IsNullOrWhiteSpace(runtimeState.Definition.Title))
-        {
-            return runtimeState.Definition.Title;
-        }
-
-        return runtimeState.MissionId;
-    }
-
-    private static string CleanId(string value)
-    {
-        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+        notificationManager.Show(NotificationData.Create(
+            message,
+            localFeedbackChannel,
+            priority,
+            duration: -1f,
+            title: null,
+            groupKey: groupKey));
     }
 }
