@@ -5,6 +5,10 @@ using UnityEngine.Events;
 [DisallowMultipleComponent]
 public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
 {
+    [Header("Is Player")]
+    [SerializeField]
+    bool isPlayer = false;
+
     [Header("Health")]
     [SerializeField, Min(1f)]
     float maxHealth = 10f;
@@ -12,29 +16,39 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
     [Header("Shield opcional")]
     [SerializeField, Min(0f)]
     float maxShield = 0f;
+    [Header("Max lives")]
+    [SerializeField, Min(1)]
+    int maxLives = 3;
 
     [Header("Unity Events")]
     [SerializeField]
     UnityEvent onDied = new UnityEvent();
 
+
+
     float currentHealth;
     float currentShield;
     bool hasDied;
+    int currentLives;
 
     public event Action<TMJ_DamageInfo> OnDamaged;
     public event Action<float, float> OnHealthChanged;
     public event Action<float, float> OnShieldChanged;
     public event Action OnDied;
 
+    public event Action OnGameOver;
+
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
     public float MaxShield => maxShield;
     public float CurrentShield => currentShield;
     public bool IsAlive => !hasDied && currentHealth > 0f;
+    public int CurrentLives => currentLives;
 
     void Awake()
     {
         ResetHealthState();
+        currentLives = maxLives;
     }
 
     void OnValidate()
@@ -103,12 +117,53 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         if (currentHealth <= 0f && !hasDied)
         {
             hasDied = true;
-            OnDied?.Invoke();
-            onDied.Invoke();
+            if (isPlayer)
+            {
+
+                if (currentLives > 1)
+                {
+                    
+                    Debug.Log("<color=cyan>¡Has muerto! Te quedan " + (currentLives - 1) + " vidas." +"</color>)");
+                    currentLives--;
+                    ResetHealthState();
+                    OnDied?.Invoke();
+                    onDied.Invoke();
+                    OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                    OnShieldChanged?.Invoke(currentShield, maxShield);
+                }
+                else
+                {
+                    Debug.Log("<color=cyan>¡Has muerto! gameover</color>)");
+                    currentLives = 0;
+                    OnGameOver?.Invoke();
+                }
+            }
+            else
+            {
+                OnDied?.Invoke();
+                onDied.Invoke();
+            }
         }
+        }
+
+    public void Heal(float amount)
+    {
+        if (amount <= 0f || !IsAlive)
+        {
+            return;
+        }
+
+        float previousHealth = currentHealth;
+        currentHealth = Mathf.Min(maxHealth, currentHealth + amount);
+
+        if (!Mathf.Approximately(previousHealth, currentHealth))
+        {
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+        Debug.Log($"¡Curado por {amount} puntos de salud! Salud actual: {currentHealth}/{maxHealth}");
     }
 
-    void ResetHealthState()
+    private void ResetHealthState()
     {
         currentHealth = maxHealth;
         currentShield = maxShield;

@@ -45,10 +45,12 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
     private readonly List<TopDownCombatInputEvent> inputHistory = new List<TopDownCombatInputEvent>();
     private TopDownPlayerController playerController;
     private bool wasCombatLocked;
+    private TopDownHealth playerHealth;
 
     private void Awake()
     {
         playerController = GetComponent<TopDownPlayerController>();
+        playerHealth = GetComponent<TopDownHealth>();
 
         if (equippedWeapon == null)
         {
@@ -129,6 +131,10 @@ public sealed class TopDownPlayerCombatInput : MonoBehaviour
 
     private void Update()
     {
+        if (playerHealth != null && !playerHealth.IsAlive)
+        {
+            return; // No procesar inputs si el jugador está muerto
+        }
         if (IsCombatLocked())
         {
             if (!wasCombatLocked && clearComboHistoryWhenCombatLocked)
