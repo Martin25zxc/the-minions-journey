@@ -96,4 +96,10 @@ public class Attack08_Jump : MonoBehaviour
             ringController.Configure(damageOwner, targetLayers);
         }
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        WaitThenEnd(OnAttackEnded);
+    }
 }

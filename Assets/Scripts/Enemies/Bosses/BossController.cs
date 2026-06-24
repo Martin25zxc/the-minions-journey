@@ -34,6 +34,8 @@ public class BossController : MonoBehaviour
     [SerializeField]
     private float iframesDuration = 0.5f;
 
+    private float maximumHealth;
+
 
 
     // ── Runtime ───────────────────────────────────────────────────────────
@@ -93,7 +95,7 @@ public class BossController : MonoBehaviour
             Debug.LogError("[BossController] BossDataSO null.");
             return;
         }
-
+        maximumHealth = data.maxHealth;
         health?.Initialize(data.maxHealth);
     }
 
@@ -268,6 +270,14 @@ public class BossController : MonoBehaviour
 
         OnDeath?.Invoke();
         gameObject.SetActive(false);
+    }
+
+    public void HandleRestart()
+    {
+        
+        if (animator != null) animator.Rebind();
+        health.Heal(maximumHealth);
+
     }
 
     private IEnumerator IFramesRoutine(float duration)

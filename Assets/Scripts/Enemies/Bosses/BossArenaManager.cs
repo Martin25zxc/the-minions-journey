@@ -18,8 +18,8 @@ public class BossArenaManager : MonoBehaviour
     //  Inspector
     // ─────────────────────────────────────────────────────────────────────
     [Header("Setup")]
-    [SerializeField] private BossDataSO  bossData;
-    [SerializeField] private Transform   spawnPoint;    // centro de la arena
+    [SerializeField] private BossDataSO bossData;
+    [SerializeField] private Transform spawnPoint;    // centro de la arena
     [SerializeField] private ArenaRockManager rockManager;
     [SerializeField] private BossBattleStartController battleStartController;
 
@@ -30,19 +30,19 @@ public class BossArenaManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     //  Referencias runtime
     // ─────────────────────────────────────────────────────────────────────
-    private BossController    boss;
-    private Attack01_Slash    atk01;
+    private BossController boss;
+    private Attack01_Slash atk01;
     private Attack02_SpinArms atk02;
-    private Attack03_Laser    atk03;
-    private Attack04_Drops    atk04;
-    private Attack05_Wave     atk05;
-    private Attack06_Bullets  atk06;
-    private Attack07_Ring     atk07;
-    private Attack08_Jump     atk08;
+    private Attack03_Laser atk03;
+    private Attack04_Drops atk04;
+    private Attack05_Wave atk05;
+    private Attack06_Bullets atk06;
+    private Attack07_Ring atk07;
+    private Attack08_Jump atk08;
 
-    private int  lastAttackIndex = -1;
-    private int  chosenAttack    = -1;
-    private bool fightActive     = false;
+    private int lastAttackIndex = -1;
+    private int chosenAttack = -1;
+    private bool fightActive = false;
 
     // ─────────────────────────────────────────────────────────────────────
     //  Start
@@ -62,7 +62,7 @@ public class BossArenaManager : MonoBehaviour
         var go = Instantiate(bossData.prefab, pos, Quaternion.identity);
 
         // Obtener componentes (InChildren para cubrir root + cualquier hijo)
-        boss  = go.GetComponentInChildren<BossController>();
+        boss = go.GetComponentInChildren<BossController>();
         atk01 = go.GetComponentInChildren<Attack01_Slash>();
         atk02 = go.GetComponentInChildren<Attack02_SpinArms>();
         atk03 = go.GetComponentInChildren<Attack03_Laser>();
@@ -79,22 +79,22 @@ public class BossArenaManager : MonoBehaviour
         boss.Initialize(bossData);
 
         // Suscribir eventos del BossController
-        boss.OnArrived       += HandleArrived;
+        boss.OnArrived += HandleArrived;
         boss.OnHealthChanged += HandleHealthChanged;
-        boss.OnDeath         += HandleDeath;
+        boss.OnDeath += HandleDeath;
 
         // Suscribir OnAttackEnded de cada ataque
         if (atk01 != null) atk01.OnAttackEnded += HandleAttackEnded;
-        if (atk01 != null) atk01.OnCycleEnded  += HandleSlashCycleEnded;
+        if (atk01 != null) atk01.OnCycleEnded += HandleSlashCycleEnded;
         if (atk02 != null) atk02.OnAttackEnded += HandleAttackEnded;
         if (atk03 != null) atk03.OnAttackEnded += HandleAttackEnded;
         if (atk04 != null) atk04.OnAttackEnded += HandleAttackEnded;
         if (atk05 != null) atk05.OnAttackEnded += HandleAttackEnded;
         if (atk06 != null) atk06.OnAttackEnded += HandleAttackEnded;
         if (atk07 != null) atk07.OnAttackEnded += HandleAttackEnded;
-        if (atk07 != null) atk07.OnCycleEnded  += HandleRingCycleEnded;
+        if (atk07 != null) atk07.OnCycleEnded += HandleRingCycleEnded;
         if (atk08 != null) atk08.OnAttackEnded += HandleAttackEnded;
-        if (atk08 != null) atk08.OnCycleEnded  += HandleJumpCycleEnded;
+        if (atk08 != null) atk08.OnCycleEnded += HandleJumpCycleEnded;
 
         // Suscribir OnRocksReady si hay rockManager
         if (rockManager != null) rockManager.OnRocksReady += HandleRocksReady;
@@ -103,14 +103,15 @@ public class BossArenaManager : MonoBehaviour
         if (battleStartController != null)
         {
             battleStartController.OnBossBattleStart += StartFight;
+            battleStartController.OnPlayerKilled += ResetFight;
         }
         else
         {
             Debug.LogWarning("[FSM] No se encontró BossBattleStartController.");
-           
+
         }
 
-        
+
     }
 
     private void StartFight()
@@ -125,6 +126,7 @@ public class BossArenaManager : MonoBehaviour
     private void EnterIdle()
     {
         currentState = State.Idle;
+        if (!fightActive) return;
 
         // Elegir ataque (evitar repetir el último)
         chosenAttack = PickAttack();
@@ -165,6 +167,7 @@ public class BossArenaManager : MonoBehaviour
 
     private void HandleArrived()
     {
+        if (!fightActive) return;
         if (currentState != State.Moving) return;
 
         if (chosenAttack == 3 && rockManager != null)
@@ -214,7 +217,7 @@ public class BossArenaManager : MonoBehaviour
                 if (atk01 != null)
                 {
                     if (atk01.IsActive) atk01.StartCycle();
-                    else                atk01.StartAttack();
+                    else atk01.StartAttack();
                 }
                 break;
             case 2: atk02?.StartAttack(); break;
@@ -226,7 +229,7 @@ public class BossArenaManager : MonoBehaviour
                 if (atk07 != null)
                 {
                     if (atk07.IsActive) atk07.StartCycle();
-                    else                atk07.StartAttack();
+                    else atk07.StartAttack();
                 }
                 break;
         }
@@ -325,6 +328,45 @@ public class BossArenaManager : MonoBehaviour
     }
 
     // ─────────────────────────────────────────────────────────────────────
+    //  Muerte del jugador
+    // 
+    private void ResetFight()
+    {
+        fightActive = false;
+        StopAllCoroutines();
+        rockManager?.DeactivateRocks();
+        ForceStopCurrentAttack();
+
+       
+        EnterIdle();
+        
+        EnterMoving(spawnPoint.position);
+
+        boss.HandleRestart();
+        /*
+        Destroy(boss.gameObject);
+        LoadBoss();
+        */
+        Debug.Log("<color=red>[FSM] Jugador derrotado. Reiniciando</color>");
+
+    }
+
+    private void ForceStopCurrentAttack()
+    {
+        switch (chosenAttack)
+        {
+            case 5: 
+            atk05.ForceStop();
+            break;
+            case 8:
+            atk08.ForceStop();
+            break;
+        }
+        
+        chosenAttack = 0;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
     //  Selección de ataque (sin repetir el último)
     // ─────────────────────────────────────────────────────────────────────
     private int PickAttack()
@@ -355,7 +397,7 @@ public class BossArenaManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     private void OnDestroy()
     {
-        if (boss  != null) { boss.OnArrived -= HandleArrived; boss.OnHealthChanged -= HandleHealthChanged; boss.OnDeath -= HandleDeath; }
+        if (boss != null) { boss.OnArrived -= HandleArrived; boss.OnHealthChanged -= HandleHealthChanged; boss.OnDeath -= HandleDeath; }
         if (atk01 != null) { atk01.OnAttackEnded -= HandleAttackEnded; atk01.OnCycleEnded -= HandleSlashCycleEnded; }
         if (atk02 != null) atk02.OnAttackEnded -= HandleAttackEnded;
         if (atk03 != null) atk03.OnAttackEnded -= HandleAttackEnded;
@@ -365,5 +407,10 @@ public class BossArenaManager : MonoBehaviour
         if (atk07 != null) { atk07.OnAttackEnded -= HandleAttackEnded; atk07.OnCycleEnded -= HandleRingCycleEnded; }
         if (atk08 != null) { atk08.OnAttackEnded -= HandleAttackEnded; atk08.OnCycleEnded -= HandleJumpCycleEnded; }
         if (rockManager != null) rockManager.OnRocksReady -= HandleRocksReady;
+        if (battleStartController != null)
+        {
+            battleStartController.OnBossBattleStart -= StartFight;
+            battleStartController.OnPlayerKilled -= ResetFight;
+        }
     }
 }

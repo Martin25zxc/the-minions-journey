@@ -160,7 +160,7 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         {
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
-        Debug.Log($"¡Curado por {amount} puntos de salud! Salud actual: {currentHealth}/{maxHealth}");
+        
     }
 
     private void ResetHealthState()

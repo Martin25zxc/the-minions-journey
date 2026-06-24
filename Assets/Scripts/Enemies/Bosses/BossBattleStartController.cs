@@ -1,17 +1,20 @@
 using UnityEngine;
 using System;
+using Unity.VisualScripting;
 
 
 public class BossBattleStartController : MonoBehaviour
 {
     //Evento para avisar que la batalla contra el jefe ha comenzado. Puede ser suscripto por el BossArenaManager o por cualquier otro sistema que necesite saberlo.
     public event Action OnBossBattleStart;
+    public event Action OnPlayerKilled;
 
     //Inspector
     [SerializeField] GameObject arenaDoor; //La puerta que se cerrará al iniciar la batalla.
     [SerializeField] GameObject arenaWalls; //Las paredes que se desctaivaran al terminar la batalla.
 
     private bool battleStarted = false; //Para asegurarnos de que la batalla solo se inicie una vez.
+    private TopDownHealth playerHealth;
 
     private void Awake()
     {
@@ -33,6 +36,8 @@ public class BossBattleStartController : MonoBehaviour
         if (battleStarted) return; //Si la batalla ya ha comenzado, no hacer nada.
         if (other.CompareTag("Player"))
         {
+            playerHealth = other.GetComponent<TopDownHealth>();
+            playerHealth.OnDied += RestartArena;
             StartBossBattle();
             battleStarted = true;
             
@@ -43,5 +48,19 @@ public class BossBattleStartController : MonoBehaviour
     {
         arenaDoor.SetActive(false); //Abrir la puerta del arena.
         arenaWalls.SetActive(false); //Desactivar las paredes del arena.
+    }
+
+    public void RestartArena()
+    {
+        arenaDoor.SetActive(false);
+        battleStarted = false;
+        playerHealth.OnDied -= RestartArena;
+        playerHealth = null;
+        OnPlayerKilled?.Invoke();
+    }
+
+    void OnDestroy()
+    {
+        if (playerHealth != null) playerHealth.OnDied -= RestartArena;
     }
 }

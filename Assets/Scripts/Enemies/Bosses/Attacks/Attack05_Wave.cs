@@ -133,4 +133,10 @@ public class Attack05_Wave : MonoBehaviour
         Quaternion targetRot = Quaternion.LookRotation(dir);
         root.rotation = Quaternion.RotateTowards(root.rotation, targetRot, rotateSpeed * Time.deltaTime);
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        OnAttackEnded?.Invoke();
+    }
 }
