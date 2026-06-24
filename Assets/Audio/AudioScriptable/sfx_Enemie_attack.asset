@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 717e19f652cc0234aab26ed8827ad539, type: 3}
+  m_Name: sfx_Enemie_attack
+  m_EditorClassIdentifier: Assembly-CSharp::AudioDataSO
+  displayName: Audio
+  clips:
+  - {fileID: 8300000, guid: c92c48cbd3306564aacc6a9b8c475f07, type: 3}
+  - {fileID: 8300000, guid: 1ef6107491bd2bc4c89a4b7899cbce80, type: 3}
+  - {fileID: 8300000, guid: 60bc8d90a78c8cd4aa772b000e5fdd8e, type: 3}
+  volume: 0.7
+  pitchMin: 0.9
+  pitchMax: 1.1
+  avoidConsecutiveRepeat: 1

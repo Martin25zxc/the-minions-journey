@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 717e19f652cc0234aab26ed8827ad539, type: 3}
+  m_Name: SFX_Hits_Back
+  m_EditorClassIdentifier: Assembly-CSharp::AudioDataSO
+  displayName: Audio
+  clips:
+  - {fileID: 8300000, guid: 43fbc231e08e5ab4e885a38f4422e0e5, type: 3}
+  - {fileID: 8300000, guid: 7ee24c802a9dda647ad949ae247d43a7, type: 3}
+  - {fileID: 8300000, guid: efc237a70d0a5da46bad1ad0bacf3652, type: 3}
+  volume: 1
+  pitchMin: 0.64
+  pitchMax: 1
+  avoidConsecutiveRepeat: 1
