@@ -81,10 +81,14 @@ public sealed class TopDownPlayerController : MonoBehaviour
 
     public Vector3 AimDirection => aimDirection;
 
+    private TopDownHealth playerHealth;
+
     void Awake()
     {
         body = GetComponent<Rigidbody>();
         body.interpolation = RigidbodyInterpolation.Interpolate;
+
+        playerHealth = GetComponent<TopDownHealth>();
 
         if (bodyCollider == null)
         {
@@ -109,6 +113,10 @@ public sealed class TopDownPlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (playerHealth != null && !playerHealth.IsAlive)
+        {
+            return; // No mover al jugador si está muerto
+        }
         Vector3 movement = GetCameraRelativeMovement();
         if (movement.sqrMagnitude > 1f)
         {
