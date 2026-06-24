@@ -20,23 +20,17 @@ MonoBehaviour:
     targetMission: {fileID: 11400000, guid: 5d5c5b26de219d24c947dc01dbc95960, type: 2}
     action: 0
     executeOnce: 1
-    acceptOriginalGiverId: 
-    trackTargetAfterAction: 0
     developerNote: "Al entregar el Hook, se habilita la misi\xF3n de avanzar hacia
       lo alto del valle"
   - sourceMission: {fileID: 11400000, guid: 5d5c5b26de219d24c947dc01dbc95960, type: 2}
     trigger: 2
     targetMission: {fileID: 11400000, guid: fbaffd1da7870c340b20e875fc2688bd, type: 2}
-    action: 0
+    action: 1
     executeOnce: 1
-    acceptOriginalGiverId: 
-    trackTargetAfterAction: 0
     developerNote: All legar a lo alto se activa la mision del jefe
   - sourceMission: {fileID: 11400000, guid: fbaffd1da7870c340b20e875fc2688bd, type: 2}
     trigger: 2
     targetMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
     action: 0
     executeOnce: 1
-    acceptOriginalGiverId: 
-    trackTargetAfterAction: 0
     developerNote: Etc

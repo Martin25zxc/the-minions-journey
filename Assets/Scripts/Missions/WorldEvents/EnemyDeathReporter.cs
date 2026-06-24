@@ -157,6 +157,41 @@ public sealed class EnemyDeathReporter : MonoBehaviour
         lastDebug = "Estado de reporte reiniciado.";
     }
 
+
+    public void Configure(
+        string newEnemyId,
+        MissionManager newMissionManager,
+        string newSourceId = null,
+        TopDownHealth healthOverride = null,
+        bool requireSuccessfulReport = true,
+        bool reportOnlyOnce = true,
+        bool enableDebugLogs = false)
+    {
+        UnsubscribeFromHealth();
+
+        enemyId = CleanId(newEnemyId);
+        sourceId = CleanId(newSourceId);
+        missionManager = newMissionManager;
+        requireSuccessfulMissionReport = requireSuccessfulReport;
+        reportOnce = reportOnlyOnce;
+        logDebug = enableDebugLogs;
+        hasReported = false;
+
+        if (healthOverride != null)
+        {
+            health = healthOverride;
+        }
+        else if (autoFindHealth)
+        {
+            health = null;
+            TryAutoFindHealth();
+        }
+
+        SubscribeToHealth();
+
+        lastDebug = $"Configurado EnemyDefeated '{enemyId}' | source: {ResolveSourceId()}";
+    }
+
     private string ResolveSourceId()
     {
         string cleanedSourceId = CleanId(sourceId);

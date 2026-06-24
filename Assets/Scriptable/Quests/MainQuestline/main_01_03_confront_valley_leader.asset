@@ -27,7 +27,7 @@ MonoBehaviour:
     tu grupo casi sin esfuerzo.\n\nDefinitivamente, es el amo del valle.\n\nEl artefacto
     que perdi\xF3 est\xE1 en tus manos. Quiz\xE1 esta sea la \xFAnica vez que puedas
     enfrentarlo.\n\nQuiz\xE1 sea la \xFAltima."
-  startMode: 3
+  startMode: 0
   completionMode: 0
   turnInTargetMode: 99
   turnInTargetId: 

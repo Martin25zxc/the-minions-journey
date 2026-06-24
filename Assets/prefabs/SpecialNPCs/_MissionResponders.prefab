@@ -1,0 +1,171 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1288193824023553883
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6978959008385685834}
+  - component: {fileID: 6992174427101380253}
+  m_Layer: 0
+  m_Name: MSR_Main_FindHook
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6978959008385685834
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288193824023553883}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8900565796838248974}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6992174427101380253
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1288193824023553883}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4db3057d5abd8de49b6b3c168655746f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionSceneResponder
+  missionManager: {fileID: 0}
+  worldFlagRegistry: {fileID: 0}
+  mission: {fileID: 11400000, guid: 258001d40de4bf743b4999f5f5fd3cf0, type: 2}
+  responseBlocks:
+  - blockName: Enable hook pickup
+    isEnabled: 1
+    triggerMoment: 10
+    filterByObjectiveId: 0
+    objectiveId: 
+    objectsToEnable:
+    - {fileID: 0}
+    objectsToDisable: []
+    flagsToSet: []
+    flagValue: 0
+    executeOnlyOnce: 1
+    hasExecuted: 0
+  autoResolveMissingReferences: 1
+  logDebug: 0
+--- !u!1 &6334400459301409046
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3537056651295289505}
+  - component: {fileID: 6297143172700256833}
+  m_Layer: 0
+  m_Name: MSR_Optional_NatureMercy
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3537056651295289505
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6334400459301409046}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8900565796838248974}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6297143172700256833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6334400459301409046}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4db3057d5abd8de49b6b3c168655746f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionSceneResponder
+  missionManager: {fileID: 0}
+  worldFlagRegistry: {fileID: 0}
+  mission: {fileID: 11400000, guid: 2559d9fa626cf254ebf0f557562c0d69, type: 2}
+  responseBlocks:
+  - blockName: Enable Luminous Mushrooms
+    isEnabled: 1
+    triggerMoment: 10
+    filterByObjectiveId: 0
+    objectiveId: 
+    objectsToEnable:
+    - {fileID: 0}
+    objectsToDisable: []
+    flagsToSet: []
+    flagValue: 0
+    executeOnlyOnce: 1
+    hasExecuted: 0
+  - blockName: Disabled Luminous Mushrooms
+    isEnabled: 1
+    triggerMoment: 40
+    filterByObjectiveId: 0
+    objectiveId: 
+    objectsToEnable: []
+    objectsToDisable:
+    - {fileID: 0}
+    flagsToSet: []
+    flagValue: 0
+    executeOnlyOnce: 1
+    hasExecuted: 0
+  autoResolveMissingReferences: 1
+  logDebug: 1
+--- !u!1 &6656945608897076663
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8900565796838248974}
+  m_Layer: 0
+  m_Name: _MissionResponders
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &8900565796838248974
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6656945608897076663}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -1.29647, y: -0.53929, z: -8.58847}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6978959008385685834}
+  - {fileID: 3537056651295289505}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}

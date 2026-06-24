@@ -1,55 +1,111 @@
-using UnityEngine;
-using System.Collections;
 using System;
+using System.Collections;
+using UnityEngine;
 
+[DisallowMultipleComponent]
+[RequireComponent(typeof(Rigidbody))]
 public class CursedOrbBehavior : MonoBehaviour
 {
-    [SerializeField] private float setupDelay = 0.5f; // Tiempo que tarda el orbe en estar activo después de ser lanzado
+    [Header("Orb lifecycle")]
+    [SerializeField, Min(0f)]
+    private float setupDelay = 0.5f; // Tiempo que tarda el orbe en estar activo después de ser lanzado
+
+    [SerializeField, Min(0f), Tooltip("0 = no expira automáticamente. Mayor a 0 = el orbe se destruye solo después de esa cantidad de segundos.")]
+    private float lifeTime = 0f;
+
     [Header("Ground distance settings")]
-    [SerializeField] LayerMask groundLayer; // Capa del suelo para detectar distancia mínima
-    [SerializeField] float maxRayDistance = 20f; // Distancia máxima del raycast hacia el suelo
-    [SerializeField] float heightFollowSpeed = 10f; // Qué tan rápido corrige la altura (suavizado)
-    [SerializeField] private float minDistanceToGround = 1f; // Distancia mínima al suelo
+    [SerializeField]
+    private LayerMask groundLayer; // Capa del suelo para detectar distancia mínima
+
+    [SerializeField]
+    private float maxRayDistance = 20f; // Distancia máxima del raycast hacia el suelo
+
+    [SerializeField]
+    private float heightFollowSpeed = 10f; // Qué tan rápido corrige la altura (suavizado)
+
+    [SerializeField]
+    private float minDistanceToGround = 1f; // Distancia mínima al suelo
 
     public event Action<CursedOrbBehavior> OnOrbDestroyed; // Evento para notificar cuando el orbe se destruye o expira
+
     private float healAmount = 20f; // Cantidad de salud a curar al impactar
-    private bool isSetupComplete = false; // Indica si el orbe ha completado su configuración inicial
-    
+    private bool isSetupComplete; // Indica si el orbe ha completado su configuración inicial
+    private bool hasEnded;
+
     private Rigidbody rb;
     private Coroutine setupCoroutine;
+    private Coroutine lifetimeCoroutine;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
     }
-    void Start()
+
+    private void Start()
     {
-        // Iniciar la configuración del orbe
         setupCoroutine = StartCoroutine(SetupOrb());
+
+        if (lifeTime > 0f)
+        {
+            lifetimeCoroutine = StartCoroutine(ExpireAfterLifetime());
+        }
     }
 
     private void Update()
     {
+        if (hasEnded)
+        {
+            return;
+        }
+
         MaintainGroundDistance();
     }
 
     public void ChangeHealAmount(float newHealAmount)
     {
-        healAmount = newHealAmount;
+        healAmount = Mathf.Max(0f, newHealAmount);
+    }
+
+    public void DestroyOrb()
+    {
+        if (hasEnded)
+        {
+            return;
+        }
+
+        hasEnded = true;
+        OnOrbDestroyed?.Invoke(this);
+        Destroy(gameObject);
     }
 
     private IEnumerator SetupOrb()
     {
-        // Esperar el tiempo de configuración antes de activar el orbe
         yield return new WaitForSeconds(setupDelay);
-        rb.linearVelocity = Vector3.zero; // Detener el movimiento del orbe después de la expulsión inicial
-        isSetupComplete = true; // El orbe ahora está activo y puede interactuar con el jugador
+
+        if (hasEnded)
+        {
+            yield break;
+        }
+
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+        }
+
+        isSetupComplete = true;
+    }
+
+    private IEnumerator ExpireAfterLifetime()
+    {
+        yield return new WaitForSeconds(lifeTime);
+        DestroyOrb();
     }
 
     private void MaintainGroundDistance()
     {
-        RaycastHit hit;
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f; // pequeño offset hacia arriba
-        if (Physics.Raycast(rayOrigin, Vector3.down, out hit, maxRayDistance, groundLayer))
+        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+
+        if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, maxRayDistance, groundLayer))
         {
             float currentDistance = hit.distance;
             float heightDifference = minDistanceToGround - currentDistance;
@@ -60,28 +116,47 @@ public class CursedOrbBehavior : MonoBehaviour
                 transform.position = Vector3.Lerp(transform.position, targetPosition, heightFollowSpeed * Time.deltaTime);
             }
         }
-        // Si no detecta suelo (por ejemplo sobre un precipicio), la bola sigue su altura actual.
-    }    
-    
+    }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!isSetupComplete)
+        if (hasEnded || !isSetupComplete)
         {
-            // Si el orbe aún no ha completado su configuración, ignora las colisiones
             return;
         }
-        if (other.CompareTag("Player"))
+
+        if (!other.CompareTag("Player"))
         {
-            TopDownHealth playerHealth = other.GetComponent<TopDownHealth>();
-            if (playerHealth != null)
-            {
-                playerHealth.Heal(healAmount); // Curar al jugador
-                //Debug.Log($"¡Jugador curado por {healAmount} puntos de salud!");
-            }
-            OnOrbDestroyed?.Invoke(this); // Notificar que el orbe ha sido destruido o ha impactado
-            Destroy(gameObject); // Destruir el orbe después de curar al jugador
+            return;
         }
-       
+
+        TopDownHealth playerHealth = other.GetComponent<TopDownHealth>();
+
+        if (playerHealth == null)
+        {
+            playerHealth = other.GetComponentInParent<TopDownHealth>();
+        }
+
+        if (playerHealth != null)
+        {
+            playerHealth.Heal(healAmount);
+        }
+
+        DestroyOrb();
+    }
+
+    private void OnDisable()
+    {
+        if (setupCoroutine != null)
+        {
+            StopCoroutine(setupCoroutine);
+            setupCoroutine = null;
+        }
+
+        if (lifetimeCoroutine != null)
+        {
+            StopCoroutine(lifetimeCoroutine);
+            lifetimeCoroutine = null;
+        }
     }
 }

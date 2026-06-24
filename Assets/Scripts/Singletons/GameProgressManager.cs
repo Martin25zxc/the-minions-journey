@@ -39,6 +39,10 @@ public class GameProgressManager : MonoBehaviour
 
     public bool IsAcquired(string skillID) => acquiredSet.Contains(skillID);
 
+    // TODO Skills/Rewards:
+    // Considerar cambiar Acquire para que devuelva bool, o agregar un TryAcquire(skillID).
+    // Eso permitiría saber si la skill fue realmente adquirida ahora o si ya existía,
+    // útil para MissionRewardApplier, notificaciones y pickups/easter eggs.
     public void Acquire(string skillID)
     {
         if (!acquiredSet.Add(skillID)) return; // ya la tenía, no notifica de nuevo

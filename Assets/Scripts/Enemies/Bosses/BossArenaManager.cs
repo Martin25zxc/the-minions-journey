@@ -23,6 +23,25 @@ public class BossArenaManager : MonoBehaviour
     [SerializeField] private ArenaRockManager rockManager;
     [SerializeField] private BossBattleStartController battleStartController;
 
+    [Header("Reporte de misión / muerte del boss")]
+    [SerializeField, Tooltip("Si está activo, al instanciar el boss se le agrega/configura un EnemyDeathReporter y al morir se reporta EnemyDefeated.")]
+    private bool reportBossDeathToMissions = true;
+
+    [SerializeField, Tooltip("MissionManager que recibirá el evento EnemyDefeated. Si queda vacío, se busca uno en la escena.")]
+    private MissionManager missionManager;
+
+    [SerializeField, Tooltip("TargetId que debe coincidir con el objetivo DefeatEnemies de la misión. Ejemplo: valley_leader.")]
+    private string bossDeathTargetId = "valley_leader";
+
+    [SerializeField, Tooltip("SourceId opcional del evento. Si queda vacío se usa el nombre del BossDataSO o del GameObject instanciado.")]
+    private string bossDeathSourceId;
+
+    [SerializeField, Tooltip("Si está activo, EnemyDeathReporter solo se marca como reportado cuando MissionManager acepta/procesa el evento.")]
+    private bool requireSuccessfulMissionReport = true;
+
+    [SerializeField, Tooltip("Muestra logs de debug del reporte EnemyDefeated.")]
+    private bool logMissionDeathDebug;
+
     [Header("Cooldown entre ataques")]
     [SerializeField] private float minCooldown = 1.2f;
     [SerializeField] private float maxCooldown = 2.5f;
@@ -30,6 +49,8 @@ public class BossArenaManager : MonoBehaviour
     // ─────────────────────────────────────────────────────────────────────
     //  Referencias runtime
     // ─────────────────────────────────────────────────────────────────────
+    private GameObject        spawnedBossRoot;
+    private EnemyDeathReporter enemyDeathReporter;
     private BossController    boss;
     private Attack01_Slash    atk01;
     private Attack02_SpinArms atk02;
@@ -60,6 +81,9 @@ public class BossArenaManager : MonoBehaviour
         // Instanciar prefab
         Vector3 pos = spawnPoint ? spawnPoint.position : Vector3.zero;
         var go = Instantiate(bossData.prefab, pos, Quaternion.identity);
+        spawnedBossRoot = go;
+
+        ConfigureMissionDeathReporter(go);
 
         // Obtener componentes (InChildren para cubrir root + cualquier hijo)
         boss  = go.GetComponentInChildren<BossController>();
@@ -318,10 +342,93 @@ public class BossArenaManager : MonoBehaviour
     private void HandleDeath()
     {
         fightActive = false;
+        ReportBossDefeatedToMissions();
         StopAllCoroutines();
         rockManager?.DeactivateRocks();
         battleStartController?.EndBossBattle();
         Debug.Log("[FSM] Jefe derrotado.");
+    }
+
+    private void ConfigureMissionDeathReporter(GameObject bossRoot)
+    {
+        if (!reportBossDeathToMissions || bossRoot == null)
+        {
+            return;
+        }
+
+        if (missionManager == null)
+        {
+            missionManager = FindFirstObjectByType<MissionManager>();
+        }
+
+        string cleanedTargetId = CleanId(bossDeathTargetId);
+
+        if (string.IsNullOrEmpty(cleanedTargetId))
+        {
+            Debug.LogWarning("[FSM] Reporte de misión activo, pero Boss Death Target Id está vacío.", this);
+            return;
+        }
+
+        enemyDeathReporter = bossRoot.GetComponentInChildren<EnemyDeathReporter>();
+
+        if (enemyDeathReporter == null)
+        {
+            enemyDeathReporter = bossRoot.AddComponent<EnemyDeathReporter>();
+        }
+
+        string source = ResolveBossDeathSourceId(bossRoot);
+
+        enemyDeathReporter.Configure(
+            cleanedTargetId,
+            missionManager,
+            source,
+            healthOverride: null,
+            requireSuccessfulReport: requireSuccessfulMissionReport,
+            reportOnlyOnce: true,
+            enableDebugLogs: logMissionDeathDebug);
+    }
+
+    private void ReportBossDefeatedToMissions()
+    {
+        if (!reportBossDeathToMissions)
+        {
+            return;
+        }
+
+        if (enemyDeathReporter == null && spawnedBossRoot != null)
+        {
+            ConfigureMissionDeathReporter(spawnedBossRoot);
+        }
+
+        if (enemyDeathReporter == null)
+        {
+            Debug.LogWarning("[FSM] El boss murió, pero no hay EnemyDeathReporter configurado.", this);
+            return;
+        }
+
+        enemyDeathReporter.TryReportEnemyDefeated();
+    }
+
+    private string ResolveBossDeathSourceId(GameObject bossRoot)
+    {
+        string cleanedSourceId = CleanId(bossDeathSourceId);
+
+        if (!string.IsNullOrEmpty(cleanedSourceId))
+        {
+            return cleanedSourceId;
+        }
+
+        if (bossData != null && !string.IsNullOrWhiteSpace(bossData.name))
+        {
+            return bossData.name.Trim();
+        }
+
+        return bossRoot != null ? bossRoot.name : name;
+    }
+
+    private static string CleanId(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
     }
 
     // ─────────────────────────────────────────────────────────────────────

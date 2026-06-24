@@ -34,11 +34,19 @@ MonoBehaviour:
     hiddenUntilActive: 0
     showProgress: 1
   rewards:
-  - rewardId: unlock_heal
-    rewardType: 3
-    displayName: "Curaci\xF3n"
-    amount: 1
-    bonusReward: 0
+  - rewardType: 10
+    skill: {fileID: 11400000, guid: 3c592fc901f5cab4ca815e7b9dba41e9, type: 2}
+    itemId: 
+    currencyId: 
+    quantity: 1
+    fullHeal: 0
+    healAmount: 0
+    worldEventId: 
+    showInJournal: 1
+    notifyOnGrant: 1
+    displayNameOverride: 
+    descriptionOverride: 
+    iconOverride: {fileID: 0}
     designerNote: 
   showInHUD: 1
   showInJournal: 1

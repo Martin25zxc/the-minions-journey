@@ -38,7 +38,21 @@ MonoBehaviour:
     targetId: hook_artifact
     hiddenUntilActive: 0
     showProgress: 1
-  rewards: []
+  rewards:
+  - rewardType: 10
+    skill: {fileID: 11400000, guid: d3b2ddf5b5e9cc34283c76b2bcd7e1c0, type: 2}
+    itemId: 
+    currencyId: 
+    quantity: 1
+    fullHeal: 0
+    healAmount: 0
+    worldEventId: 
+    showInJournal: 1
+    notifyOnGrant: 0
+    displayNameOverride: 
+    descriptionOverride: 
+    iconOverride: {fileID: 0}
+    designerNote: 
   showInHUD: 1
   showInJournal: 1
   autoTrackOnAccept: 1
