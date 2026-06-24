@@ -33,7 +33,7 @@ MonoBehaviour:
   - objectiveId: reach_valley_heights
     objectiveType: 0
     importance: 0
-    description: Atraviesa el pueblo enemigo y alcanza lo alto del valle.
+    description: "Atraviesa el pueblo enemigo \ny alcanza lo alto del valle."
     requiredAmount: 1
     targetId: valley_heights
     hiddenUntilActive: 0

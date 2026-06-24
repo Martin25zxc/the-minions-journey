@@ -33,7 +33,11 @@ MonoBehaviour:
   - objectiveId: acquire_hook
     objectiveType: 4
     importance: 0
-    description: Busca el artefacto escondido en el campamento.
+    description: 'Busca el artefacto
+
+      Busca el artefacto
+
+      Busca el artefacto'
     requiredAmount: 1
     targetId: hook_artifact
     hiddenUntilActive: 0
