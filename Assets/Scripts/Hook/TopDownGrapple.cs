@@ -5,8 +5,14 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(TopDownPlayerController))]
 public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
-
 {
+    private enum GrappleState
+    {
+        Idle,
+        HookFlying,
+        Pulling
+    }
+
     public string SkillID => "hook";
 
     [Header("Input")]
@@ -23,11 +29,46 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
     [SerializeField, Min(1f)]
     private float pullSpeed = 16f;
 
-    [SerializeField, Min(0.1f)]
-    private float arrivalThreshold = 1.5f;
+    [Tooltip("Distancia a la posicion segura final para considerar que el pull termino. Si en una escena vieja estaba alto, el codigo lo limita internamente.")]
+    [SerializeField, Min(0.05f)]
+    private float arrivalThreshold = 0.25f;
 
     [SerializeField, Min(0f)]
     private float hookSpawnDistance = 2.2f;
+
+    [Header("Targeting")]
+    [Tooltip("Layers que se consideran enemigos para calcular un destino cerca del target y no sobre el punto exacto de impacto.")]
+    [SerializeField]
+    private LayerMask enemyLayers;
+
+    [Tooltip("Distancia final contra pared/obstaculo. Evita meter al jugador dentro del collider impactado.")]
+    [SerializeField, Min(0.1f)]
+    private float wallStopDistance = 0.8f;
+
+    [Tooltip("Distancia final contra enemigo. Debe dejar al jugador a rango jugable, no dentro del collider enemigo.")]
+    [SerializeField, Min(0.1f)]
+    private float enemyStopDistance = 1.2f;
+
+    [Header("Pull Safety")]
+    [Tooltip("Layers que bloquean el movimiento del jugador durante el pull. Recomendado: Obstacle, Rock, Boundary, LimitWall. No incluir Ground. No incluir Enemy por ahora si no se filtra el target.")]
+    [SerializeField]
+    private LayerMask grappleBlockingLayers;
+
+    [SerializeField]
+    private QueryTriggerInteraction grappleBlockTriggerInteraction = QueryTriggerInteraction.Ignore;
+
+    [Tooltip("CapsuleCollider del jugador usado para validar el trayecto del pull. Si se deja vacio, se busca en el mismo GameObject.")]
+    [SerializeField]
+    private CapsuleCollider playerCapsule;
+
+    [Tooltip("Margen pequeno para evitar quedar solapado con blockers al final del hook.")]
+    [SerializeField, Min(0f)]
+    private float grappleSkinWidth = 0.03f;
+
+    [Header("Impact Interaction")]
+    [Tooltip("Si un impacto/knockback/stun entra durante el hook, el hook se cancela y ImpactReceiver queda como autoridad.")]
+    [SerializeField]
+    private bool cancelOnImpact = true;
 
     [Header("Rope Visual")]
     [SerializeField, Min(0.005f)]
@@ -41,17 +82,30 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
 
     private Rigidbody body;
     private TopDownPlayerController controller;
+    private ImpactReceiver impactReceiver;
     private GrapplingHookProjectile activeHook;
     private LineRenderer rope;
 
-    private Vector3 hookTarget;
-    private bool pulling;
+    private Vector3 grappleDestination;
+    private GrappleState state = GrappleState.Idle;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
         controller = GetComponent<TopDownPlayerController>();
+        impactReceiver = GetComponent<ImpactReceiver>();
+
+        if (playerCapsule == null)
+        {
+            playerCapsule = GetComponent<CapsuleCollider>();
+        }
+
         rope = BuildRopeRenderer();
+    }
+
+    private void OnEnable()
+    {
+        SubscribeToImpactReceiver();
     }
 
     private void Update()
@@ -66,27 +120,48 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
 
     private void FixedUpdate()
     {
-        if (!pulling)
+        if (state != GrappleState.Pulling)
         {
             return;
         }
 
-        Vector3 toTarget = hookTarget - transform.position;
-        toTarget.y = 0f;
-
-        if (toTarget.magnitude <= arrivalThreshold)
+        if (cancelOnImpact && controller != null && controller.IsMovementLockedByImpact)
         {
-            CancelGrapple();
+            CancelGrappleFromImpact();
             return;
         }
 
-        Vector3 horizontalVelocity = toTarget.normalized * pullSpeed;
+        Vector3 currentPosition = body.position;
+        Vector3 toDestination = grappleDestination - currentPosition;
+        toDestination.y = 0f;
 
-        body.linearVelocity = new Vector3(
-            horizontalVelocity.x,
-            body.linearVelocity.y,
-            horizontalVelocity.z
-        );
+        float effectiveArrivalThreshold = Mathf.Clamp(arrivalThreshold, 0.05f, 0.6f);
+        if (toDestination.magnitude <= effectiveArrivalThreshold)
+        {
+            FinishGrapple();
+            return;
+        }
+
+        Vector3 nextPosition = Vector3.MoveTowards(
+            currentPosition,
+            grappleDestination,
+            pullSpeed * Time.fixedDeltaTime);
+        nextPosition.y = currentPosition.y;
+
+        if (IsPullStepBlocked(currentPosition, nextPosition))
+        {
+            CancelGrapple(clearPlayerVelocity: true);
+            return;
+        }
+
+        if (controller != null)
+        {
+            controller.MoveControlledTo(nextPosition, preserveCurrentY: true);
+        }
+        else
+        {
+            body.MovePosition(nextPosition);
+        }
     }
 
     private void ReadDirectInput()
@@ -102,11 +177,11 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
             return;
         }
 
-        if (activeHook != null || pulling)
+        if (state != GrappleState.Idle || activeHook != null)
         {
             if (pressQAgainCancels)
             {
-                CancelGrapple();
+                CancelGrapple(clearPlayerVelocity: true);
             }
 
             return;
@@ -117,7 +192,12 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
 
     private void FireHook()
     {
-        if (activeHook != null || pulling)
+        if (state != GrappleState.Idle || activeHook != null)
+        {
+            return;
+        }
+
+        if (controller != null && controller.IsMovementLockedByImpact)
         {
             return;
         }
@@ -140,8 +220,7 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         GameObject hookObject = Instantiate(
             hookPrefab,
             spawnPosition,
-            Quaternion.LookRotation(direction, Vector3.up)
-        );
+            Quaternion.LookRotation(direction, Vector3.up));
 
         activeHook = hookObject.GetComponent<GrapplingHookProjectile>();
         if (activeHook == null)
@@ -151,9 +230,10 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
             return;
         }
 
-        activeHook.OnHookLanded += HandleHookLanded;
-        activeHook.OnHookMissed += CancelGrapple;
+        activeHook.OnHookLandedDetailed += HandleHookLanded;
+        activeHook.OnHookMissed += HandleHookMissed;
 
+        state = GrappleState.HookFlying;
         activeHook.Launch(direction, transform);
     }
 
@@ -183,48 +263,202 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         return true;
     }
 
-    private void HandleHookLanded(Vector3 hitPoint)
+    private void HandleHookLanded(Vector3 hitPoint, Collider hitCollider)
     {
-        if (activeHook == null)
+        if (activeHook == null || state != GrappleState.HookFlying)
         {
             return;
         }
 
-        hookTarget = new Vector3(hitPoint.x, transform.position.y, hitPoint.z);
-        pulling = true;
+        if (!TryCalculateDestination(hitPoint, hitCollider, out Vector3 destination))
+        {
+            CancelGrapple(clearPlayerVelocity: true);
+            return;
+        }
+
+        if (IsDestinationBlocked(destination))
+        {
+            CancelGrapple(clearPlayerVelocity: true);
+            return;
+        }
+
+        grappleDestination = destination;
+        state = GrappleState.Pulling;
 
         if (controller != null)
         {
-            controller.enabled = false;
+            controller.BeginExternalMovement(clearVelocity: true);
         }
-
-        Vector3 velocity = body.linearVelocity;
-        velocity.x = 0f;
-        velocity.z = 0f;
-        body.linearVelocity = velocity;
+        else
+        {
+            ClearHorizontalVelocity();
+        }
     }
 
-    private void CancelGrapple()
+    private void HandleHookMissed()
     {
-        pulling = false;
+        CancelGrapple(clearPlayerVelocity: true);
+    }
 
-        if (controller != null)
+    private bool TryCalculateDestination(Vector3 hitPoint, Collider hitCollider, out Vector3 destination)
+    {
+        if (hitCollider != null && IsInLayerMask(hitCollider.gameObject.layer, enemyLayers))
         {
-            controller.enabled = true;
+            return TryCalculateEnemyDestination(hitCollider, out destination);
         }
 
-        if (body != null)
+        return TryCalculateStaticDestination(hitPoint, out destination);
+    }
+
+    private bool TryCalculateStaticDestination(Vector3 hitPoint, out Vector3 destination)
+    {
+        Vector3 currentPosition = body.position;
+        Vector3 fromPlayerToHit = hitPoint - currentPosition;
+        fromPlayerToHit.y = 0f;
+
+        if (fromPlayerToHit.sqrMagnitude <= 0.001f)
         {
-            Vector3 velocity = body.linearVelocity;
-            velocity.x = 0f;
-            velocity.z = 0f;
-            body.linearVelocity = velocity;
+            destination = currentPosition;
+            return false;
+        }
+
+        fromPlayerToHit.Normalize();
+
+        destination = hitPoint - fromPlayerToHit * wallStopDistance;
+        destination.y = currentPosition.y;
+        return true;
+    }
+
+    private bool TryCalculateEnemyDestination(Collider hitCollider, out Vector3 destination)
+    {
+        Transform targetRoot = ResolveEnemyRoot(hitCollider);
+        if (targetRoot == null)
+        {
+            destination = body.position;
+            return false;
+        }
+
+        Vector3 currentPosition = body.position;
+        Vector3 targetPosition = targetRoot.position;
+        targetPosition.y = currentPosition.y;
+
+        Vector3 fromEnemyToPlayer = currentPosition - targetPosition;
+        fromEnemyToPlayer.y = 0f;
+
+        if (fromEnemyToPlayer.sqrMagnitude <= 0.001f)
+        {
+            fromEnemyToPlayer = -transform.forward;
+            fromEnemyToPlayer.y = 0f;
+        }
+
+        if (fromEnemyToPlayer.sqrMagnitude <= 0.001f)
+        {
+            destination = currentPosition;
+            return false;
+        }
+
+        fromEnemyToPlayer.Normalize();
+
+        destination = targetPosition + fromEnemyToPlayer * enemyStopDistance;
+        destination.y = currentPosition.y;
+        return true;
+    }
+
+    private static Transform ResolveEnemyRoot(Collider hitCollider)
+    {
+        if (hitCollider == null)
+        {
+            return null;
+        }
+
+        if (hitCollider.attachedRigidbody != null)
+        {
+            return hitCollider.attachedRigidbody.transform;
+        }
+
+        ImpactReceiver impactReceiverOnTarget = hitCollider.GetComponentInParent<ImpactReceiver>();
+        if (impactReceiverOnTarget != null)
+        {
+            return impactReceiverOnTarget.transform;
+        }
+
+        return hitCollider.transform;
+    }
+
+    private bool IsDestinationBlocked(Vector3 destination)
+    {
+        if (grappleBlockingLayers.value == 0 || playerCapsule == null)
+        {
+            return false;
+        }
+
+        GetCapsuleWorldDataAt(playerCapsule, destination, transform.rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+
+        return Physics.CheckCapsule(
+            pointA,
+            pointB,
+            radius + grappleSkinWidth,
+            grappleBlockingLayers,
+            grappleBlockTriggerInteraction);
+    }
+
+    private bool IsPullStepBlocked(Vector3 currentPosition, Vector3 nextPosition)
+    {
+        if (grappleBlockingLayers.value == 0 || playerCapsule == null)
+        {
+            return false;
+        }
+
+        Vector3 delta = nextPosition - currentPosition;
+        delta.y = 0f;
+
+        float distance = delta.magnitude;
+        if (distance <= 0.0001f)
+        {
+            return false;
+        }
+
+        Vector3 direction = delta / distance;
+        GetCapsuleWorldDataAt(playerCapsule, currentPosition, transform.rotation, out Vector3 pointA, out Vector3 pointB, out float radius);
+
+        return Physics.CapsuleCast(
+            pointA,
+            pointB,
+            radius,
+            direction,
+            distance + grappleSkinWidth,
+            grappleBlockingLayers,
+            grappleBlockTriggerInteraction);
+    }
+
+    private void FinishGrapple()
+    {
+        CancelGrapple(clearPlayerVelocity: true);
+    }
+
+    private void CancelGrappleFromImpact()
+    {
+        CancelGrapple(clearPlayerVelocity: false);
+    }
+
+    private void CancelGrapple(bool clearPlayerVelocity = true)
+    {
+        bool wasPulling = state == GrappleState.Pulling;
+        state = GrappleState.Idle;
+
+        if (controller != null && wasPulling)
+        {
+            controller.EndExternalMovement(clearPlayerVelocity);
+        }
+        else if (clearPlayerVelocity)
+        {
+            ClearHorizontalVelocity();
         }
 
         if (activeHook != null)
         {
-            activeHook.OnHookLanded -= HandleHookLanded;
-            activeHook.OnHookMissed -= CancelGrapple;
+            activeHook.OnHookLandedDetailed -= HandleHookLanded;
+            activeHook.OnHookMissed -= HandleHookMissed;
             activeHook.CancelSilently();
             activeHook = null;
         }
@@ -233,6 +467,19 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         {
             rope.enabled = false;
         }
+    }
+
+    private void ClearHorizontalVelocity()
+    {
+        if (body == null || body.isKinematic)
+        {
+            return;
+        }
+
+        Vector3 velocity = body.linearVelocity;
+        velocity.x = 0f;
+        velocity.z = 0f;
+        body.linearVelocity = velocity;
     }
 
     private void UpdateRopeVisual()
@@ -298,24 +545,70 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         return material;
     }
 
+    private void SubscribeToImpactReceiver()
+    {
+        if (impactReceiver == null)
+        {
+            return;
+        }
+
+        impactReceiver.OnKnockbackStarted += HandleKnockbackStarted;
+        impactReceiver.OnStunStarted += HandleStunStarted;
+    }
+
+    private void UnsubscribeFromImpactReceiver()
+    {
+        if (impactReceiver == null)
+        {
+            return;
+        }
+
+        impactReceiver.OnKnockbackStarted -= HandleKnockbackStarted;
+        impactReceiver.OnStunStarted -= HandleStunStarted;
+    }
+
+    private void HandleKnockbackStarted(ImpactInfo impactInfo)
+    {
+        if (cancelOnImpact)
+        {
+            CancelGrappleFromImpact();
+        }
+    }
+
+    private void HandleStunStarted(float duration)
+    {
+        if (cancelOnImpact)
+        {
+            CancelGrappleFromImpact();
+        }
+    }
+
     private void OnDisable()
     {
-        CancelGrapple();
+        UnsubscribeFromImpactReceiver();
+        CancelGrapple(clearPlayerVelocity: false);
+    }
+
+    private void OnDestroy()
+    {
+        UnsubscribeFromImpactReceiver();
     }
 
     private void OnDrawGizmos()
     {
-        if (pulling)
+        if (state == GrappleState.Pulling)
         {
+            float effectiveArrivalThreshold = Mathf.Clamp(arrivalThreshold, 0.05f, 0.6f);
+
             Gizmos.color = new Color(0f, 1f, 0.4f, 0.2f);
-            Gizmos.DrawSphere(hookTarget, arrivalThreshold);
+            Gizmos.DrawSphere(grappleDestination, effectiveArrivalThreshold);
 
             Gizmos.color = new Color(0f, 1f, 0.4f, 1f);
-            Gizmos.DrawWireSphere(hookTarget, arrivalThreshold);
+            Gizmos.DrawWireSphere(grappleDestination, effectiveArrivalThreshold);
 
-            float crossSize = arrivalThreshold * 0.3f;
-            Gizmos.DrawLine(hookTarget - Vector3.right * crossSize, hookTarget + Vector3.right * crossSize);
-            Gizmos.DrawLine(hookTarget - Vector3.forward * crossSize, hookTarget + Vector3.forward * crossSize);
+            float crossSize = effectiveArrivalThreshold * 0.3f;
+            Gizmos.DrawLine(grappleDestination - Vector3.right * crossSize, grappleDestination + Vector3.right * crossSize);
+            Gizmos.DrawLine(grappleDestination - Vector3.forward * crossSize, grappleDestination + Vector3.forward * crossSize);
         }
         else
         {
@@ -339,5 +632,67 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
             Gizmos.color = new Color(1f, 0.9f, 0f, 0.9f);
             Gizmos.DrawWireSphere(preview, 0.15f);
         }
+    }
+
+    private static void GetCapsuleWorldDataAt(CapsuleCollider capsule, Vector3 rootPosition, Quaternion rootRotation, out Vector3 pointA, out Vector3 pointB, out float radius)
+    {
+        Transform capsuleTransform = capsule.transform;
+        Vector3 center;
+
+        if (capsuleTransform.parent == null)
+        {
+            center = rootPosition + rootRotation * capsule.center;
+        }
+        else
+        {
+            Vector3 localCenterFromRoot = capsule.transform.localPosition + capsule.center;
+            center = rootPosition + rootRotation * localCenterFromRoot;
+        }
+
+        Vector3 axis = rootRotation * GetCapsuleAxisLocal(capsule);
+        Vector3 lossyScale = capsuleTransform.lossyScale;
+        float heightScale;
+        float radiusScale;
+
+        switch (capsule.direction)
+        {
+            case 0:
+                heightScale = Mathf.Abs(lossyScale.x);
+                radiusScale = Mathf.Max(Mathf.Abs(lossyScale.y), Mathf.Abs(lossyScale.z));
+                break;
+            case 2:
+                heightScale = Mathf.Abs(lossyScale.z);
+                radiusScale = Mathf.Max(Mathf.Abs(lossyScale.x), Mathf.Abs(lossyScale.y));
+                break;
+            default:
+                heightScale = Mathf.Abs(lossyScale.y);
+                radiusScale = Mathf.Max(Mathf.Abs(lossyScale.x), Mathf.Abs(lossyScale.z));
+                break;
+        }
+
+        radius = Mathf.Max(0.001f, capsule.radius * radiusScale);
+        float height = Mathf.Max(radius * 2f, capsule.height * heightScale);
+        float segmentHalfLength = Mathf.Max(0f, (height * 0.5f) - radius);
+
+        pointA = center + axis * segmentHalfLength;
+        pointB = center - axis * segmentHalfLength;
+    }
+
+    private static Vector3 GetCapsuleAxisLocal(CapsuleCollider capsule)
+    {
+        switch (capsule.direction)
+        {
+            case 0:
+                return Vector3.right;
+            case 2:
+                return Vector3.forward;
+            default:
+                return Vector3.up;
+        }
+    }
+
+    private static bool IsInLayerMask(int layer, LayerMask mask)
+    {
+        return (mask.value & (1 << layer)) != 0;
     }
 }

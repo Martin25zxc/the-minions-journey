@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
-public sealed class TopDownPlayerController : MonoBehaviour
+public sealed class TopDownPlayerController : MonoBehaviour, IImpactLockable
 {
     [SerializeField, Min(0.1f)]
     float moveSpeed = 6f;
@@ -64,6 +64,23 @@ public sealed class TopDownPlayerController : MonoBehaviour
     [SerializeField]
     private QueryTriggerInteraction bodyBlockTriggerInteraction = QueryTriggerInteraction.Ignore;
 
+    [Header("Physics Stabilization")]
+    [Tooltip("Limpia velocidades horizontales muy pequenas cuando el jugador no esta desplazandose por input, hook ni impacto. Evita temblores residuales luego de contactos con otros Rigidbody sin eliminar knockbacks fuertes.")]
+    [SerializeField]
+    private bool stabilizeResidualLinearMotion = true;
+
+    [Tooltip("Velocidad horizontal maxima que se considera residuo fisico cuando no hay movimiento efectivo. Debe ser baja para no cortar desplazamientos intencionales.")]
+    [SerializeField, Min(0f)]
+    private float residualHorizontalVelocityThreshold = 0.08f;
+
+    [Tooltip("Limpia la velocidad angular del Rigidbody. La rotacion del jugador esta controlada por aim/MoveRotation, no por torques fisicos de contactos.")]
+    [SerializeField]
+    private bool suppressPhysicsAngularDrift = true;
+
+    [Tooltip("Velocidad angular maxima que se conserva si se desactiva la supresion total. Con la supresion activa, el valor se usa como seguridad para limpiar micro rotaciones.")]
+    [SerializeField, Min(0f)]
+    private float residualAngularVelocityThreshold = 0.05f;
+
     [Header("Debug")]
     [SerializeField]
     private bool drawBodyBlockDebug;
@@ -77,9 +94,14 @@ public sealed class TopDownPlayerController : MonoBehaviour
     Vector3 aimDirection = Vector3.forward;
     bool isSprinting;
 
+    private bool externalMovementActive;
+    private float impactMovementLockedUntil;
+
     private readonly Collider[] bodyBlockOverlapBuffer = new Collider[8];
 
     public Vector3 AimDirection => aimDirection;
+    public bool IsExternallyControlled => externalMovementActive;
+    public bool IsMovementLockedByImpact => Time.time < impactMovementLockedUntil;
 
     private TopDownHealth playerHealth;
 
@@ -117,6 +139,12 @@ public sealed class TopDownPlayerController : MonoBehaviour
         {
             return; // No mover al jugador si está muerto
         }
+
+        if (IsMovementLockedByImpact || externalMovementActive)
+        {
+            return;
+        }
+
         Vector3 movement = GetCameraRelativeMovement();
         if (movement.sqrMagnitude > 1f)
         {
@@ -149,6 +177,111 @@ public sealed class TopDownPlayerController : MonoBehaviour
             {
                 body.MoveRotation(Quaternion.LookRotation(aimDirection, Vector3.up));
             }
+        }
+
+        StabilizeResidualPhysics(movement.sqrMagnitude <= 0.0001f);
+    }
+
+
+    public void ApplyImpactLock(float duration)
+    {
+        if (duration <= 0f)
+        {
+            return;
+        }
+
+        impactMovementLockedUntil = Mathf.Max(impactMovementLockedUntil, Time.time + duration);
+        ClearHorizontalVelocity();
+    }
+
+    public void BeginExternalMovement(bool clearVelocity = true)
+    {
+        externalMovementActive = true;
+
+        if (clearVelocity)
+        {
+            ClearHorizontalVelocity();
+        }
+    }
+
+    public void EndExternalMovement(bool clearVelocity = true)
+    {
+        externalMovementActive = false;
+
+        if (clearVelocity)
+        {
+            ClearHorizontalVelocity();
+        }
+    }
+
+    public void MoveControlledTo(Vector3 targetPosition, bool preserveCurrentY = true)
+    {
+        if (body == null)
+        {
+            return;
+        }
+
+        if (preserveCurrentY)
+        {
+            targetPosition.y = body.position.y;
+        }
+
+        body.MovePosition(targetPosition);
+    }
+
+    public void ClearHorizontalVelocity()
+    {
+        if (body == null || body.isKinematic)
+        {
+            return;
+        }
+
+        Vector3 velocity = body.linearVelocity;
+        velocity.x = 0f;
+        velocity.z = 0f;
+        body.linearVelocity = velocity;
+    }
+
+    private void StabilizeResidualPhysics(bool noEffectiveMovement)
+    {
+        if (body == null || body.isKinematic)
+        {
+            return;
+        }
+
+        if (stabilizeResidualLinearMotion && noEffectiveMovement)
+        {
+            Vector3 velocity = body.linearVelocity;
+            Vector3 horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+
+            float threshold = Mathf.Max(0f, residualHorizontalVelocityThreshold);
+            if (horizontalVelocity.sqrMagnitude <= threshold * threshold)
+            {
+                velocity.x = 0f;
+                velocity.z = 0f;
+                body.linearVelocity = velocity;
+            }
+        }
+
+        if (suppressPhysicsAngularDrift)
+        {
+            Vector3 angularVelocity = body.angularVelocity;
+
+            // La rotacion jugable del player viene de aimDirection + MoveRotation.
+            // Cualquier torque residual por contacto fisico genera temblores o giro no deseado.
+            angularVelocity.x = 0f;
+            angularVelocity.y = 0f;
+            angularVelocity.z = 0f;
+            body.angularVelocity = angularVelocity;
+            return;
+        }
+
+        float angularThreshold = Mathf.Max(0f, residualAngularVelocityThreshold);
+        Vector3 currentAngularVelocity = body.angularVelocity;
+        if (Mathf.Abs(currentAngularVelocity.y) <= angularThreshold)
+        {
+            currentAngularVelocity.y = 0f;
+            body.angularVelocity = currentAngularVelocity;
         }
     }
 

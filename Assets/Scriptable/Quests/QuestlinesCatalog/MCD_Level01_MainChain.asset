@@ -31,6 +31,6 @@ MonoBehaviour:
   - sourceMission: {fileID: 11400000, guid: fbaffd1da7870c340b20e875fc2688bd, type: 2}
     trigger: 2
     targetMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
-    action: 0
+    action: 1
     executeOnce: 1
     developerNote: Etc
