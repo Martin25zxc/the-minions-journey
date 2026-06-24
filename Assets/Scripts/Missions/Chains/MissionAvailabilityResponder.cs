@@ -22,6 +22,13 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
     private readonly HashSet<string> executedRuleKeys = new HashSet<string>();
     private bool subscribed;
 
+    private enum ChainActionStatus
+    {
+        Failed,
+        SucceededNoChange,
+        SucceededChanged
+    }
+
     private void Reset()
     {
         missionManager = FindFirstObjectByType<MissionManager>();
@@ -77,7 +84,7 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
                     continue;
                 }
 
-                TryExecuteRule(chainDefinition, rule, ruleIndex, sourceState, fromSynchronization: true);
+                TryExecuteRule(chainDefinition, rule, ruleIndex, fromSynchronization: true);
             }
         }
     }
@@ -153,12 +160,12 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
                     continue;
                 }
 
-                TryExecuteRule(chainDefinition, rule, ruleIndex, sourceState, fromSynchronization: false);
+                TryExecuteRule(chainDefinition, rule, ruleIndex, fromSynchronization: false);
             }
         }
     }
 
-    private bool TryExecuteRule(MissionChainDefinition chainDefinition, MissionChainRule rule, int ruleIndex, MissionRuntimeState sourceState, bool fromSynchronization)
+    private bool TryExecuteRule(MissionChainDefinition chainDefinition, MissionChainRule rule, int ruleIndex, bool fromSynchronization)
     {
         string executionKey = rule.BuildExecutionKey(chainDefinition.ChainId, ruleIndex);
 
@@ -172,9 +179,11 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
             return false;
         }
 
-        bool changed = ExecuteAction(rule);
+        ChainActionStatus status = ExecuteAction(rule);
+        bool succeeded = status != ChainActionStatus.Failed;
+        bool changed = status == ChainActionStatus.SucceededChanged;
 
-        if (changed || rule.ExecuteOnce)
+        if (succeeded && rule.ExecuteOnce)
         {
             executedRuleKeys.Add(executionKey);
         }
@@ -182,32 +191,97 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
         if (logDebug)
         {
             string syncPrefix = fromSynchronization ? "[Sync] " : string.Empty;
-            string result = changed ? "ejecutada" : "sin cambios";
+            string result = status == ChainActionStatus.Failed ? "falló" : changed ? "ejecutada" : "sin cambios";
             Debug.Log($"{syncPrefix}Regla de cadena {result}. {rule.BuildDebugLabel(ruleIndex)}", this);
         }
 
         return changed;
     }
 
-    private bool ExecuteAction(MissionChainRule rule)
+    private ChainActionStatus ExecuteAction(MissionChainRule rule)
     {
         switch (rule.Action)
         {
             case MissionChainAction.MakeAvailable:
-                return missionManager.TryMakeMissionAvailable(rule.TargetMissionId);
+                return ExecuteMakeAvailable(rule.TargetMissionId);
 
-            case MissionChainAction.Accept:
-                bool accepted = missionManager.TryAcceptMission(rule.TargetMission, rule.AcceptOriginalGiverId);
-                if (accepted && rule.TrackTargetAfterAction)
-                {
-                    missionManager.TrySetTrackedMission(rule.TargetMissionId);
-                }
-
-                return accepted;
+            case MissionChainAction.StartMission:
+                return ExecuteStartMission(rule);
 
             default:
-                return false;
+                Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} recibió una acción de cadena no soportada: {rule.Action}.", this);
+                return ChainActionStatus.Failed;
         }
+    }
+
+    private ChainActionStatus ExecuteMakeAvailable(string targetMissionId)
+    {
+        MissionRuntimeState targetState = missionManager.GetMissionState(targetMissionId);
+        if (targetState == null)
+        {
+            Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} no encontró la misión destino '{targetMissionId}'.", this);
+            return ChainActionStatus.Failed;
+        }
+
+        if (targetState.IsInactive)
+        {
+            bool changed = missionManager.TryMakeMissionAvailable(targetMissionId);
+            return changed ? ChainActionStatus.SucceededChanged : ChainActionStatus.Failed;
+        }
+
+        if (targetState.IsAvailable || targetState.IsActive || targetState.IsReadyToTurnIn || targetState.IsCompleted)
+        {
+            return ChainActionStatus.SucceededNoChange;
+        }
+
+        return ChainActionStatus.Failed;
+    }
+
+    private ChainActionStatus ExecuteStartMission(MissionChainRule rule)
+    {
+        MissionRuntimeState targetState = missionManager.GetMissionState(rule.TargetMissionId);
+        if (targetState == null)
+        {
+            Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} no encontró la misión destino '{rule.TargetMissionId}'.", this);
+            return ChainActionStatus.Failed;
+        }
+
+        if (targetState.IsActive || targetState.IsReadyToTurnIn || targetState.IsCompleted)
+        {
+            return ChainActionStatus.SucceededNoChange;
+        }
+
+        if (targetState.Definition.CompletionMode == MissionCompletionMode.RequiresTurnIn &&
+            targetState.Definition.TurnInTargetMode == MissionTurnInTargetMode.OriginalGiver)
+        {
+            Debug.LogWarning($"No se puede usar StartMission con '{rule.TargetMissionId}' porque requiere entrega al OriginalGiver. Usá MakeAvailable para que un actor real la acepte, o configurá un SpecificActor si corresponde.", this);
+            return ChainActionStatus.Failed;
+        }
+
+        bool madeAvailable = false;
+        if (targetState.IsInactive)
+        {
+            madeAvailable = missionManager.TryMakeMissionAvailable(rule.TargetMissionId);
+
+            targetState = missionManager.GetMissionState(rule.TargetMissionId);
+            if (targetState == null || !targetState.IsAvailable)
+            {
+                return ChainActionStatus.Failed;
+            }
+        }
+
+        if (!targetState.IsAvailable)
+        {
+            return ChainActionStatus.Failed;
+        }
+
+        bool accepted = missionManager.TryAcceptMission(rule.TargetMissionId, originalGiverId: null);
+        if (!accepted)
+        {
+            return ChainActionStatus.Failed;
+        }
+
+        return madeAvailable ? ChainActionStatus.SucceededChanged : ChainActionStatus.SucceededChanged;
     }
 
     private int GetChainCount()

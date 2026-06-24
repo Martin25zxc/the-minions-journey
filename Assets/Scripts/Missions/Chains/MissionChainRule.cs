@@ -12,20 +12,14 @@ public sealed class MissionChainRule
     private MissionChainTrigger trigger = MissionChainTrigger.OnCompleted;
 
     [Header("Resultado")]
-    [SerializeField, Tooltip("Misión destino sobre la que se ejecuta la acción.")]
+    [SerializeField, Tooltip("Misión destino afectada por esta regla.")]
     private MissionDefinition targetMission;
 
-    [SerializeField, Tooltip("Acción que se ejecuta sobre la misión destino.")]
+    [SerializeField, Tooltip("MakeAvailable deja la misión disponible para un actor. StartMission la activa automáticamente para continuidad de cadena.")]
     private MissionChainAction action = MissionChainAction.MakeAvailable;
 
     [SerializeField, Tooltip("Si está activo, la regla se ejecuta una sola vez por sesión runtime.")]
     private bool executeOnce = true;
-
-    [SerializeField, Tooltip("Solo se usa con Action = Accept. ActorId que quedará como OriginalGiver de la misión destino si esa misión requiere entrega al giver original.")]
-    private string acceptOriginalGiverId;
-
-    [SerializeField, Tooltip("Si está activo y la acción deja la misión destino Active o ReadyToTurnIn, intenta trackearla en el HUD.")]
-    private bool trackTargetAfterAction;
 
     [SerializeField, TextArea(1, 3), Tooltip("Nota de autoría para recordar intención narrativa o de gameplay. No afecta runtime.")]
     private string developerNote;
@@ -35,8 +29,6 @@ public sealed class MissionChainRule
     public MissionDefinition TargetMission => targetMission;
     public MissionChainAction Action => action;
     public bool ExecuteOnce => executeOnce;
-    public string AcceptOriginalGiverId => CleanId(acceptOriginalGiverId);
-    public bool TrackTargetAfterAction => trackTargetAfterAction;
     public string DeveloperNote => developerNote;
 
     public string SourceMissionId => sourceMission != null ? CleanId(sourceMission.MissionId) : string.Empty;
@@ -112,12 +104,13 @@ public sealed class MissionChainRule
             Debug.LogWarning($"{chainName}: Rule #{index} usa la misma misión como Source y Target: '{SourceMissionId}'. Esto suele indicar un ciclo accidental.", context);
         }
 
-        if (action == MissionChainAction.Accept && targetMission != null &&
-            targetMission.CompletionMode == MissionCompletionMode.RequiresTurnIn &&
-            targetMission.TurnInTargetMode == MissionTurnInTargetMode.OriginalGiver &&
-            string.IsNullOrEmpty(AcceptOriginalGiverId))
+        if (action == MissionChainAction.StartMission && targetMission != null)
         {
-            Debug.LogWarning($"{chainName}: Rule #{index} acepta automáticamente '{TargetMissionId}', pero la misión requiere OriginalGiver y Accept Original Giver Id está vacío. Esa aceptación puede fallar.", context);
+            if (targetMission.CompletionMode == MissionCompletionMode.RequiresTurnIn &&
+                targetMission.TurnInTargetMode == MissionTurnInTargetMode.OriginalGiver)
+            {
+                Debug.LogWarning($"{chainName}: Rule #{index} usa StartMission con una misión RequiresTurnIn + OriginalGiver ('{TargetMissionId}'). Esa combinación necesita un actor giver real; usá MakeAvailable o un SpecificActor.", targetMission);
+            }
         }
     }
 

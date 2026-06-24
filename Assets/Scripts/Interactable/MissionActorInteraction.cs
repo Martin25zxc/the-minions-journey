@@ -4,7 +4,7 @@ using UnityEngine.Events;
 /// <summary>
 /// Puente entre NpcInteractable y MissionManager para actores de misión.
 ///
-/// Ahora no configura MissionSet ni ActorId directamente: consume MissionActor.
+/// No configura MissionSet ni ActorId directamente: consume MissionActor.
 /// Así evitamos que interacción e indicador apunten a sets distintos.
 /// </summary>
 [DisallowMultipleComponent]
@@ -65,11 +65,28 @@ public sealed class MissionActorInteraction : MonoBehaviour
     private UnityEvent onMissionActionFailed;
 
     private NpcInteractable npcInteractable;
+    private NpcInteractable subscribedNpc;
     private bool subscribed;
 
     public MissionActor MissionActor => ResolveMissionActor();
-    public MissionActorMissionSet MissionSet => ResolveMissionActor() != null ? ResolveMissionActor().MissionSet : null;
-    public string ActorId => ResolveMissionActor() != null ? ResolveMissionActor().ActorId : string.Empty;
+
+    public MissionActorMissionSet MissionSet
+    {
+        get
+        {
+            MissionActor resolvedActor = ResolveMissionActor();
+            return resolvedActor != null ? resolvedActor.MissionSet : null;
+        }
+    }
+
+    public string ActorId
+    {
+        get
+        {
+            MissionActor resolvedActor = ResolveMissionActor();
+            return resolvedActor != null ? resolvedActor.ActorId : string.Empty;
+        }
+    }
 
     private void Reset()
     {
@@ -101,10 +118,33 @@ public sealed class MissionActorInteraction : MonoBehaviour
         {
             missionActor = GetComponent<MissionActor>();
         }
+
+        if (npcInteractable == null)
+        {
+            npcInteractable = GetComponent<NpcInteractable>();
+        }
     }
 
+    /// <summary>
+    /// Firma obligatoria para NpcInteractable.TalkedTo: Action&lt;NpcInteractable, InteractionContext&gt;.
+    /// Usamos el npc recibido como guard defensivo para evitar procesar eventos de otro actor por error.
+    /// </summary>
     public void HandleTalkedTo(NpcInteractable npc, InteractionContext context)
     {
+        NpcInteractable expectedNpc = ResolveNpcInteractable();
+
+        if (expectedNpc != null && npc != null && npc != expectedNpc)
+        {
+            if (logInteractions)
+            {
+                Debug.LogWarning(
+                    $"{nameof(MissionActorInteraction)} ignoró TalkedTo de '{npc.name}' porque esperaba '{expectedNpc.name}'.",
+                    this);
+            }
+
+            return;
+        }
+
         ResolveAndExecute();
     }
 
@@ -262,19 +302,21 @@ public sealed class MissionActorInteraction : MonoBehaviour
         }
 
         resolvedNpc.TalkedTo += HandleTalkedTo;
+        subscribedNpc = resolvedNpc;
         subscribed = true;
     }
 
     private void Unsubscribe()
     {
-        NpcInteractable resolvedNpc = ResolveNpcInteractable();
-
-        if (!subscribed || resolvedNpc == null)
+        if (!subscribed || subscribedNpc == null)
         {
+            subscribed = false;
+            subscribedNpc = null;
             return;
         }
 
-        resolvedNpc.TalkedTo -= HandleTalkedTo;
+        subscribedNpc.TalkedTo -= HandleTalkedTo;
+        subscribedNpc = null;
         subscribed = false;
     }
 

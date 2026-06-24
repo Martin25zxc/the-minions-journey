@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
-  m_Name: main_01_03_reach_valley_heights
+  m_Name: main_01_03_confront_valley_leader
   m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
   missionId: main_01_03_confront_valley_leader
   category: 0
