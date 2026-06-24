@@ -1621,6 +1621,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 27fb9e8955a97d4499c179f8174e6607, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1282305302935611141}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 27fb9e8955a97d4499c179f8174e6607, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6854761917900041996}
   m_SourcePrefab: {fileID: 100100000, guid: 27fb9e8955a97d4499c179f8174e6607, type: 3}
 --- !u!4 &4138816921459268477 stripped
 Transform:
@@ -1724,3 +1727,23 @@ SkinnedMeshRenderer:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0, y: 0, z: 0}
   m_DirtyAABB: 0
+--- !u!114 &6854761917900041996
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8784181875237541533}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06cea4b149fffc04bbc8ca6596635425, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAudio
+  footstepData: {fileID: 11400000, guid: dc60839119124fc4da290253d0f4cb6f, type: 2}
+  minSpeedThreshold: 0.5
+  lightAttackData: {fileID: 11400000, guid: c6b3edffc6fe5d04bac48196aa1a9ca4, type: 2}
+  heavyAttackData: {fileID: 11400000, guid: 1e17618dea04e2f4aaae5ef97516b85c, type: 2}
+  leapSlashData: {fileID: 0}
+  spinSlashData: {fileID: 0}
+  hitFront: {fileID: 11400000, guid: 2bde873769cc4db4ba20b2e5249babab, type: 2}
+  hitBack: {fileID: 11400000, guid: 669c871a9a042ba4da8464c74231a9a0, type: 2}
