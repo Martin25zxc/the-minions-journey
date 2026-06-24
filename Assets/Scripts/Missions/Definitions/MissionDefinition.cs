@@ -46,7 +46,7 @@ public sealed class MissionDefinition : ScriptableObject
     private MissionObjectiveDefinition[] objectives = Array.Empty<MissionObjectiveDefinition>();
 
     [Header("Recompensas")]
-    [SerializeField, Tooltip("Recompensas declaradas. En esta etapa no se entregan todavía.")]
+    [SerializeField, Tooltip("Recompensas que se entregan cuando la misión llega a Completed. También sirven como fuente para Journal/notificación futura.")]
     private MissionRewardDefinition[] rewards = Array.Empty<MissionRewardDefinition>();
 
     [Header("UI")]

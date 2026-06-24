@@ -91,7 +91,7 @@ public sealed class MissionDefinitionEditor : Editor
         EditorGUILayout.PropertyField(objectives, new GUIContent("Objectives", "Objetivos de autoría. No guardan progreso runtime."), true);
 
         DrawSectionTitle("Recompensas");
-        EditorGUILayout.PropertyField(rewards, new GUIContent("Rewards", "Recompensas declaradas. En esta etapa no se entregan todavía."), true);
+        EditorGUILayout.PropertyField(rewards, new GUIContent("Rewards", "Recompensas que se entregan cuando la misión llega a Completed. También pueden mostrarse en Journal futuro."), true);
 
         DrawSectionTitle("UI");
         EditorGUILayout.PropertyField(showInHUD, new GUIContent("Show In HUD", "Si está activo, esta misión puede aparecer en el HUD cuando esté trackeada."));

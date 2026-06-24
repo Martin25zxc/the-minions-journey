@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63af08c9de1f88c4b9c5f7c4d8909b75, type: 3}
+  m_Name: WEPD_HookArtifact
+  m_EditorClassIdentifier: Assembly-CSharp::WorldEventPickupDefinition
+  pickupId: WEPD_HookArtifact
+  displayName: Hook Artifact
+  description: 
+  worldModelPrefab: {fileID: 919132149155446097, guid: 50c3f4567953c9441808a761a0fa2986, type: 3}
+  visualProfile: {fileID: 11400000, guid: 5a61afc8f519fb4499a624f32ef9767e, type: 2}
+  defaultCollectMode: 10
+  defaultPromptVerb: Recoger
+  eventType: 4
+  targetId: hook_artifact
+  amount: 1

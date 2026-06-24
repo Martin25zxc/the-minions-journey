@@ -10,10 +10,8 @@ using UnityEngine;
 /// - PickupVisual_Minor_Nature
 /// - PickupVisual_Standard_Warm
 /// - PickupVisual_Major_CrimsonGold
-///
-/// No usar abreviaturas tipo PVP porque en videojuegos suele confundirse con Player vs Player.
 /// </summary>
-[CreateAssetMenu(menuName = "TMJ/Pickups/Pickup Visual Profile")]
+[CreateAssetMenu(menuName = "Game/Pickups/Pickup Visual Profile")]
 public sealed class PickupVisualProfile : ScriptableObject
 {
     [Header("Identity / Communication")]

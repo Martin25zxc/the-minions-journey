@@ -60,6 +60,7 @@ public sealed class MissionManager : MonoBehaviour
 
     private MissionRuntimeState trackedMission;
     private bool initialized;
+    private bool isInitializing;
 
     public event Action<MissionRuntimeState> MissionAvailable;
     public event Action<MissionRuntimeState> MissionAccepted;
@@ -91,14 +92,23 @@ public sealed class MissionManager : MonoBehaviour
 
     public void InitializeFromCatalog()
     {
+        if (isInitializing)
+        {
+            return;
+        }
+
+        isInitializing = true;
+
         statesByMissionId.Clear();
         orderedStates.Clear();
         trackedMission = null;
+        initialized = false;
 
         if (missionCatalog == null)
         {
             Debug.LogWarning($"{nameof(MissionManager)} no tiene MissionCatalog asignado. Se podrán registrar misiones por runtime si Allow Runtime Registration está activo.", this);
             initialized = true;
+            isInitializing = false;
             RefreshDebugStates();
             return;
         }
@@ -110,13 +120,18 @@ public sealed class MissionManager : MonoBehaviour
             RegisterMissionDefinition(missionDefinitions[i], logIfDuplicate: true);
         }
 
+        // Importante: marcamos initialized ANTES de emitir eventos iniciales.
+        // Si un listener como MissionHUDTracker responde a MissionAvailable y consulta GetTrackedMission(),
+        // EnsureInitialized() no debe volver a ejecutar InitializeFromCatalog().
+        initialized = true;
+
         if (makeInteractionMissionsAvailableOnAwake)
         {
             MarkInitialInteractionMissionsAvailable();
         }
 
-        initialized = true;
         RefreshDebugStates();
+        isInitializing = false;
     }
 
     public bool TryMakeMissionAvailable(string missionId)
@@ -409,6 +424,8 @@ public sealed class MissionManager : MonoBehaviour
 
     private void AcceptAutoStartMissions()
     {
+        EnsureInitialized();
+
         for (int i = 0; i < orderedStates.Count; i++)
         {
             MissionRuntimeState runtimeState = orderedStates[i];
@@ -435,6 +452,11 @@ public sealed class MissionManager : MonoBehaviour
 
             if (runtimeState.MarkAvailable())
             {
+                if (logChanges)
+                {
+                    Debug.Log($"Misión disponible inicial: {runtimeState.MissionId}", this);
+                }
+
                 MissionAvailable?.Invoke(runtimeState);
             }
         }
@@ -573,7 +595,7 @@ public sealed class MissionManager : MonoBehaviour
 
     private void EnsureInitialized()
     {
-        if (initialized)
+        if (initialized || isInitializing)
         {
             return;
         }

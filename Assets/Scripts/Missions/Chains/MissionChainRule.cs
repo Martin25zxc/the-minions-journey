@@ -1,0 +1,121 @@
+using System;
+using UnityEngine;
+
+[Serializable]
+public sealed class MissionChainRule
+{
+    [Header("Condición")]
+    [SerializeField, Tooltip("Misión fuente que debe alcanzar el estado indicado por Trigger.")]
+    private MissionDefinition sourceMission;
+
+    [SerializeField, Tooltip("Momento de la misión fuente que dispara esta regla.")]
+    private MissionChainTrigger trigger = MissionChainTrigger.OnCompleted;
+
+    [Header("Resultado")]
+    [SerializeField, Tooltip("Misión destino afectada por esta regla.")]
+    private MissionDefinition targetMission;
+
+    [SerializeField, Tooltip("MakeAvailable deja la misión disponible para un actor. StartMission la activa automáticamente para continuidad de cadena.")]
+    private MissionChainAction action = MissionChainAction.MakeAvailable;
+
+    [SerializeField, Tooltip("Si está activo, la regla se ejecuta una sola vez por sesión runtime.")]
+    private bool executeOnce = true;
+
+    [SerializeField, TextArea(1, 3), Tooltip("Nota de autoría para recordar intención narrativa o de gameplay. No afecta runtime.")]
+    private string developerNote;
+
+    public MissionDefinition SourceMission => sourceMission;
+    public MissionChainTrigger Trigger => trigger;
+    public MissionDefinition TargetMission => targetMission;
+    public MissionChainAction Action => action;
+    public bool ExecuteOnce => executeOnce;
+    public string DeveloperNote => developerNote;
+
+    public string SourceMissionId => sourceMission != null ? CleanId(sourceMission.MissionId) : string.Empty;
+    public string TargetMissionId => targetMission != null ? CleanId(targetMission.MissionId) : string.Empty;
+
+    public bool IsValid => sourceMission != null && targetMission != null && !string.IsNullOrEmpty(SourceMissionId) && !string.IsNullOrEmpty(TargetMissionId);
+
+    public bool Matches(MissionRuntimeState sourceRuntimeState, MissionChainTrigger receivedTrigger)
+    {
+        if (sourceRuntimeState == null || receivedTrigger != trigger)
+        {
+            return false;
+        }
+
+        return string.Equals(SourceMissionId, CleanId(sourceRuntimeState.MissionId), StringComparison.Ordinal);
+    }
+
+    public bool HasSourceReachedTrigger(MissionRuntimeState sourceRuntimeState)
+    {
+        if (sourceRuntimeState == null)
+        {
+            return false;
+        }
+
+        switch (trigger)
+        {
+            case MissionChainTrigger.OnAccepted:
+                return sourceRuntimeState.IsActive || sourceRuntimeState.IsReadyToTurnIn || sourceRuntimeState.IsCompleted;
+
+            case MissionChainTrigger.OnReadyToTurnIn:
+                return sourceRuntimeState.IsReadyToTurnIn || sourceRuntimeState.IsCompleted;
+
+            case MissionChainTrigger.OnCompleted:
+                return sourceRuntimeState.IsCompleted;
+
+            default:
+                return false;
+        }
+    }
+
+    public string BuildDebugLabel(int ruleIndex)
+    {
+        return $"Rule {ruleIndex}: {SourceMissionId} {trigger} -> {action} {TargetMissionId}";
+    }
+
+    public string BuildExecutionKey(string chainId, int ruleIndex)
+    {
+        return $"{CleanId(chainId)}|{ruleIndex}|{SourceMissionId}|{trigger}|{action}|{TargetMissionId}";
+    }
+
+    public void Validate(UnityEngine.Object context, string chainName, int index)
+    {
+        if (sourceMission == null)
+        {
+            Debug.LogWarning($"{chainName}: Rule #{index} no tiene Source Mission.", context);
+        }
+        else if (string.IsNullOrEmpty(SourceMissionId))
+        {
+            Debug.LogWarning($"{chainName}: Rule #{index} tiene Source Mission sin MissionId.", sourceMission);
+        }
+
+        if (targetMission == null)
+        {
+            Debug.LogWarning($"{chainName}: Rule #{index} no tiene Target Mission.", context);
+        }
+        else if (string.IsNullOrEmpty(TargetMissionId))
+        {
+            Debug.LogWarning($"{chainName}: Rule #{index} tiene Target Mission sin MissionId.", targetMission);
+        }
+
+        if (!string.IsNullOrEmpty(SourceMissionId) && string.Equals(SourceMissionId, TargetMissionId, StringComparison.Ordinal))
+        {
+            Debug.LogWarning($"{chainName}: Rule #{index} usa la misma misión como Source y Target: '{SourceMissionId}'. Esto suele indicar un ciclo accidental.", context);
+        }
+
+        if (action == MissionChainAction.StartMission && targetMission != null)
+        {
+            if (targetMission.CompletionMode == MissionCompletionMode.RequiresTurnIn &&
+                targetMission.TurnInTargetMode == MissionTurnInTargetMode.OriginalGiver)
+            {
+                Debug.LogWarning($"{chainName}: Rule #{index} usa StartMission con una misión RequiresTurnIn + OriginalGiver ('{TargetMissionId}'). Esa combinación necesita un actor giver real; usá MakeAvailable o un SpecificActor.", targetMission);
+            }
+        }
+    }
+
+    private static string CleanId(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+    }
+}

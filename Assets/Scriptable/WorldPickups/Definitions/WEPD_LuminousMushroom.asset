@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63af08c9de1f88c4b9c5f7c4d8909b75, type: 3}
+  m_Name: WEPD_LuminousMushroom
+  m_EditorClassIdentifier: Assembly-CSharp::WorldEventPickupDefinition
+  pickupId: WEPD_LuminousMushroom
+  displayName: Hongo luminoso
+  description: Los seres de la naturaleza se benefician
+  worldModelPrefab: {fileID: 4739857973114093214, guid: 7f1acd140ed5b78449f396c5af4de3d2, type: 3}
+  visualProfile: {fileID: 11400000, guid: f24456349c5ccbd41b7759e8eb8b382b, type: 2}
+  defaultCollectMode: 0
+  defaultPromptVerb: 
+  eventType: 1
+  targetId: luminous_mushroom
+  amount: 1

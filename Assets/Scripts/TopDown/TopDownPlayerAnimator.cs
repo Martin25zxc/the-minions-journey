@@ -24,6 +24,9 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     [SerializeField, Min(0.01f)]
     private float speedDampTime = 0.08f;
 
+    [SerializeField, Min(0f)]
+    private float movementDeadZone = 0.08f;
+
     private Rigidbody body;
     private bool isSubscribedToHealth;
 
@@ -145,6 +148,17 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         Vector3 worldVelocity = body.linearVelocity;
         worldVelocity.y = 0f;
 
+        float deadZone = movementDeadZone;
+        float deadZoneSqr = deadZone * deadZone;
+
+        if (worldVelocity.sqrMagnitude < deadZoneSqr)
+        {
+            animator.SetFloat(SpeedHash, 0f);
+            animator.SetFloat(MoveXHash, 0f);
+            animator.SetFloat(MoveYHash, 0f);
+            return;
+        }
+
         float speed = worldVelocity.magnitude;
         animator.SetFloat(SpeedHash, speed, speedDampTime, Time.deltaTime);
 
@@ -152,6 +166,16 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
 
         float moveX = Mathf.Clamp(localVelocity.x / locomotionBlendSpeed, -1f, 1f);
         float moveY = Mathf.Clamp(localVelocity.z / locomotionBlendSpeed, -1f, 1f);
+
+        if (Mathf.Abs(moveX) < 0.001f)
+        {
+            moveX = 0f;
+        }
+
+        if (Mathf.Abs(moveY) < 0.001f)
+        {
+            moveY = 0f;
+        }
 
         animator.SetFloat(MoveXHash, moveX, moveDampTime, Time.deltaTime);
         animator.SetFloat(MoveYHash, moveY, moveDampTime, Time.deltaTime);
