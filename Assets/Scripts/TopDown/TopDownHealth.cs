@@ -5,6 +5,10 @@ using UnityEngine.Events;
 [DisallowMultipleComponent]
 public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
 {
+    [Header("Is Player")]
+    [SerializeField]
+    bool isPlayer = false;
+
     [Header("Health")]
     [SerializeField, Min(1f)]
     float maxHealth = 10f;
@@ -44,6 +48,7 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
     void Awake()
     {
         ResetHealthState();
+        currentLives = maxLives;
     }
 
     void OnValidate()
@@ -112,22 +117,34 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         if (currentHealth <= 0f && !hasDied)
         {
             hasDied = true;
-            if (currentLives > 1)
+            if (isPlayer)
             {
-                currentLives--;
-                ResetHealthState();
-                OnDied?.Invoke();
-                onDied.Invoke();
-                OnHealthChanged?.Invoke(currentHealth, maxHealth);
-                OnShieldChanged?.Invoke(currentShield, maxShield);
+
+                if (currentLives > 1)
+                {
+                    
+                    Debug.Log("<color=cyan>¡Has muerto! Te quedan " + (currentLives - 1) + " vidas." +"</color>)");
+                    currentLives--;
+                    ResetHealthState();
+                    OnDied?.Invoke();
+                    onDied.Invoke();
+                    OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                    OnShieldChanged?.Invoke(currentShield, maxShield);
+                }
+                else
+                {
+                    Debug.Log("<color=cyan>¡Has muerto! gameover</color>)");
+                    currentLives = 0;
+                    OnGameOver?.Invoke();
+                }
             }
             else
             {
-                currentLives = 0;
-                OnGameOver?.Invoke();
+                OnDied?.Invoke();
+                onDied.Invoke();
             }
         }
-    }
+        }
 
     public void Heal(float amount)
     {

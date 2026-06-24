@@ -205,6 +205,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af1e5d39c3bd3954696fa41a9f50acab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownHealth
+  isPlayer: 1
   maxHealth: 300
   maxShield: 0
   maxLives: 3
@@ -227,7 +228,7 @@ MonoBehaviour:
   powerQ: {fileID: 0}
   powerE: {fileID: 0}
   playerAnimator: {fileID: 0}
-  equipmentVisuals: {fileID: 6209150160497060292}
+  equipmentVisuals: {fileID: 0}
   actionLock: {fileID: 0}
   clearComboHistoryWhenCombatLocked: 1
   comboHistoryWindow: 1.5
@@ -989,7 +990,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8419474419955220364
 Transform:
   m_ObjectHideFlags: 0

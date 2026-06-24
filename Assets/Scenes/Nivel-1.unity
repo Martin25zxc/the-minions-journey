@@ -127,6 +127,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 1573101690}
     m_Modifications:
+    - target: {fileID: 22260375777963059, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: isPlayer
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1833050559653338466, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
       propertyPath: m_LocalPosition.x
       value: -19.63552
@@ -175,6 +179,10 @@ PrefabInstance:
       propertyPath: skillManager
       value: 
       objectReference: {fileID: 565572947}
+    - target: {fileID: 7652070060768752827, guid: ca56b77efc22fb248be98170bdb777cb, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
