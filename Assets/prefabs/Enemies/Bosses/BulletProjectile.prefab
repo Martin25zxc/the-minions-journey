@@ -74,9 +74,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BulletAttackController
   projectileSpeed: 5
-  damage: 10
   canBounce: 0
   maxBounces: 1
+  damage: 10
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 2097152
+  damageOwner: {fileID: 0}
 --- !u!1001 &6254800395444828131
 PrefabInstance:
   m_ObjectHideFlags: 0

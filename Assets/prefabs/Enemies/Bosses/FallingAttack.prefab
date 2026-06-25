@@ -202,9 +202,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FallAttackController
   fallSpeed: 10
-  damage: 20
   initialHeight: 10
   destroyDelay: 1
+  damage: 20
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  impactLayers:
+    serializedVersion: 2
+    m_Bits: 1032
+  damageOwner: {fileID: 0}
   fracturedMesh: {fileID: 3178117156478472769}
 --- !u!4 &1858737562105301368 stripped
 Transform:
@@ -1005,9 +1012,17 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
+      propertyPath: m_CastShadows
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
       propertyPath: m_Name
       value: Marker
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
+      propertyPath: m_Layer
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 69b95b3aab7a7c942819c1364049b285, type: 3}
       propertyPath: m_TagString
@@ -1041,7 +1056,7 @@ BoxCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

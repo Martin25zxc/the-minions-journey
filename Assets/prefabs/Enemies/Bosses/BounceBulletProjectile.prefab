@@ -74,9 +74,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BulletAttackController
   projectileSpeed: 10
-  damage: 10
   canBounce: 1
   maxBounces: 1
+  damage: 10
+  targetLayers:
+    serializedVersion: 2
+    m_Bits: 8
+  wallLayers:
+    serializedVersion: 2
+    m_Bits: 2097152
+  damageOwner: {fileID: 0}
 --- !u!1001 &8400881819845800714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -87,15 +94,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: d921815a86699564185d4c25af597055, type: 3}
       propertyPath: m_LocalScale.x
-      value: 50
+      value: 75
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d921815a86699564185d4c25af597055, type: 3}
       propertyPath: m_LocalScale.y
-      value: 50
+      value: 75
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d921815a86699564185d4c25af597055, type: 3}
       propertyPath: m_LocalScale.z
-      value: 50
+      value: 75
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: d921815a86699564185d4c25af597055, type: 3}
       propertyPath: m_LocalPosition.x

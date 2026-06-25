@@ -462,8 +462,26 @@ public class BossArenaManager : MonoBehaviour
     {
         switch (chosenAttack)
         {
+            case 1: 
+            atk01.ForceStop();
+            break;
+            case 2: 
+            atk02.ForceStop();
+            break;
+            case 3: 
+            atk03.ForceStop();
+            break;
+            case 4: 
+            atk04.ForceStop();
+            break;
             case 5: 
             atk05.ForceStop();
+            break;
+            case 6: 
+            atk06.ForceStop();
+            break;
+            case 7: 
+            atk07.ForceStop();
             break;
             case 8:
             atk08.ForceStop();

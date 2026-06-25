@@ -27,6 +27,7 @@ public class RespawnPointManager : MonoBehaviour
         _lastActivated?.SetAsCurrent(false);
         point.SetAsCurrent(true);
         _lastActivated = point;
+        //Debug.Log("<color=yellow>Respawn point activado</color>");
 
         if (showActivationNotification)
         {

@@ -140,4 +140,13 @@ public class Attack02_SpinArms : MonoBehaviour
             nextDamageTimeByTarget[damageable] = Time.time + damageCooldown;
         }
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        nextDamageTimeByTarget.Clear();
+        routine = null;
+        OnAttackEnded?.Invoke();
+
+    }
 }

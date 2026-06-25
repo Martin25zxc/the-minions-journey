@@ -48,8 +48,8 @@ MonoBehaviour:
   ringPrefab: {fileID: 5638436008709792272, guid: 9e02174911c2a03438ec0723779d70a3, type: 3}
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
-  damageOwner: {fileID: 0}
+    m_Bits: 8
+  damageOwner: {fileID: 6730660139592308344}
   magicCircle: {fileID: 2791509172292587514}
   repeatCount: 3
   preSpawnDelay: 0.5
@@ -192,11 +192,11 @@ MonoBehaviour:
   mainWeaponMesh: {fileID: 8778729941098742212}
   targetLayers:
     serializedVersion: 2
-    m_Bits: 4294967295
-  damageOwner: {fileID: 0}
-  spinSpeed: 300
+    m_Bits: 8
+  damageOwner: {fileID: 6730660139592308344}
+  spinSpeed: 400
   spinDuration: 2
-  repeatCount: 1
+  repeatCount: 2
   damage: 15
   damageCooldown: 0.35
 --- !u!1 &2895193484427443481
@@ -341,15 +341,15 @@ MonoBehaviour:
   bulletPrefab: {fileID: 1636242591893876205, guid: b50b12ed972fdbf49a5fdb8fc51bd944, type: 3}
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   wallLayers:
     serializedVersion: 2
-    m_Bits: 0
-  damageOwner: {fileID: 0}
+    m_Bits: 2097152
+  damageOwner: {fileID: 6730660139592308344}
   volleyCount: 4
   delayBetweenVolleys: 0.5
   rotationPerVolley: 30
-  projectileSpeed: 10
+  projectileSpeed: 15
 --- !u!1 &5319072881001239751
 GameObject:
   m_ObjectHideFlags: 0
@@ -695,10 +695,10 @@ MonoBehaviour:
   targetLayers:
     serializedVersion: 2
     m_Bits: 8
-  damageOwner: {fileID: 0}
+  damageOwner: {fileID: 6730660139592308344}
   laserDuration: 3
   laserRange: 30
-  damagePerSecond: 8
+  damagePerSecond: 20
   rotateSpeed: 120
   warningColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   damageColor: {r: 1, g: 0, b: 0, a: 1}
@@ -752,11 +752,11 @@ MonoBehaviour:
   dropPrefab: {fileID: 6159548021099154663, guid: 98fe87dcaba95444fa1d6e10b5f3755d, type: 3}
   targetLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 8
   impactLayers:
     serializedVersion: 2
-    m_Bits: 0
-  damageOwner: {fileID: 0}
+    m_Bits: 8
+  damageOwner: {fileID: 6730660139592308344}
   dropCount: 5
   delayBetweenDrops: 0.4
   magicCircle: {fileID: 2769992484313481399}
@@ -1734,6 +1734,7 @@ MonoBehaviour:
   health: {fileID: 133355654693146480}
   moveSpeed: 10
   epsilon: 0.05
+  iframesDuration: 0.5
 --- !u!114 &133355654693146480
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1746,7 +1747,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af1e5d39c3bd3954696fa41a9f50acab, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownHealth
-  maxHealth: 10
+  maxHealth: 300
   maxShield: 0
   onDied:
     m_PersistentCalls:

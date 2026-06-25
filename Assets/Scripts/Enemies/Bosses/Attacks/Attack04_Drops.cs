@@ -116,4 +116,29 @@ public class Attack04_Drops : MonoBehaviour
         magicCircle?.SetActive(false);
         OnAttackEnded?.Invoke();
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        foreach (GameObject drop in activeDrops)
+        {
+            if (drop != null)
+            {
+                Destroy(drop);
+            }
+        }
+
+        activeDrops.Clear();
+        routine = null;
+
+        if (anim != null)
+        {
+            anim.SetBool("IsCasting", false);
+        }
+
+        magicCircle?.SetActive(false);
+        OnAttackEnded?.Invoke();
+        
+
+    }
 }

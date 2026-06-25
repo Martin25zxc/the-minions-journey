@@ -37,7 +37,7 @@ public class Attack03_Laser : MonoBehaviour
 
     [Header("Visual")]
     public Color warningColor = Color.yellow;  // fase de aviso (sin daño)
-    public Color damageColor  = Color.red;     // fase activa (con daño)
+    public Color damageColor = Color.red;     // fase activa (con daño)
     public float warningDuration = 2f;       // segundos en amarillo antes de hacer daño
     public float laserWidth = 0.05f;
 
@@ -187,5 +187,21 @@ public class Attack03_Laser : MonoBehaviour
     {
         lr.startColor = c;
         lr.endColor = c;
+    }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        lr.enabled = false;
+        dealingDamage = false;
+
+        if (anim != null)
+        {
+            anim.SetBool("IsCasting", false);
+        }
+
+        magicCircle?.SetActive(false);
+        routine = null;
+        OnAttackEnded?.Invoke();
     }
 }

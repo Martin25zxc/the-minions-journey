@@ -112,4 +112,14 @@ public class Attack07_Ring : MonoBehaviour
             ringController.Configure(damageOwner, targetLayers);
         }
     }
+
+      public void ForceStop()
+    {
+        StopAllCoroutines();
+        magicCircle?.SetActive(false);
+        cyclesDone = 0;
+        routine = null;
+        OnAttackEnded?.Invoke();
+
+    }
 }

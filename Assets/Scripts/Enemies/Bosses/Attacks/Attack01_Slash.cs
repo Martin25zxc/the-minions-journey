@@ -141,4 +141,11 @@ public class Attack01_Slash : MonoBehaviour
             nextDamageTimeByTarget[damageable] = Time.time + damageCooldown;
         }
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        OnAttackEnded?.Invoke();
+
+    }
 }

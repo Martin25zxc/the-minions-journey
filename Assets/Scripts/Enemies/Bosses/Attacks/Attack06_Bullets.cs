@@ -121,4 +121,18 @@ public class Attack06_Bullets : MonoBehaviour
             }
         }
     }
+
+    public void ForceStop()
+    {
+        StopAllCoroutines();
+        routine = null;
+        isCasting = false;
+
+        if (animator != null)
+        {
+            animator.SetBool("IsCasting", isCasting);
+        }
+        OnAttackEnded?.Invoke();
+
+    }
 }
