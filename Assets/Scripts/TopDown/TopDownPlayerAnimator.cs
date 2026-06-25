@@ -1,4 +1,6 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.Events;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Rigidbody))]
@@ -42,11 +44,9 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     private static readonly int HitFrontHash = Animator.StringToHash("HitFront");
     private static readonly int HitBackHash = Animator.StringToHash("HitBack");
     private static readonly int DieHash = Animator.StringToHash("Die");
-
-    private static readonly int IsBlockingHash = Animator.StringToHash("IsBlocking");
-    private static readonly int DodgeHash = Animator.StringToHash("Dodge");
-    private static readonly int UseItemHash = Animator.StringToHash("UseItem");
     private static readonly int InteractHash = Animator.StringToHash("Interact");
+    
+    private static readonly int HookLaunchHash = Animator.StringToHash("HookLaunch");
 
     [Header("Hit Reaction")]
     [SerializeField]
@@ -59,7 +59,44 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     [SerializeField, Min(0f)]
     private float hitAnimationMinInterval = 0.15f;
 
+    [Header("Respawn Animation")]
+    [Tooltip("Nombre exacto del estado base al que vuelve el Animator después de Lie_StandUp.")]
+    [SerializeField]
+    private string locomotionStateName = "Locomotion";
+
+    [Tooltip("Nombre exacto del estado que usa el clip lie stand up.")]
+    [SerializeField]
+    private string standUpStateName = "Lie_StandUp";
+
+    [Tooltip("Duración del clip Lie_StandUp. El clip encontrado dura 2.333 segundos.")]
+    [SerializeField, Min(0f)]
+    private float standUpDuration = 2.333f;
+
+    [Tooltip("Transición corta hacia Lie_StandUp al revivir.")]
+    [SerializeField, Min(0f)]
+    private float standUpCrossFadeDuration = 0.05f;
+
+    [Tooltip("Transición corta hacia Locomotion al terminar Lie_StandUp.")]
+    [SerializeField, Min(0f)]
+    private float locomotionCrossFadeDuration = 0.05f;
+
+    [Tooltip("Layer del Animator donde están Locomotion, Death y Lie_StandUp.")]
+    [SerializeField]
+    private int baseLayerIndex = 0;
+
+    [Header("Respawn Events")]
+    [Tooltip("Se invoca cuando empieza la animación Lie_StandUp.")]
+    [SerializeField]
+    private UnityEvent onRespawnStandUpStarted;
+
+    [Tooltip("Se invoca cuando termina Lie_StandUp y el Animator vuelve a Locomotion.")]
+    [SerializeField]
+    private UnityEvent onRespawnStandUpCompleted;
+
     private float lastHitAnimationTime = -999f;
+    private Coroutine standUpCoroutine;
+
+    public bool IsPlayingRespawnStandUp => standUpCoroutine != null;
 
     private void Awake()
     {
@@ -84,6 +121,12 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
     private void OnDisable()
     {
         UnsubscribeFromHealthEvents();
+
+        if (standUpCoroutine != null)
+        {
+            StopCoroutine(standUpCoroutine);
+            standUpCoroutine = null;
+        }
     }
 
     private void SubscribeToHealthEvents()
@@ -145,6 +188,14 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return;
         }
 
+        if (standUpCoroutine != null)
+        {
+            animator.SetFloat(SpeedHash, 0f);
+            animator.SetFloat(MoveXHash, 0f);
+            animator.SetFloat(MoveYHash, 0f);
+            return;
+        }
+
         Vector3 worldVelocity = body.linearVelocity;
         worldVelocity.y = 0f;
 
@@ -191,6 +242,11 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         animator?.SetTrigger(HeavyAttackHash);
     }
 
+    public void PlayHookLaunch()
+    {
+        animator?.SetTrigger(HookLaunchHash);
+    }
+    
     public void PlayCombo(PlayerComboAnimationCue animationCue)
     {
         switch (animationCue)
@@ -314,6 +370,7 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
         AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(0);
         return nextState.IsTag(tag);
     }
+
     public void PlayDeath()
     {
         if (animator == null)
@@ -321,28 +378,141 @@ public sealed class TopDownPlayerAnimator : MonoBehaviour
             return;
         }
 
+        if (standUpCoroutine != null)
+        {
+            StopCoroutine(standUpCoroutine);
+            standUpCoroutine = null;
+        }
+
         animator.ResetTrigger(HitFrontHash);
         animator.ResetTrigger(HitBackHash);
         animator.SetTrigger(DieHash);
     }
 
+    public void PlayInteract()
+    {
+        animator?.SetTrigger(InteractHash);
+    }
+
     public void SetBlocking(bool isBlocking)
     {
-        animator?.SetBool(IsBlockingHash, isBlocking);
+        SetBoolIfExists("IsBlocking", isBlocking);
     }
 
     public void PlayDodge()
     {
-        animator?.SetTrigger(DodgeHash);
+        SetTriggerIfExists("Dodge");
     }
 
     public void PlayUseItem()
     {
-        animator?.SetTrigger(UseItemHash);
+        SetTriggerIfExists("UseItem");
     }
 
-    public void PlayInteract()
+    public void PlayRespawnStandUp()
     {
-        animator?.SetTrigger(InteractHash);
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (standUpCoroutine != null)
+        {
+            StopCoroutine(standUpCoroutine);
+        }
+
+        standUpCoroutine = StartCoroutine(PlayRespawnStandUpRoutine());
+    }
+
+    private IEnumerator PlayRespawnStandUpRoutine()
+    {
+        ClearRespawnAnimatorParameters();
+
+        CrossFadeStateIfExists(standUpStateName, standUpCrossFadeDuration);
+        onRespawnStandUpStarted?.Invoke();
+
+        if (standUpDuration > 0f)
+        {
+            yield return new WaitForSeconds(standUpDuration);
+        }
+
+        ClearRespawnAnimatorParameters();
+        CrossFadeStateIfExists(locomotionStateName, locomotionCrossFadeDuration);
+
+        standUpCoroutine = null;
+        onRespawnStandUpCompleted?.Invoke();
+    }
+
+    private void ClearRespawnAnimatorParameters()
+    {
+        animator.speed = 1f;
+
+        animator.ResetTrigger(LightAttackHash);
+        animator.ResetTrigger(HeavyAttackHash);
+        animator.ResetTrigger(LeapSlashAttackHash);
+        animator.ResetTrigger(SpinSlashAttackHash);
+        animator.ResetTrigger(HitFrontHash);
+        animator.ResetTrigger(HitBackHash);
+        animator.ResetTrigger(DieHash);
+        animator.ResetTrigger(InteractHash);
+
+        animator.SetFloat(SpeedHash, 0f);
+        animator.SetFloat(MoveXHash, 0f);
+        animator.SetFloat(MoveYHash, 0f);
+    }
+
+    private void CrossFadeStateIfExists(string stateName, float duration)
+    {
+        if (string.IsNullOrWhiteSpace(stateName) || animator == null)
+        {
+            return;
+        }
+
+        int stateHash = Animator.StringToHash(stateName);
+
+        if (!animator.HasState(baseLayerIndex, stateHash))
+        {
+            Debug.LogWarning($"Animator state '{stateName}' does not exist on layer {baseLayerIndex}.", this);
+            return;
+        }
+
+        animator.CrossFadeInFixedTime(stateHash, duration, baseLayerIndex);
+        animator.Update(0f);
+    }
+
+    private void SetBoolIfExists(string parameterName, bool value)
+    {
+        if (string.IsNullOrWhiteSpace(parameterName) || animator == null)
+        {
+            return;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == AnimatorControllerParameterType.Bool &&
+                parameter.name == parameterName)
+            {
+                animator.SetBool(parameterName, value);
+                return;
+            }
+        }
+    }
+
+    private void SetTriggerIfExists(string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(parameterName) || animator == null)
+        {
+            return;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == AnimatorControllerParameterType.Trigger &&
+                parameter.name == parameterName)
+            {
+                animator.SetTrigger(parameterName);
+                return;
+            }
+        }
     }
 }

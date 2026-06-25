@@ -31,7 +31,7 @@ public sealed class NotificationManager : MonoBehaviour
     [SerializeField] private bool logNotifications;
 
     [Header("Global Access")]
-    [Tooltip("Permite que otros sistemas usen TMJNotifications sin referencia directa.")]
+    [Tooltip("Permite que otros sistemas usen TMJNotifications sin referencia directa al NotificationManager.")]
     [SerializeField] private bool registerAsGlobal = true;
 
     private readonly Queue<NotificationData> queuedNotifications = new();
@@ -47,6 +47,11 @@ public sealed class NotificationManager : MonoBehaviour
     public event Action<NotificationData> NotificationQueued;
     public event Action<NotificationData> NotificationSuppressed;
 
+    private void Reset()
+    {
+        PlayerThreatTracker = FindFirstObjectByType<PlayerThreatTracker>();
+    }
+
     private void OnEnable()
     {
         if (registerAsGlobal)
@@ -61,11 +66,6 @@ public sealed class NotificationManager : MonoBehaviour
         {
             TMJNotifications.Unregister(this);
         }
-    }
-
-    private void Reset()
-    {
-        PlayerThreatTracker = FindFirstObjectByType<PlayerThreatTracker>();
     }
 
     public bool ShowSystem(string message, NotificationPriority priority = NotificationPriority.Normal, string title = null)

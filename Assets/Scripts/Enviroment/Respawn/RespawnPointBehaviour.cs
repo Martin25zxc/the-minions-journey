@@ -16,8 +16,11 @@ public class RespawnPointBehaviour : MonoBehaviour
     {
         if (activeVisual == null || inactiveVisual == null || respawnPosition == null)
         {
-            Debug.LogError("RespawnPointBehaviour: One or more serialized fields are not assigned in the inspector.");
+            Debug.LogError("RespawnPointBehaviour: One or more serialized fields are not assigned in the inspector.", this);
+            enabled = false;
+            return;
         }
+
         inactiveVisual.SetActive(true);
         activeVisual.SetActive(false);
     }

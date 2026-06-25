@@ -5,10 +5,6 @@ using UnityEngine.Events;
 [DisallowMultipleComponent]
 public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
 {
-    [Header("Is Player")]
-    [SerializeField]
-    bool isPlayer = false;
-
     [Header("Health")]
     [SerializeField, Min(1f)]
     float maxHealth = 10f;
@@ -16,39 +12,29 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
     [Header("Shield opcional")]
     [SerializeField, Min(0f)]
     float maxShield = 0f;
-    [Header("Max lives")]
-    [SerializeField, Min(1)]
-    int maxLives = 3;
 
     [Header("Unity Events")]
     [SerializeField]
     UnityEvent onDied = new UnityEvent();
 
-
-
     float currentHealth;
     float currentShield;
     bool hasDied;
-    int currentLives;
 
     public event Action<TMJ_DamageInfo> OnDamaged;
     public event Action<float, float> OnHealthChanged;
     public event Action<float, float> OnShieldChanged;
     public event Action OnDied;
 
-    public event Action OnGameOver;
-
     public float MaxHealth => maxHealth;
     public float CurrentHealth => currentHealth;
     public float MaxShield => maxShield;
     public float CurrentShield => currentShield;
     public bool IsAlive => !hasDied && currentHealth > 0f;
-    public int CurrentLives => currentLives;
 
     void Awake()
     {
-        ResetHealthState();
-        currentLives = maxLives;
+        ResetHealthState(restoreShield: true);
     }
 
     void OnValidate()
@@ -66,7 +52,9 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
     {
         maxHealth = Mathf.Max(1f, newMaxHealth);
         maxShield = Mathf.Max(0f, newMaxShield);
-        ResetHealthState();
+
+        ResetHealthState(restoreShield: true);
+
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
         OnShieldChanged?.Invoke(currentShield, maxShield);
     }
@@ -116,35 +104,9 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
 
         if (currentHealth <= 0f && !hasDied)
         {
-            hasDied = true;
-            if (isPlayer)
-            {
-
-                if (currentLives > 1)
-                {
-                    
-                    Debug.Log("<color=cyan>¡Has muerto! Te quedan " + (currentLives - 1) + " vidas." +"</color>)");
-                    currentLives--;
-                    ResetHealthState();
-                    OnDied?.Invoke();
-                    onDied.Invoke();
-                    OnHealthChanged?.Invoke(currentHealth, maxHealth);
-                    OnShieldChanged?.Invoke(currentShield, maxShield);
-                }
-                else
-                {
-                    Debug.Log("<color=cyan>¡Has muerto! gameover</color>)");
-                    currentLives = 0;
-                    OnGameOver?.Invoke();
-                }
-            }
-            else
-            {
-                OnDied?.Invoke();
-                onDied.Invoke();
-            }
+            Die();
         }
-        }
+    }
 
     public void Heal(float amount)
     {
@@ -160,13 +122,76 @@ public sealed class TopDownHealth : MonoBehaviour, ITopDownDamageable
         {
             OnHealthChanged?.Invoke(currentHealth, maxHealth);
         }
-        
     }
 
-    private void ResetHealthState()
+    public void ReviveFull(bool restoreShield = false)
+    {
+        bool wasDead = hasDied;
+        float previousHealth = currentHealth;
+        float previousShield = currentShield;
+
+        currentHealth = maxHealth;
+
+        if (restoreShield)
+        {
+            currentShield = maxShield;
+        }
+        else
+        {
+            currentShield = Mathf.Min(currentShield, maxShield);
+        }
+
+        hasDied = false;
+
+        if (wasDead || !Mathf.Approximately(previousHealth, currentHealth))
+        {
+            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        }
+
+        if (!Mathf.Approximately(previousShield, currentShield))
+        {
+            OnShieldChanged?.Invoke(currentShield, maxShield);
+        }
+    }
+
+    public void RestoreShieldFull()
+    {
+        if (maxShield <= 0f)
+        {
+            return;
+        }
+
+        float previousShield = currentShield;
+        currentShield = maxShield;
+
+        if (!Mathf.Approximately(previousShield, currentShield))
+        {
+            OnShieldChanged?.Invoke(currentShield, maxShield);
+        }
+    }
+
+    void Die()
+    {
+        hasDied = true;
+        currentHealth = 0f;
+
+        OnDied?.Invoke();
+        onDied.Invoke();
+    }
+
+    void ResetHealthState(bool restoreShield)
     {
         currentHealth = maxHealth;
-        currentShield = maxShield;
+
+        if (restoreShield)
+        {
+            currentShield = maxShield;
+        }
+        else
+        {
+            currentShield = Mathf.Min(currentShield, maxShield);
+        }
+
         hasDied = false;
     }
 }

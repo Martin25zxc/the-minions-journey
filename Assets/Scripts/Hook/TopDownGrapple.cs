@@ -18,6 +18,8 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
     [Header("Input")]
     [SerializeField]
     private bool readInputDirectly = true;
+    [SerializeField]
+    private TopDownPlayerAnimator playerAnimator;
 
     [SerializeField]
     private bool pressQAgainCancels = true;
@@ -65,6 +67,26 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
     [SerializeField, Min(0f)]
     private float grappleSkinWidth = 0.03f;
 
+    [Tooltip("Distancia maxima que el jugador puede recorrer durante el pull. Debe ser igual o menor al maxRange real del projectile. Si un collider devuelve un punto raro, el hook se cancela en vez de arrastrar al jugador fuera del nivel.")]
+    [SerializeField, Min(1f)]
+    private float maxPullDistance = 18f;
+
+    [Tooltip("Si el destino calculado queda demasiado cerca de una pared/blocker, retrocede en pasos hasta encontrar un punto seguro.")]
+    [SerializeField, Min(0.01f)]
+    private float destinationBackoffStep = 0.25f;
+
+    [Tooltip("Cantidad maxima de intentos de retroceso para encontrar un destino seguro antes de cancelar el hook.")]
+    [SerializeField, Min(0)]
+    private int destinationBackoffAttempts = 8;
+
+    [Tooltip("Exige que el volumen del jugador tenga camino libre hasta el destino final al momento de enganchar. Evita atravesar paredes por destinos calculados detras o dentro de colliders.")]
+    [SerializeField]
+    private bool requireClearInitialPullPath = true;
+
+    [Tooltip("Muestra warnings cuando el hook cancela por seguridad. Util para ajustar layers/distancias en escena.")]
+    [SerializeField]
+    private bool logGrappleSafetyWarnings;
+
     [Header("Impact Interaction")]
     [Tooltip("Si un impacto/knockback/stun entra durante el hook, el hook se cancela y ImpactReceiver queda como autoridad.")]
     [SerializeField]
@@ -87,6 +109,7 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
     private LineRenderer rope;
 
     private Vector3 grappleDestination;
+    private Vector3 pullStartPosition;
     private GrappleState state = GrappleState.Idle;
 
     private void Awake()
@@ -95,6 +118,11 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         controller = GetComponent<TopDownPlayerController>();
         impactReceiver = GetComponent<ImpactReceiver>();
 
+        if (playerAnimator == null)
+        {
+            playerAnimator = GetComponent<TopDownPlayerAnimator>();
+        }
+        
         if (playerCapsule == null)
         {
             playerCapsule = GetComponent<CapsuleCollider>();
@@ -132,6 +160,18 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         }
 
         Vector3 currentPosition = body.position;
+
+        if (HasExceededSafePullDistance(currentPosition))
+        {
+            if (logGrappleSafetyWarnings)
+            {
+                Debug.LogWarning("TopDownGrapple: pull cancelled because player exceeded maxPullDistance. Check hook targets, enemy roots and blocking layers.", this);
+            }
+
+            CancelGrapple(clearPlayerVelocity: true);
+            return;
+        }
+
         Vector3 toDestination = grappleDestination - currentPosition;
         toDestination.y = 0f;
 
@@ -213,6 +253,7 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
             return;
         }
 
+        playerAnimator?.PlayHookLaunch();
         Vector3 spawnPosition = transform.position
                               + direction * hookSpawnDistance
                               + Vector3.up * ropeOriginHeightOffset;
@@ -276,13 +317,19 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
             return;
         }
 
-        if (IsDestinationBlocked(destination))
+        if (!TryFindSafeDestination(destination, out Vector3 safeDestination))
         {
+            if (logGrappleSafetyWarnings)
+            {
+                Debug.LogWarning("TopDownGrapple: hook landed but no safe pull destination/path was found. Check wallStopDistance, grappleBlockingLayers and collider setup.", this);
+            }
+
             CancelGrapple(clearPlayerVelocity: true);
             return;
         }
 
-        grappleDestination = destination;
+        pullStartPosition = body.position;
+        grappleDestination = safeDestination;
         state = GrappleState.Pulling;
 
         if (controller != null)
@@ -331,15 +378,17 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
 
     private bool TryCalculateEnemyDestination(Collider hitCollider, out Vector3 destination)
     {
-        Transform targetRoot = ResolveEnemyRoot(hitCollider);
-        if (targetRoot == null)
+        if (hitCollider == null)
         {
             destination = body.position;
             return false;
         }
 
         Vector3 currentPosition = body.position;
-        Vector3 targetPosition = targetRoot.position;
+
+        // Para enemigos usamos el centro del collider impactado, no necesariamente el root.
+        // Algunos prefabs tienen pivots/roots lejos del cuerpo visual y eso puede generar destinos absurdamente lejanos.
+        Vector3 targetPosition = hitCollider.bounds.center;
         targetPosition.y = currentPosition.y;
 
         Vector3 fromEnemyToPlayer = currentPosition - targetPosition;
@@ -383,6 +432,92 @@ public sealed class TopDownGrapple : MonoBehaviour, ISkillBehaviour
         }
 
         return hitCollider.transform;
+    }
+
+    private bool TryFindSafeDestination(Vector3 desiredDestination, out Vector3 safeDestination)
+    {
+        Vector3 currentPosition = body.position;
+        desiredDestination.y = currentPosition.y;
+
+        Vector3 fromCurrentToDestination = desiredDestination - currentPosition;
+        fromCurrentToDestination.y = 0f;
+
+        float desiredDistance = fromCurrentToDestination.magnitude;
+        if (desiredDistance <= Mathf.Clamp(arrivalThreshold, 0.05f, 0.6f))
+        {
+            safeDestination = currentPosition;
+            return false;
+        }
+
+        if (desiredDistance > maxPullDistance)
+        {
+            safeDestination = currentPosition;
+            return false;
+        }
+
+        Vector3 pullDirection = fromCurrentToDestination / desiredDistance;
+
+        if (IsDestinationUsable(currentPosition, desiredDestination))
+        {
+            safeDestination = desiredDestination;
+            return true;
+        }
+
+        int attempts = Mathf.Max(0, destinationBackoffAttempts);
+        float step = Mathf.Max(0.01f, destinationBackoffStep);
+
+        for (int i = 1; i <= attempts; i++)
+        {
+            Vector3 candidate = desiredDestination - pullDirection * (step * i);
+            candidate.y = currentPosition.y;
+
+            Vector3 candidateDelta = candidate - currentPosition;
+            candidateDelta.y = 0f;
+
+            if (candidateDelta.magnitude <= Mathf.Clamp(arrivalThreshold, 0.05f, 0.6f))
+            {
+                break;
+            }
+
+            if (IsDestinationUsable(currentPosition, candidate))
+            {
+                safeDestination = candidate;
+                return true;
+            }
+        }
+
+        safeDestination = currentPosition;
+        return false;
+    }
+
+    private bool IsDestinationUsable(Vector3 currentPosition, Vector3 destination)
+    {
+        if (IsDestinationBlocked(destination))
+        {
+            return false;
+        }
+
+        if (requireClearInitialPullPath && IsPullStepBlocked(currentPosition, destination))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool HasExceededSafePullDistance(Vector3 currentPosition)
+    {
+        if (maxPullDistance <= 0f)
+        {
+            return false;
+        }
+
+        Vector3 fromStart = currentPosition - pullStartPosition;
+        fromStart.y = 0f;
+
+        float safetyMargin = Mathf.Max(0.5f, pullSpeed * Time.fixedDeltaTime * 2f);
+        float allowedDistance = maxPullDistance + safetyMargin;
+        return fromStart.sqrMagnitude > allowedDistance * allowedDistance;
     }
 
     private bool IsDestinationBlocked(Vector3 destination)
