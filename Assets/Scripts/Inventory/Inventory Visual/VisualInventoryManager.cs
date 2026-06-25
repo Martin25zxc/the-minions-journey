@@ -493,20 +493,27 @@ public sealed class VisualInventoryManager : MonoBehaviour
 
     private void ShowFeedback(string message)
     {
-        if (feedbackLabel == null)
-        {
-            return;
-        }
+        TMJNotifications.ShowInventory(
+            message,
+            NotificationPriority.Normal,
+            "Inventario",
+            $"inventory_feedback:{message}",
+            this);
 
-        feedbackLabel.text = message;
-        feedbackLabel.gameObject.SetActive(true);
+    //     if (feedbackLabel == null)
+    //     {
+    //         return;
+    //     }
 
-        if (_feedbackCoroutine != null)
-        {
-            StopCoroutine(_feedbackCoroutine);
-        }
+    //     feedbackLabel.text = message;
+    //     feedbackLabel.gameObject.SetActive(true);
 
-        _feedbackCoroutine = StartCoroutine(HideFeedbackAfterDelay());
+    //     if (_feedbackCoroutine != null)
+    //     {
+    //         StopCoroutine(_feedbackCoroutine);
+    //     }
+
+    //     _feedbackCoroutine = StartCoroutine(HideFeedbackAfterDelay());
     }
 
     private System.Collections.IEnumerator HideFeedbackAfterDelay()

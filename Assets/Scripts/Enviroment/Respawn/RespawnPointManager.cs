@@ -50,7 +50,7 @@ public class RespawnPointManager : MonoBehaviour
         _lastActivated?.SetAsCurrent(false);
         point.SetAsCurrent(true);
         _lastActivated = point;
-        Debug.Log("<color=yellow>New respawn point</color>");
+        TMJNotifications.ShowSystem( "Punto de respawn activado.", NotificationPriority.Normal, "Respawn", "respawn_point_activated", this);
     }
 
     void HandlePlayerDied()

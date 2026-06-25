@@ -30,6 +30,10 @@ public sealed class NotificationManager : MonoBehaviour
     [Tooltip("Muestra logs útiles mientras probamos la integración.")]
     [SerializeField] private bool logNotifications;
 
+    [Header("Global Access")]
+    [Tooltip("Permite que otros sistemas usen TMJNotifications sin referencia directa.")]
+    [SerializeField] private bool registerAsGlobal = true;
+
     private readonly Queue<NotificationData> queuedNotifications = new();
     private readonly List<NotificationData> visibleNotifications = new();
     private readonly Dictionary<string, float> lastAcceptedTimeByGroupKey = new();
@@ -42,6 +46,22 @@ public sealed class NotificationManager : MonoBehaviour
     public event Action<NotificationData> NotificationShown;
     public event Action<NotificationData> NotificationQueued;
     public event Action<NotificationData> NotificationSuppressed;
+
+    private void OnEnable()
+    {
+        if (registerAsGlobal)
+        {
+            TMJNotifications.Register(this);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (registerAsGlobal)
+        {
+            TMJNotifications.Unregister(this);
+        }
+    }
 
     private void Reset()
     {

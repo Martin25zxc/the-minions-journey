@@ -455,7 +455,7 @@ public class BossArenaManager : MonoBehaviour
         LoadBoss();
         */
         Debug.Log("<color=red>[FSM] Jugador derrotado. Reiniciando</color>");
-
+        TMJNotifications.ShowCombat( "Has sido derrotado. La arena se reiniciará.", NotificationPriority.High, "Derrota", "boss_arena_player_defeated", this);
     }
 
     private void ForceStopCurrentAttack()
