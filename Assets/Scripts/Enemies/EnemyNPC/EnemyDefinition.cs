@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(menuName = "Enemies/Enemy Definition", fileName = "EnemyDefinition_NewEnemy")]
+[CreateAssetMenu(menuName = "Game/Enemy Definition", fileName = "EnemyDefinition_NewEnemy")]
 public sealed class EnemyDefinition : ScriptableObject
 {
     [Header("Stats")]
@@ -36,6 +36,11 @@ public sealed class EnemyDefinition : ScriptableObject
     [SerializeField, Min(0f)]
     private float targetMemoryDuration = 1.5f;
 
+    [Header("Loot")]
+    [Tooltip("Tabla de loot por tipo de enemigo. LootDropper puede usarla si no tiene override local.")]
+    [SerializeField]
+    private LootDropTable lootDropTable;
+
     [Header("Body")]
     [Tooltip("Radio aproximado del cuerpo. Se usa para validaciones fisicas/logicas, por ejemplo aterrizajes del Leap.")]
     [SerializeField, Min(0.05f)]
@@ -51,6 +56,8 @@ public sealed class EnemyDefinition : ScriptableObject
     public float ProximityDetectionRange => proximityDetectionRange;
     public float LoseAggroRange => loseAggroRange;
     public float TargetMemoryDuration => targetMemoryDuration;
+
+    public LootDropTable LootDropTable => lootDropTable;
 
     public float BodyRadius => bodyRadius;
 
@@ -71,3 +78,4 @@ public sealed class EnemyDefinition : ScriptableObject
         bodyRadius = Mathf.Max(0.05f, bodyRadius);
     }
 }
+

@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc0b221f387b0df4e8bc38dc9e6f3ffa, type: 3}
+  m_Name: LeapBarbarians_LootTable
+  m_EditorClassIdentifier: Assembly-CSharp::LootDropTable
+  guaranteedDrops: []
+  rollGroups:
+  - groupId: Hachas
+    groupChancePercent: 33
+    mode: 0
+    minRolls: 1
+    maxRolls: 1
+    allowDuplicateItems: 0
+    entries:
+    - itemData: {fileID: 11400000, guid: b3e86e3dd60263c49b83d92becf7b147, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 50
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: e4ed1c97848b1a740937e04bc301291e, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 30
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: 95272a626860eec44bed9bd6f22e9e80, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 20
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: f6d7c2324723668469b8696d78b9ab3b, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 10
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: bb4a5314316c1a540ad3700e93fb0c3b, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 5
+      chancePercent: 0

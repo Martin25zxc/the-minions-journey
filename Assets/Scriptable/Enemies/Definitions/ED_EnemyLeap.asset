@@ -20,4 +20,5 @@ MonoBehaviour:
   proximityDetectionRange: 3
   loseAggroRange: 16
   targetMemoryDuration: 1.5
+  lootDropTable: {fileID: 11400000, guid: 6d52ad8a3835d104aa2ea016952c7395, type: 2}
   bodyRadius: 0.45

@@ -10,7 +10,7 @@ public sealed class LootSpawner : MonoBehaviour
     private LootPickup lootPickupPrefab;
 
     [Header("Spawn Spread")]
-    [Tooltip("Cuando hay más de un drop, los items aparecen alrededor del centro usando este radio.")]
+    [Tooltip("Cuando hay mas de un drop, los items aparecen alrededor del centro usando este radio.")]
     [SerializeField, Min(0f)]
     private float spawnRadius = 1.2f;
 
@@ -19,7 +19,7 @@ public sealed class LootSpawner : MonoBehaviour
     [SerializeField]
     private bool projectToGround = true;
 
-    [Tooltip("Layers considerados suelo válido para colocar loot. Evitar Player, Enemy, Projectile, Hitbox y Loot.")]
+    [Tooltip("Layers considerados suelo valido para colocar loot. Evitar Player, Enemy, Projectile, Hitbox y Loot.")]
     [SerializeField]
     private LayerMask groundLayers = 1;
 
@@ -31,16 +31,16 @@ public sealed class LootSpawner : MonoBehaviour
     [SerializeField, Min(0.1f)]
     private float raycastDistance = 5f;
 
-    [Tooltip("Offset vertical pequeño luego de encontrar suelo para evitar que el pickup quede incrustado.")]
+    [Tooltip("Offset vertical pequeno luego de encontrar suelo para evitar que el pickup quede incrustado.")]
     [SerializeField, Min(0f)]
     private float groundOffset = 0.08f;
 
     [Header("Fallback")]
-    [Tooltip("Se usa si Project To Ground está desactivado o si el raycast no encuentra suelo.")]
+    [Tooltip("Se usa si Project To Ground esta desactivado o si el raycast no encuentra suelo.")]
     [SerializeField]
     private float spawnHeightOffset = 0.1f;
 
-    [Tooltip("Si está activo, avisa cuando no pudo proyectar el loot al suelo y usó fallback.")]
+    [Tooltip("Si esta activo, avisa cuando no pudo proyectar el loot al suelo y uso fallback.")]
     [SerializeField]
     private bool warnWhenGroundNotFound = true;
 
@@ -79,25 +79,25 @@ public sealed class LootSpawner : MonoBehaviour
             return;
         }
 
-        IReadOnlyList<LootDropEntry> drops = lootDropTable.GuaranteedDrops;
+        List<LootDropResult> drops = lootDropTable.RollDrops();
 
         if (drops == null || drops.Count == 0)
         {
-            Debug.LogWarning($"{lootDropTable.name} has no guaranteed drops.", this);
+            // No dropear nada es un resultado valido de una loot table porcentual.
             return;
         }
 
         int totalSpawnCount = GetTotalSpawnCount(drops);
         int currentSpawnIndex = 0;
 
-        foreach (LootDropEntry entry in drops)
+        foreach (LootDropResult result in drops)
         {
-            if (entry == null || entry.ItemData == null)
+            if (result == null || result.ItemData == null)
             {
                 continue;
             }
 
-            int amount = Mathf.Max(1, entry.Amount);
+            int amount = Mathf.Max(1, result.Amount);
 
             for (int i = 0; i < amount; i++)
             {
@@ -107,24 +107,24 @@ public sealed class LootSpawner : MonoBehaviour
                     totalSpawnCount
                 );
 
-                SpawnLoot(entry.ItemData, spawnPosition);
+                SpawnLoot(result.ItemData, spawnPosition);
                 currentSpawnIndex++;
             }
         }
     }
 
-    private int GetTotalSpawnCount(IReadOnlyList<LootDropEntry> drops)
+    private int GetTotalSpawnCount(IReadOnlyList<LootDropResult> drops)
     {
         int total = 0;
 
-        foreach (LootDropEntry entry in drops)
+        foreach (LootDropResult result in drops)
         {
-            if (entry == null || entry.ItemData == null)
+            if (result == null || result.ItemData == null)
             {
                 continue;
             }
 
-            total += Mathf.Max(1, entry.Amount);
+            total += Mathf.Max(1, result.Amount);
         }
 
         return total;
