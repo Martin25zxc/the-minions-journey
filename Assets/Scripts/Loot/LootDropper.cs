@@ -2,11 +2,11 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// Define cuándo una entidad debe soltar loot.
+/// Define cuando una entidad debe soltar loot.
 ///
-/// Manual  = otro sistema llama DropLoot(). Útil para cofres, eventos o pruebas controladas.
+/// Manual  = otro sistema llama DropLoot(). Util para cofres, eventos o pruebas controladas.
 /// OnDeath = escucha TopDownHealth.OnDied. Uso normal para enemigos vivos.
-/// OnStart = dropea al iniciar la escena. Uso real para NPCs/cadáveres que ya empiezan muertos.
+/// OnStart = dropea al iniciar la escena. Uso real para NPCs/cadaveres que ya empiezan muertos.
 /// </summary>
 public enum LootDropTriggerMode
 {
@@ -19,30 +19,42 @@ public enum LootDropTriggerMode
 public sealed class LootDropper : MonoBehaviour
 {
     [Header("Loot")]
-    [Tooltip("Tabla de drops que esta entidad puede soltar.")]
+    [Tooltip("Tabla override. Si queda vacia, puede usar la tabla del EnemyDefinition.")]
     [SerializeField]
     private LootDropTable lootDropTable;
 
-    [Tooltip("Spawner de escena responsable de instanciar los pickups. Evitamos singleton para que la referencia sea explícita.")]
+    [Tooltip("Si esta activo y no hay override local, intenta usar EnemyActor.Definition.LootDropTable.")]
+    [SerializeField]
+    private bool useEnemyDefinitionLootTable = true;
+
+    [Tooltip("Spawner de escena responsable de instanciar los pickups. Evitamos singleton para que la referencia sea explicita.")]
     [SerializeField]
     private LootSpawner lootSpawner;
+
+    [Tooltip("Fallback para pruebas o enemigos ya puestos en escena. Para spawners dinamicos, preferir SetLootSpawner().")]
+    [SerializeField]
+    private bool autoFindLootSpawner = true;
 
     [Header("Trigger")]
     [Tooltip("Define si el loot cae por muerte, al inicio de la escena, o manualmente.")]
     [SerializeField]
     private LootDropTriggerMode dropTriggerMode = LootDropTriggerMode.OnDeath;
 
-    [Tooltip("Delay opcional antes de dropear. Útil para esperar un poco la animación de muerte.")]
+    [Tooltip("Delay opcional antes de dropear. Util para esperar un poco la animacion de muerte.")]
     [SerializeField, Min(0f)]
     private float dropDelay = 0f;
 
     [Header("Death Source")]
-    [Tooltip("Opcional. Solo se usa con OnDeath. Si queda vacío, busca TopDownHealth en este mismo GameObject.")]
+    [Tooltip("Opcional. Solo se usa con OnDeath. Si queda vacio, busca TopDownHealth en este mismo GameObject.")]
     [SerializeField]
     private TopDownHealth health;
 
+    [Tooltip("Opcional. Se usa para leer EnemyDefinition cuando la tabla viene del tipo de enemigo.")]
+    [SerializeField]
+    private EnemyActor enemyActor;
+
     [Header("Spawn Point")]
-    [Tooltip("Opcional. Si queda vacío, el loot sale desde transform.position. Usar en cadáveres, bosses, cofres o visuales desplazados.")]
+    [Tooltip("Opcional. Si queda vacio, el loot sale desde transform.position. Usar en cadaveres, bosses, cofres o visuales desplazados.")]
     [SerializeField]
     private Transform spawnPoint;
 
@@ -54,11 +66,18 @@ public sealed class LootDropper : MonoBehaviour
 
     private void Awake()
     {
-        // LootDropper también debe servir para OnStart/Manual sin TopDownHealth.
+        // LootDropper tambien debe servir para OnStart/Manual sin TopDownHealth.
         // Por eso no usamos RequireComponent(typeof(TopDownHealth)).
+        if (enemyActor == null)
+        {
+            enemyActor = GetComponent<EnemyActor>();
+        }
+
         if (health == null && dropTriggerMode == LootDropTriggerMode.OnDeath)
         {
-            health = GetComponent<TopDownHealth>();
+            health = enemyActor != null && enemyActor.Health != null
+                ? enemyActor.Health
+                : GetComponent<TopDownHealth>();
         }
     }
 
@@ -153,15 +172,19 @@ public sealed class LootDropper : MonoBehaviour
             return;
         }
 
-        if (lootSpawner == null)
+        LootSpawner resolvedSpawner = ResolveLootSpawner();
+
+        if (resolvedSpawner == null)
         {
             Debug.LogWarning($"{name} has no LootSpawner assigned.", this);
             return;
         }
 
-        if (lootDropTable == null)
+        LootDropTable resolvedDropTable = ResolveLootDropTable();
+
+        if (resolvedDropTable == null)
         {
-            Debug.LogWarning($"{name} has no LootDropTable assigned.", this);
+            Debug.LogWarning($"{name} has no LootDropTable assigned or available from EnemyDefinition.", this);
             return;
         }
 
@@ -171,9 +194,9 @@ public sealed class LootDropper : MonoBehaviour
             ? spawnPoint.position
             : transform.position;
 
-        lootSpawner.SpawnLootTable(lootDropTable, dropPosition);
+        resolvedSpawner.SpawnLootTable(resolvedDropTable, dropPosition);
 
-        Debug.Log($"{name} dropped loot table: {lootDropTable.name}", this);
+        Debug.Log($"{name} rolled loot table: {resolvedDropTable.name}", this);
     }
 
     /// <summary>
@@ -186,11 +209,52 @@ public sealed class LootDropper : MonoBehaviour
     }
 
     /// <summary>
-    /// Útil si en el futuro reciclamos enemigos con pooling.
-    /// En instancias normales no debería llamarse.
+    /// Util si en el futuro reciclamos enemigos con pooling.
+    /// En instancias normales no deberia llamarse.
     /// </summary>
     public void ResetDropState()
     {
         hasDropped = false;
+    }
+
+    private LootDropTable ResolveLootDropTable()
+    {
+        if (lootDropTable != null)
+        {
+            return lootDropTable;
+        }
+
+        if (!useEnemyDefinitionLootTable)
+        {
+            return null;
+        }
+
+        if (enemyActor == null)
+        {
+            enemyActor = GetComponent<EnemyActor>();
+        }
+
+        if (enemyActor == null || enemyActor.Definition == null)
+        {
+            return null;
+        }
+
+        return enemyActor.Definition.LootDropTable;
+    }
+
+    private LootSpawner ResolveLootSpawner()
+    {
+        if (lootSpawner != null)
+        {
+            return lootSpawner;
+        }
+
+        if (!autoFindLootSpawner)
+        {
+            return null;
+        }
+
+        lootSpawner = FindFirstObjectByType<LootSpawner>();
+        return lootSpawner;
     }
 }
