@@ -1,110 +1,158 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class MissionObjectiveRowUI : MonoBehaviour
 {
     [Header("Referencias")]
-    [SerializeField, Tooltip("Texto principal del objetivo. Ejemplo: Busca hongos luminosos.")]
+    [SerializeField, Tooltip("Texto principal del objetivo.")]
     private TMP_Text descriptionText;
 
-    [SerializeField, Tooltip("Texto de progreso. Ejemplo: 2/3. Puede quedar vacío en objetivos únicos.")]
+    [SerializeField, Tooltip("Texto de progreso, por ejemplo 2/3. Puede quedar vacío si el objetivo no muestra progreso.")]
     private TMP_Text progressText;
 
-    [SerializeField, Tooltip("Marca visual simple para objetivos completos. Puede ser un texto con ✓ o un icono.")]
+    [SerializeField, Tooltip("Marca visual para objetivos completados. Puede ser un texto con ✓ o un ícono.")]
     private GameObject completedMarker;
 
-    [SerializeField, Tooltip("Opcional. Sirve para bajar opacidad sin apagar el objeto entero.")]
+    [SerializeField, Tooltip("CanvasGroup del root de la fila. Permite apagar raycast y asegurar alpha.")]
     private CanvasGroup canvasGroup;
 
+    [SerializeField, Tooltip("LayoutElement del root de la fila. Se usa para ajustar altura de una o dos líneas.")]
+    private LayoutElement layoutElement;
+
     [Header("Texto")]
-    [SerializeField, Tooltip("Texto que se usa si la descripción del objetivo está vacía.")]
-    private string fallbackDescription = "Objetivo";
+    [SerializeField, Tooltip("Si está activo, el script fuerza wrapping/ellipsis para que los objetivos puedan ocupar dos líneas sin desbordar.")]
+    private bool configureDescriptionText = true;
 
     private void Reset()
     {
         canvasGroup = GetComponent<CanvasGroup>();
+        layoutElement = GetComponent<LayoutElement>();
 
         TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
-        if (texts.Length > 0)
+        for (int i = 0; i < texts.Length; i++)
         {
-            descriptionText = texts[0];
-        }
-
-        if (texts.Length > 1)
-        {
-            progressText = texts[1];
+            string textName = texts[i].name;
+            if (descriptionText == null && textName.Contains("Description"))
+            {
+                descriptionText = texts[i];
+            }
+            else if (progressText == null && textName.Contains("Progress"))
+            {
+                progressText = texts[i];
+            }
+            else if (completedMarker == null && textName.Contains("Completed"))
+            {
+                completedMarker = texts[i].gameObject;
+            }
         }
     }
 
-    public void Bind(MissionObjectiveRuntimeState objectiveState, bool showCompletedMarker, bool forceHideProgress)
+    public void Render(MissionObjectiveRuntimeState objectiveState, bool allowDoubleLine, float singleLineHeight, float doubleLineHeight)
     {
-        if (objectiveState == null)
+        if (objectiveState == null || objectiveState.Definition == null)
         {
-            SetVisible(false);
+            RenderFallback(string.Empty, allowDoubleLine, singleLineHeight, doubleLineHeight);
             return;
         }
 
-        MissionObjectiveDefinition definition = objectiveState.Definition;
-
-        if (descriptionText != null)
+        string description = objectiveState.Definition.Description;
+        if (string.IsNullOrWhiteSpace(description))
         {
-            string description = string.IsNullOrWhiteSpace(definition.Description)
-                ? fallbackDescription
-                : definition.Description.Trim();
-
-            descriptionText.text = description;
+            description = objectiveState.ObjectiveId;
         }
 
-        if (progressText != null)
-        {
-            bool shouldShowProgress = !forceHideProgress && definition.ShowProgress && objectiveState.RequiredAmount > 1;
-            progressText.text = shouldShowProgress ? objectiveState.GetProgressText() : string.Empty;
-            progressText.gameObject.SetActive(shouldShowProgress);
-        }
-
-        if (completedMarker != null)
-        {
-            completedMarker.SetActive(showCompletedMarker && objectiveState.IsCompleted);
-        }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = objectiveState.IsCompleted ? 0.65f : 1f;
-        }
-
+        SetDescription(description.Trim(), allowDoubleLine);
+        SetProgress(GetProgressText(objectiveState));
+        SetCompleted(objectiveState.IsCompleted);
+        SetHeight(allowDoubleLine ? doubleLineHeight : singleLineHeight);
         SetVisible(true);
     }
 
-    public void BindCustomText(string description, string progress, bool completed)
+    public void RenderFallback(string text, bool allowDoubleLine, float singleLineHeight, float doubleLineHeight)
     {
-        if (descriptionText != null)
-        {
-            descriptionText.text = string.IsNullOrWhiteSpace(description) ? fallbackDescription : description.Trim();
-        }
-
-        if (progressText != null)
-        {
-            bool hasProgress = !string.IsNullOrWhiteSpace(progress);
-            progressText.text = hasProgress ? progress.Trim() : string.Empty;
-            progressText.gameObject.SetActive(hasProgress);
-        }
-
-        if (completedMarker != null)
-        {
-            completedMarker.SetActive(completed);
-        }
-
-        if (canvasGroup != null)
-        {
-            canvasGroup.alpha = completed ? 0.65f : 1f;
-        }
-
+        SetDescription(text, allowDoubleLine);
+        SetProgress(string.Empty);
+        SetCompleted(false);
+        SetHeight(allowDoubleLine ? doubleLineHeight : singleLineHeight);
         SetVisible(true);
     }
 
-    public void SetVisible(bool value)
+    private void SetDescription(string value, bool allowDoubleLine)
     {
-        gameObject.SetActive(value);
+        if (descriptionText == null)
+        {
+            return;
+        }
+
+        descriptionText.text = value;
+
+        if (!configureDescriptionText)
+        {
+            return;
+        }
+
+        descriptionText.enableWordWrapping = allowDoubleLine;
+        descriptionText.overflowMode = TextOverflowModes.Ellipsis;
+    }
+
+    private void SetProgress(string value)
+    {
+        if (progressText == null)
+        {
+            return;
+        }
+
+        bool hasProgress = !string.IsNullOrWhiteSpace(value);
+        progressText.gameObject.SetActive(hasProgress);
+        progressText.text = hasProgress ? value : string.Empty;
+    }
+
+    private void SetCompleted(bool isCompleted)
+    {
+        if (completedMarker != null)
+        {
+            completedMarker.SetActive(isCompleted);
+        }
+    }
+
+    private void SetHeight(float preferredHeight)
+    {
+        if (layoutElement == null)
+        {
+            return;
+        }
+
+        layoutElement.minHeight = Mathf.Max(24f, preferredHeight - 8f);
+        layoutElement.preferredHeight = Mathf.Max(24f, preferredHeight);
+        layoutElement.flexibleHeight = 0f;
+    }
+
+    private void SetVisible(bool visible)
+    {
+        if (canvasGroup == null)
+        {
+            return;
+        }
+
+        canvasGroup.alpha = visible ? 1f : 0f;
+        canvasGroup.interactable = false;
+        canvasGroup.blocksRaycasts = false;
+    }
+
+    private static string GetProgressText(MissionObjectiveRuntimeState objectiveState)
+    {
+        if (!objectiveState.Definition.ShowProgress)
+        {
+            return string.Empty;
+        }
+
+        if (objectiveState.Definition.RequiredAmount <= 1)
+        {
+            return string.Empty;
+        }
+
+        return $"{objectiveState.CurrentAmount}/{objectiveState.Definition.RequiredAmount}";
     }
 }

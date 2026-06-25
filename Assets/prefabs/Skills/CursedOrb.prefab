@@ -5062,13 +5062,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CursedOrbBehavior
   setupDelay: 0.5
-  lifeTime: 0
+  lifeTime: 8
   groundLayer:
     serializedVersion: 2
     m_Bits: 1024
   maxRayDistance: 20
   heightFollowSpeed: 10
   minDistanceToGround: 1
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 3151872
+  obstacleProbeRadius: 0.35
+  obstacleSkin: 0.05
 --- !u!1 &8516456777471245082
 GameObject:
   m_ObjectHideFlags: 0

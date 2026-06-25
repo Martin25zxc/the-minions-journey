@@ -263,6 +263,10 @@ PrefabInstance:
       value: PF_MissionIndicator
       objectReference: {fileID: 0}
     - target: {fileID: 3537980947881317554, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: mode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3537980947881317554, guid: f95c10140ab2857498e534875511eb8e, type: 3}
       propertyPath: flipY
       value: 0
       objectReference: {fileID: 0}

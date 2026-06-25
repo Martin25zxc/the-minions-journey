@@ -6,46 +6,67 @@ using UnityEngine;
 public sealed class MissionHUDView : MonoBehaviour
 {
     [Header("Referencias")]
-    [SerializeField, Tooltip("CanvasGroup del panel raíz. Permite ocultar/mostrar sin destruir la UI.")]
+    [SerializeField, Tooltip("CanvasGroup del panel raíz. Se usa para mostrar/ocultar el HUD sin destruirlo.")]
     private CanvasGroup rootCanvasGroup;
 
-    [SerializeField, Tooltip("Texto del título de la misión trackeada.")]
+    [SerializeField, Tooltip("Texto principal con el título de la misión trackeada.")]
     private TMP_Text missionTitleText;
 
-    [SerializeField, Tooltip("Texto de estado. Se usa para ReadyToTurnIn, compacto o mensajes genéricos.")]
+    [SerializeField, Tooltip("Renglón secundario debajo del título. Se usa para tipo de misión o estado de entrega.")]
     private TMP_Text statusText;
 
-    [SerializeField, Tooltip("Contenedor donde se instancian las filas de objetivos. Debe tener Vertical Layout Group.")]
+    [SerializeField, Tooltip("Contenedor donde se instancian las filas de objetivos.")]
     private RectTransform objectiveRowsContainer;
 
-    [SerializeField, Tooltip("Prefab visual de una fila de objetivo.")]
+    [SerializeField, Tooltip("Prefab de una fila de objetivo. Debe tener MissionObjectiveRowUI.")]
     private MissionObjectiveRowUI objectiveRowPrefab;
 
     [Header("Contenido")]
-    [SerializeField, Tooltip("Si está activo, muestra objetivos bonus en el HUD. Para MVP conviene dejarlo apagado salvo que queramos probar bonus.")]
+    [SerializeField, Tooltip("Muestra objetivos Bonus. Para el HUD inicial conviene dejarlo apagado.")]
     private bool showBonusObjectives;
 
-    [SerializeField, Tooltip("Si está activo, mantiene objetivos completados visibles con marca. Para HUD limpio, conviene dejarlo apagado.")]
+    [SerializeField, Tooltip("Muestra objetivos ya completados. Para HUD limpio conviene dejarlo apagado y usar toasts para feedback.")]
     private bool showCompletedObjectives;
 
-    [SerializeField, Tooltip("Cantidad máxima de filas en modo expandido. Evita que el HUD crezca demasiado en pantalla.")]
+    [SerializeField, Min(1), Tooltip("Cantidad máxima de filas cuando el HUD está expandido.")]
     private int maxExpandedRows = 4;
 
-    [SerializeField, Tooltip("Cantidad máxima de filas en modo compacto. Normalmente una sola línea.")]
+    [SerializeField, Min(1), Tooltip("Cantidad máxima de filas cuando el HUD está compacto.")]
     private int maxCompactRows = 1;
 
+    [Header("Status Row")]
+    [SerializeField, Tooltip("Si está activo, muestra un renglón extra debajo del título cuando la misión está activa.")]
+    private bool showStatusWhenActive = true;
+
+    [SerializeField, Tooltip("Texto mostrado en el renglón secundario para misiones principales activas.")]
+    private string mainMissionStatusText = "Misión principal";
+
+    [SerializeField, Tooltip("Texto mostrado en el renglón secundario para misiones opcionales activas.")]
+    private string optionalMissionStatusText = "Misión opcional";
+
+    [Header("Objetivos")]
+    [SerializeField, Tooltip("Permite que el texto del objetivo use hasta dos líneas dentro de cada fila.")]
+    private bool allowObjectiveDoubleLine = true;
+
+    [SerializeField, Min(24f), Tooltip("Altura recomendada para filas de una sola línea.")]
+    private float singleLineRowHeight = 36f;
+
+    [SerializeField, Min(36f), Tooltip("Altura recomendada para filas de doble línea.")]
+    private float doubleLineRowHeight = 56f;
+
     [Header("Textos")]
-    [SerializeField, Tooltip("Texto genérico cuando la misión está lista para entregar y todavía no tenemos un hint específico por misión.")]
+    [SerializeField, Tooltip("Texto mostrado cuando la misión está lista para entregar.")]
     private string readyToTurnInText = "Vuelve para entregar la misión.";
 
-    [SerializeField, Tooltip("Texto usado si no hay objetivos visibles pero la misión sigue activa.")]
+    [SerializeField, Tooltip("Texto mostrado si no hay objetivos visibles para esta misión.")]
     private string noVisibleObjectivesText = "Sigue la misión activa.";
 
     [Header("Debug")]
-    [SerializeField, Tooltip("Muestra warnings cuando faltan referencias importantes de UI.")]
+    [SerializeField, Tooltip("Avisa en consola si faltan referencias del HUD.")]
     private bool logMissingReferences = true;
 
-    private readonly List<MissionObjectiveRowUI> rowPool = new List<MissionObjectiveRowUI>();
+    private readonly List<MissionObjectiveRowUI> activeRows = new List<MissionObjectiveRowUI>();
+    private readonly List<MissionObjectiveRowUI> pooledRows = new List<MissionObjectiveRowUI>();
 
     private void Reset()
     {
@@ -54,102 +75,152 @@ public sealed class MissionHUDView : MonoBehaviour
 
     private void Awake()
     {
-        EnsureCanvasGroup();
-        Hide();
+        HideInstant();
     }
 
     public void Render(MissionRuntimeState missionState, MissionHUDDisplayMode displayMode)
     {
-        if (displayMode == MissionHUDDisplayMode.Hidden || missionState == null || missionState.IsCompleted)
+        if (!HasRequiredReferences())
         {
-            Hide();
             return;
         }
 
-        if (!missionState.Definition.ShowInHUD)
+        if (displayMode == MissionHUDDisplayMode.Hidden || missionState == null || missionState.Definition == null)
         {
-            Hide();
+            HideInstant();
             return;
         }
 
-        EnsureCanvasGroup();
-        SetRootVisible(true);
-        SetTitle(GetMissionTitle(missionState));
+        rootCanvasGroup.alpha = 1f;
+        rootCanvasGroup.interactable = false;
+        rootCanvasGroup.blocksRaycasts = false;
 
-        HideAllRows();
+        missionTitleText.text = GetMissionTitle(missionState);
+        RenderStatus(missionState);
+        RenderObjectives(missionState, displayMode);
+    }
 
-        if (missionState.IsReadyToTurnIn)
+    public void HideInstant()
+    {
+        ReturnAllRowsToPool();
+
+        if (missionTitleText != null)
         {
-            SetStatus(readyToTurnInText);
+            missionTitleText.text = string.Empty;
+        }
+
+        if (statusText != null)
+        {
+            statusText.text = string.Empty;
+            statusText.gameObject.SetActive(false);
+        }
+
+        if (rootCanvasGroup != null)
+        {
+            rootCanvasGroup.alpha = 0f;
+            rootCanvasGroup.interactable = false;
+            rootCanvasGroup.blocksRaycasts = false;
+        }
+    }
+
+    private void RenderStatus(MissionRuntimeState missionState)
+    {
+        if (statusText == null)
+        {
             return;
         }
 
-        SetStatus(displayMode == MissionHUDDisplayMode.Compact ? GetCompactStatusText(missionState) : string.Empty);
+        string resolvedStatus = GetStatusText(missionState);
+        bool hasStatus = !string.IsNullOrWhiteSpace(resolvedStatus);
+
+        statusText.gameObject.SetActive(hasStatus);
+        statusText.text = hasStatus ? resolvedStatus : string.Empty;
+    }
+
+    private string GetStatusText(MissionRuntimeState missionState)
+    {
+        if (missionState == null || missionState.Definition == null)
+        {
+            return string.Empty;
+        }
+
+        if (missionState.State == MissionState.ReadyToTurnIn)
+        {
+            return readyToTurnInText;
+        }
+
+        if (!showStatusWhenActive)
+        {
+            return string.Empty;
+        }
+
+        if (missionState.Definition.Category == MissionCategory.Main)
+        {
+            return mainMissionStatusText;
+        }
+
+        if (missionState.Definition.Category == MissionCategory.Optional)
+        {
+            return optionalMissionStatusText;
+        }
+
+        return string.Empty;
+    }
+
+    private void RenderObjectives(MissionRuntimeState missionState, MissionHUDDisplayMode displayMode)
+    {
+        ReturnAllRowsToPool();
+
+        if (missionState.State == MissionState.ReadyToTurnIn)
+        {
+            return;
+        }
 
         int maxRows = displayMode == MissionHUDDisplayMode.Compact ? maxCompactRows : maxExpandedRows;
-        int renderedRows = RenderObjectiveRows(missionState, maxRows, displayMode == MissionHUDDisplayMode.Compact);
+        int shownRows = 0;
 
-        if (renderedRows == 0)
-        {
-            SetStatus(noVisibleObjectivesText);
-        }
-    }
-
-    public void Hide()
-    {
-        HideAllRows();
-        SetTitle(string.Empty);
-        SetStatus(string.Empty);
-        SetRootVisible(false);
-    }
-
-    private int RenderObjectiveRows(MissionRuntimeState missionState, int maxRows, bool compact)
-    {
-        if (maxRows < 1)
-        {
-            maxRows = 1;
-        }
-
-        int renderedRows = 0;
         IReadOnlyList<MissionObjectiveRuntimeState> objectives = missionState.Objectives;
-
         for (int i = 0; i < objectives.Count; i++)
         {
-            MissionObjectiveRuntimeState objectiveState = objectives[i];
+            if (shownRows >= maxRows)
+            {
+                break;
+            }
 
+            MissionObjectiveRuntimeState objectiveState = objectives[i];
             if (!ShouldShowObjective(objectiveState))
             {
                 continue;
             }
 
-            MissionObjectiveRowUI row = GetOrCreateRow(renderedRows);
-            row.Bind(objectiveState, showCompletedObjectives, forceHideProgress: compact);
-            renderedRows++;
-
-            if (renderedRows >= maxRows)
-            {
-                break;
-            }
+            MissionObjectiveRowUI row = GetRow();
+            row.Render(objectiveState, allowObjectiveDoubleLine, singleLineRowHeight, doubleLineRowHeight);
+            activeRows.Add(row);
+            shownRows++;
         }
 
-        return renderedRows;
+        if (shownRows == 0 && displayMode == MissionHUDDisplayMode.Expanded)
+        {
+            MissionObjectiveRowUI row = GetRow();
+            row.RenderFallback(noVisibleObjectivesText, allowObjectiveDoubleLine, singleLineRowHeight, doubleLineRowHeight);
+            activeRows.Add(row);
+        }
     }
 
     private bool ShouldShowObjective(MissionObjectiveRuntimeState objectiveState)
     {
-        if (objectiveState == null)
+        if (objectiveState == null || objectiveState.Definition == null)
         {
             return false;
         }
 
-        MissionObjectiveDefinition definition = objectiveState.Definition;
-
-        if (definition.HiddenUntilActive)
+        if (objectiveState.Definition.HiddenUntilActive)
         {
-            return false;
+            // Todavía no tenemos lógica de objetivos por fases internas. En este HUD inicial,
+            // si el objetivo pertenece a una misión activa ya puede mostrarse.
         }
 
-        if (objectiveState.IsBonus && !showBonusObjectives)
+        if (objectiveState.Definition.Importance == ObjectiveImportance.Bonus && !showBonusObjectives)
         {
             return false;
         }
@@ -162,105 +233,64 @@ public sealed class MissionHUDView : MonoBehaviour
         return true;
     }
 
-    private MissionObjectiveRowUI GetOrCreateRow(int index)
+    private MissionObjectiveRowUI GetRow()
     {
-        while (rowPool.Count <= index)
+        MissionObjectiveRowUI row;
+
+        if (pooledRows.Count > 0)
         {
-            if (objectiveRowPrefab == null || objectiveRowsContainer == null)
-            {
-                if (logMissingReferences)
-                {
-                    Debug.LogWarning($"{nameof(MissionHUDView)} necesita Objective Row Prefab y Objective Rows Container.", this);
-                }
-
-                break;
-            }
-
-            MissionObjectiveRowUI row = Instantiate(objectiveRowPrefab, objectiveRowsContainer);
-            rowPool.Add(row);
+            int lastIndex = pooledRows.Count - 1;
+            row = pooledRows[lastIndex];
+            pooledRows.RemoveAt(lastIndex);
+            row.gameObject.SetActive(true);
+            return row;
         }
 
-        return rowPool[index];
+        row = Instantiate(objectiveRowPrefab, objectiveRowsContainer);
+        row.gameObject.SetActive(true);
+        return row;
     }
 
-    private void HideAllRows()
+    private void ReturnAllRowsToPool()
     {
-        for (int i = 0; i < rowPool.Count; i++)
+        for (int i = 0; i < activeRows.Count; i++)
         {
-            if (rowPool[i] != null)
-            {
-                rowPool[i].SetVisible(false);
-            }
-        }
-    }
-
-    private void SetTitle(string value)
-    {
-        if (missionTitleText != null)
-        {
-            missionTitleText.text = value;
-        }
-    }
-
-    private void SetStatus(string value)
-    {
-        if (statusText != null)
-        {
-            bool hasValue = !string.IsNullOrWhiteSpace(value);
-            statusText.text = hasValue ? value.Trim() : string.Empty;
-            statusText.gameObject.SetActive(hasValue);
-        }
-    }
-
-    private void SetRootVisible(bool value)
-    {
-        if (rootCanvasGroup == null)
-        {
-            gameObject.SetActive(value);
-            return;
-        }
-
-        rootCanvasGroup.alpha = value ? 1f : 0f;
-        rootCanvasGroup.interactable = false;
-        rootCanvasGroup.blocksRaycasts = false;
-    }
-
-    private void EnsureCanvasGroup()
-    {
-        if (rootCanvasGroup == null)
-        {
-            rootCanvasGroup = GetComponent<CanvasGroup>();
-        }
-    }
-
-    private string GetMissionTitle(MissionRuntimeState missionState)
-    {
-        string title = missionState.Definition.Title;
-        return string.IsNullOrWhiteSpace(title) ? missionState.MissionId : title.Trim();
-    }
-
-    private string GetCompactStatusText(MissionRuntimeState missionState)
-    {
-        IReadOnlyList<MissionObjectiveRuntimeState> objectives = missionState.Objectives;
-
-        for (int i = 0; i < objectives.Count; i++)
-        {
-            MissionObjectiveRuntimeState objectiveState = objectives[i];
-
-            if (!ShouldShowObjective(objectiveState))
+            MissionObjectiveRowUI row = activeRows[i];
+            if (row == null)
             {
                 continue;
             }
 
-            string description = objectiveState.Definition.Description;
-            if (objectiveState.Definition.ShowProgress && objectiveState.RequiredAmount > 1)
-            {
-                return $"{description} {objectiveState.GetProgressText()}";
-            }
-
-            return description;
+            row.gameObject.SetActive(false);
+            pooledRows.Add(row);
         }
 
-        return string.Empty;
+        activeRows.Clear();
+    }
+
+    private bool HasRequiredReferences()
+    {
+        bool hasReferences = rootCanvasGroup != null
+            && missionTitleText != null
+            && objectiveRowsContainer != null
+            && objectiveRowPrefab != null;
+
+        if (!hasReferences && logMissingReferences)
+        {
+            Debug.LogWarning($"{nameof(MissionHUDView)} tiene referencias faltantes.", this);
+        }
+
+        return hasReferences;
+    }
+
+    private static string GetMissionTitle(MissionRuntimeState missionState)
+    {
+        if (missionState == null || missionState.Definition == null)
+        {
+            return string.Empty;
+        }
+
+        string title = missionState.Definition.Title;
+        return string.IsNullOrWhiteSpace(title) ? missionState.MissionId : title.Trim();
     }
 }

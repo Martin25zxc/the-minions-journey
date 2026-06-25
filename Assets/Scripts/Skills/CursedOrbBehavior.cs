@@ -26,6 +26,16 @@ public class CursedOrbBehavior : MonoBehaviour
     [SerializeField]
     private float minDistanceToGround = 1f; // Distancia mínima al suelo
 
+    [Header("Obstacle detection")]
+    [SerializeField, Tooltip("Capas que deben frenar al orbe. Ejemplo: paredes, rocas, límites del escenario.")]
+    private LayerMask obstacleLayer;
+
+    [SerializeField, Min(0.01f), Tooltip("Radio usado para anticipar paredes. Conviene que sea menor que el radio del trigger de curación.")]
+    private float obstacleProbeRadius = 0.35f;
+
+    [SerializeField, Min(0f), Tooltip("Pequeña separación para que el orbe no quede incrustado en la pared.")]
+    private float obstacleSkin = 0.05f;
+
     public event Action<CursedOrbBehavior> OnOrbDestroyed; // Evento para notificar cuando el orbe se destruye o expira
 
     private float healAmount = 20f; // Cantidad de salud a curar al impactar
@@ -51,13 +61,14 @@ public class CursedOrbBehavior : MonoBehaviour
         }
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         if (hasEnded)
         {
             return;
         }
 
+        StopBeforeObstacle();
         MaintainGroundDistance();
     }
 
@@ -87,9 +98,10 @@ public class CursedOrbBehavior : MonoBehaviour
             yield break;
         }
 
-        if (rb != null)
+        if (rb != null && !rb.isKinematic)
         {
             rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
         }
 
         isSetupComplete = true;
@@ -101,9 +113,48 @@ public class CursedOrbBehavior : MonoBehaviour
         DestroyOrb();
     }
 
+    private void StopBeforeObstacle()
+    {
+        if (rb == null || rb.isKinematic || obstacleLayer.value == 0)
+        {
+            return;
+        }
+
+        Vector3 velocity = rb.linearVelocity;
+        Vector3 planarVelocity = new Vector3(velocity.x, 0f, velocity.z);
+
+        if (planarVelocity.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        Vector3 direction = planarVelocity.normalized;
+        float distance = planarVelocity.magnitude * Time.fixedDeltaTime + obstacleSkin;
+
+        if (Physics.SphereCast(
+            rb.position,
+            obstacleProbeRadius,
+            direction,
+            out RaycastHit hit,
+            distance,
+            obstacleLayer,
+            QueryTriggerInteraction.Ignore))
+        {
+            Vector3 safePosition = rb.position + direction * Mathf.Max(0f, hit.distance - obstacleSkin);
+
+            rb.MovePosition(safePosition);
+            StopMovement();
+        }
+    }
+
     private void MaintainGroundDistance()
     {
-        Vector3 rayOrigin = transform.position + Vector3.up * 0.1f;
+        if (rb == null)
+        {
+            return;
+        }
+
+        Vector3 rayOrigin = rb.position + Vector3.up * 0.1f;
 
         if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, maxRayDistance, groundLayer))
         {
@@ -112,15 +163,44 @@ public class CursedOrbBehavior : MonoBehaviour
 
             if (Mathf.Abs(heightDifference) > 0.001f)
             {
-                Vector3 targetPosition = transform.position + Vector3.up * heightDifference;
-                transform.position = Vector3.Lerp(transform.position, targetPosition, heightFollowSpeed * Time.deltaTime);
+                Vector3 targetPosition = rb.position + Vector3.up * heightDifference;
+                Vector3 newPosition = Vector3.Lerp(rb.position, targetPosition, heightFollowSpeed * Time.fixedDeltaTime);
+
+                rb.MovePosition(newPosition);
             }
         }
     }
 
+    private void StopMovement()
+    {
+        if (rb == null)
+        {
+            return;
+        }
+
+        if (!rb.isKinematic)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        rb.isKinematic = true;
+    }
+
     private void OnTriggerEnter(Collider other)
     {
-        if (hasEnded || !isSetupComplete)
+        if (hasEnded)
+        {
+            return;
+        }
+
+        if (IsInLayerMask(other.gameObject.layer, obstacleLayer))
+        {
+            StopMovement();
+            return;
+        }
+
+        if (!isSetupComplete)
         {
             return;
         }
@@ -145,6 +225,11 @@ public class CursedOrbBehavior : MonoBehaviour
         DestroyOrb();
     }
 
+    private bool IsInLayerMask(int layer, LayerMask layerMask)
+    {
+        return (layerMask.value & (1 << layer)) != 0;
+    }
+
     private void OnDisable()
     {
         if (setupCoroutine != null)
@@ -158,5 +243,16 @@ public class CursedOrbBehavior : MonoBehaviour
             StopCoroutine(lifetimeCoroutine);
             lifetimeCoroutine = null;
         }
+    }
+
+    private void OnValidate()
+    {
+        setupDelay = Mathf.Max(0f, setupDelay);
+        lifeTime = Mathf.Max(0f, lifeTime);
+        maxRayDistance = Mathf.Max(0f, maxRayDistance);
+        heightFollowSpeed = Mathf.Max(0f, heightFollowSpeed);
+        minDistanceToGround = Mathf.Max(0f, minDistanceToGround);
+        obstacleProbeRadius = Mathf.Max(0.01f, obstacleProbeRadius);
+        obstacleSkin = Mathf.Max(0f, obstacleSkin);
     }
 }
