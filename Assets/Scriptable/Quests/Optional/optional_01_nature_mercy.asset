@@ -28,7 +28,7 @@ MonoBehaviour:
   - objectiveId: collect_luminous_mushroom
     objectiveType: 1
     importance: 0
-    description: Busca manzanas de los aires
+    description: "Re\xFAne hongos luminosos para Bau"
     requiredAmount: 3
     targetId: luminous_mushroom
     hiddenUntilActive: 0

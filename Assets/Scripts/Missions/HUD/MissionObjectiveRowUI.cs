@@ -49,6 +49,11 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
         }
     }
 
+    private void Awake()
+    {
+        EnsureCanvasGroupState();
+    }
+
     public void Render(MissionObjectiveRuntimeState objectiveState, bool allowDoubleLine, float singleLineHeight, float doubleLineHeight)
     {
         if (objectiveState == null || objectiveState.Definition == null)
@@ -92,8 +97,7 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
         {
             return;
         }
-
-        descriptionText.enableWordWrapping = allowDoubleLine;
+        descriptionText.textWrappingMode = allowDoubleLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         descriptionText.overflowMode = TextOverflowModes.Ellipsis;
     }
 
@@ -131,12 +135,23 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
 
     private void SetVisible(bool visible)
     {
+        EnsureCanvasGroupState();
+
         if (canvasGroup == null)
         {
             return;
         }
 
         canvasGroup.alpha = visible ? 1f : 0f;
+    }
+
+    private void EnsureCanvasGroupState()
+    {
+        if (canvasGroup == null)
+        {
+            return;
+        }
+
         canvasGroup.interactable = false;
         canvasGroup.blocksRaycasts = false;
     }

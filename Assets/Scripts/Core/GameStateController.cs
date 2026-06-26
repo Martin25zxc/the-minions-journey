@@ -159,6 +159,8 @@ public sealed class GameStateController : MonoBehaviour
         switch (state)
         {
             case GameState.MissionJournal:
+                return PauseMode.HardPause;
+
             case GameState.Dialogue:
                 return PauseMode.SoftPause;
 
