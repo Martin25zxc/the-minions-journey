@@ -16,6 +16,9 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
     private Button newGameButton;
 
     [SerializeField]
+    private Button creditsButton;
+
+    [SerializeField]
     private TMP_Text versionText;
 
     private bool isLoading;
@@ -38,12 +41,16 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
     {
         if (newGameButton != null)
             newGameButton.onClick.AddListener(StartNewGame);
+        if (creditsButton != null)
+            creditsButton.onClick.AddListener(OpenCredits);
     }
 
     private void UnbindButtons()
     {
         if (newGameButton != null)
             newGameButton.onClick.RemoveListener(StartNewGame);
+        if (creditsButton != null)
+            creditsButton.onClick.RemoveListener(OpenCredits);
     }
 
     public void StartNewGame()
@@ -83,9 +90,27 @@ public sealed class TMJ_MainMenuController : MonoBehaviour
             versionText.text = $"v{Application.version}";
     }
 
+    public void OpenCredits()
+    {
+        if (isLoading)
+            return;
+
+        if (!Application.CanStreamedLevelBeLoaded("Credits"))
+        {
+            Debug.LogError("La escena 'Credits' no existe o no esta agregada en Build Settings.");
+            return;
+        }
+
+        isLoading = true;
+        SetButtonsInteractable(false);
+        SceneManager.LoadSceneAsync("Credits");
+    }
+
     private void SetButtonsInteractable(bool interactable)
     {
         if (newGameButton != null)
             newGameButton.interactable = interactable;
+        if (creditsButton != null)
+            creditsButton.interactable = interactable;
     }
-}
+}// trigger
