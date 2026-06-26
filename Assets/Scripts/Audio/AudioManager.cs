@@ -1,14 +1,13 @@
 using UnityEngine;
+using UnityEngine.Audio;
 
-/// <summary>
-/// Singleton de audio. Reproduce SFX mediante un pool de AudioSources para
-/// evitar crear/destruir componentes en runtime. La música corre en su propio
-/// AudioSource separado para poder controlar volumen independientemente.
-/// </summary>
 [DefaultExecutionOrder(-900)]
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
+
+    [Header("Mixer")]
+    [SerializeField] private AudioMixer mixer;
 
     [Header("Música")]
     [SerializeField] private AudioSource musicSource;
@@ -16,10 +15,7 @@ public class AudioManager : MonoBehaviour
     [Header("SFX Pool")]
     [Tooltip("Cantidad de AudioSources en el pool. Si se reproducen más sonidos simultáneos que este número, los más viejos se cortan.")]
     [SerializeField, Min(4)] private int sfxPoolSize = 12;
-
-    [Header("Volumen global")]
-    [SerializeField, Range(0f, 1f)] private float masterSfxVolume = 1f;
-    [SerializeField, Range(0f, 1f)] private float masterMusicVolume = 0.7f;
+    [SerializeField] private AudioMixerGroup sfxGroup;
 
     private AudioSource[] _sfxPool;
     private int _poolIndex;
@@ -44,6 +40,7 @@ public class AudioManager : MonoBehaviour
         {
             _sfxPool[i] = gameObject.AddComponent<AudioSource>();
             _sfxPool[i].playOnAwake = false;
+            _sfxPool[i].outputAudioMixerGroup = sfxGroup;
         }
     }
 
@@ -55,7 +52,7 @@ public class AudioManager : MonoBehaviour
         _poolIndex++;
 
         src.clip = data.GetClip();
-        src.volume = data.Volume * masterSfxVolume;
+        src.volume = data.Volume;
         src.pitch = data.RandomPitch;
         src.Play();
     }
@@ -67,7 +64,6 @@ public class AudioManager : MonoBehaviour
 
         musicSource.clip = clip;
         musicSource.loop = true;
-        musicSource.volume = masterMusicVolume;
         musicSource.Play();
     }
 
@@ -75,17 +71,11 @@ public class AudioManager : MonoBehaviour
 
     public void SetSFXVolume(float value)
     {
-        masterSfxVolume = Mathf.Clamp01(value);
+        mixer.SetFloat("SFXVolume", Mathf.Log10(Mathf.Max(value, 0.0001f)) * 20);
     }
 
     public void SetMusicVolume(float value)
     {
-        masterMusicVolume = Mathf.Clamp01(value);
-        ApplyMusicVolume();
-    }
-
-    private void ApplyMusicVolume()
-    {
-        if (musicSource != null) musicSource.volume = masterMusicVolume;
+        mixer.SetFloat("MusicVolume", Mathf.Log10(Mathf.Max(value, 0.0001f)) * 20);
     }
 }
