@@ -9,8 +9,14 @@ public class AudioManager : MonoBehaviour
     [Header("Mixer")]
     [SerializeField] private AudioMixer mixer;
 
+    public enum MusicState { None, Ambient, Combat }
+
     [Header("Música")]
     [SerializeField] private AudioSource musicSource;
+    [SerializeField] private AudioClip ambientTrack;
+    [SerializeField] private AudioClip combatTrack;
+
+    private MusicState _currentState = MusicState.None;
 
     [Header("SFX Pool")]
     [Tooltip("Cantidad de AudioSources en el pool. Si se reproducen más sonidos simultáneos que este número, los más viejos se cortan.")]
@@ -69,13 +75,46 @@ public class AudioManager : MonoBehaviour
 
     public void StopMusic() => musicSource.Stop();
 
+    public void SetMusicState(MusicState state)
+    {
+        if (state == _currentState) return;
+        _currentState = state;
+
+        AudioClip clip = state switch
+        {
+            MusicState.Ambient => ambientTrack,
+            MusicState.Combat  => combatTrack,
+            _                  => null
+        };
+
+        if (clip != null) PlayMusic(clip);
+        else StopMusic();
+    }
+
+    private float _lastMusicVolume = 1f;
+    private float _lastSFXVolume = 1f;
+
     public void SetSFXVolume(float value)
     {
+        _lastSFXVolume = value;
         mixer.SetFloat("SFXVolume", Mathf.Log10(Mathf.Max(value, 0.0001f)) * 20);
     }
 
     public void SetMusicVolume(float value)
     {
+        _lastMusicVolume = value;
         mixer.SetFloat("MusicVolume", Mathf.Log10(Mathf.Max(value, 0.0001f)) * 20);
+    }
+
+    public void ToggleMusic(bool enabled)
+    {
+        if (enabled) SetMusicVolume(_lastMusicVolume);
+        else mixer.SetFloat("MusicVolume", -80f);
+    }
+
+    public void ToggleSFX(bool enabled)
+    {
+        if (enabled) SetSFXVolume(_lastSFXVolume);
+        else mixer.SetFloat("SFXVolume", -80f);
     }
 }
