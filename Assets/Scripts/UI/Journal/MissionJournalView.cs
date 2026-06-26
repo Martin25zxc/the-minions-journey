@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -12,25 +13,19 @@ using UnityEngine.UI;
 /// - Renderizar detalle de la misión seleccionada.
 /// - Renderizar objetivos.
 /// - Renderizar bloque de recompensas.
-/// 
-/// No responsabilidad:
-/// - No cambia estados de misión directamente.
-/// - No aplica recompensas.
-/// - No decide si se puede abrir el Journal.
-/// - No maneja input global.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class MissionJournalView : MonoBehaviour
 {
     [Header("Root")]
-    [SerializeField, Tooltip("CanvasGroup del MissionJournalRoot.")]
+    [SerializeField, Tooltip("CanvasGroup del root MissionJournalRoot.")]
     private CanvasGroup rootCanvasGroup;
 
-    [Header("Lista")]
-    [SerializeField, Tooltip("Content del MissionListScrollRect/Viewport/Content.")]
+    [Header("Lista de misiones")]
+    [SerializeField, Tooltip("Content del ScrollRect de la lista izquierda.")]
     private RectTransform missionListContent;
 
-    [SerializeField, Tooltip("Prefab de fila de misión para la lista izquierda.")]
+    [SerializeField, Tooltip("Prefab de fila para la lista izquierda del Journal.")]
     private MissionJournalListRowUI missionListRowPrefab;
 
     [SerializeField, Tooltip("Texto opcional mostrado si no hay misiones visibles.")]
@@ -41,18 +36,28 @@ public sealed class MissionJournalView : MonoBehaviour
     [SerializeField] private TMP_Text detailStatusText;
     [SerializeField] private TMP_Text descriptionText;
 
+    [Header("Detalle Scroll")]
+    [SerializeField, Tooltip("ScrollRect del panel derecho. Se resetea arriba al cambiar de misión.")]
+    private ScrollRect detailScrollRect;
+
+    [SerializeField, Tooltip("Content del DetailScrollRect. Usado para forzar rebuild después de renderizar.")]
+    private RectTransform detailContent;
+
     [Header("Objetivos")]
-    [SerializeField, Tooltip("Contenedor donde se instancian filas de objetivos.")]
+    [SerializeField, Tooltip("Contenedor donde se instancian los objetivos del Journal.")]
     private RectTransform objectiveRowsContainer;
 
-    [SerializeField, Tooltip("Prefab de fila de objetivo específico del Journal.")]
+    [SerializeField, Tooltip("Prefab de fila de objetivo específico para Journal. No usar el prefab compacto del HUD.")]
     private MissionJournalObjectiveRowUI journalObjectiveRowPrefab;
 
+    [SerializeField, Tooltip("Si está activo, muestra objetivos bonus/opcionales en el Journal.")]
+    private bool showBonusObjectives = true;
+
     [Header("Recompensas")]
-    [SerializeField, Tooltip("Texto placeholder cuando no hay recompensas visibles.")]
+    [SerializeField, Tooltip("Texto donde se listan rewards o el fallback sin rewards.")]
     private TMP_Text rewardsPlaceholderText;
 
-    [SerializeField, Tooltip("Texto usado cuando una misión no tiene recompensas visibles.")]
+    [SerializeField, Tooltip("Texto mostrado cuando la misión no tiene rewards visibles.")]
     private string noRewardsText = "Sin recompensas visibles.";
 
     [Header("Botones")]
@@ -61,24 +66,54 @@ public sealed class MissionJournalView : MonoBehaviour
     [SerializeField] private Button closeButton;
     [SerializeField] private Button headerCloseButton;
 
-    [Header("Reglas de visualización")]
-    [SerializeField, Tooltip("Si está apagado, las misiones Inactive no aparecen para evitar spoilers.")]
-    private bool showInactiveMissions;
+    [Header("Visibilidad de misiones")]
+    [SerializeField, Tooltip("Preset de visibilidad usado por el Journal. Para MVP usar MvpActivesAvailableCompleted.")]
+    private MissionJournalVisibilityPreset visibilityPreset = MissionJournalVisibilityPreset.MvpActivesAvailableCompleted;
 
-    [SerializeField, Tooltip("Si está activo, las misiones Completed siguen apareciendo en el Journal.")]
+    [SerializeField, Tooltip("Solo se usa si Visibility Preset = Custom.")]
+    private bool showAvailableMissions = true;
+
+    [SerializeField, Tooltip("Solo se usa si Visibility Preset = Custom.")]
+    private bool showActiveMissions = true;
+
+    [SerializeField, Tooltip("Solo se usa si Visibility Preset = Custom.")]
+    private bool showReadyToTurnInMissions = true;
+
+    [SerializeField, Tooltip("Solo se usa si Visibility Preset = Custom.")]
     private bool showCompletedMissions = true;
 
-    [SerializeField, Tooltip("Si está activo, se muestran objetivos Bonus.")]
-    private bool showBonusObjectives = true;
+    [SerializeField, Tooltip("Normalmente debe quedar apagado para no revelar misiones futuras.")]
+    private bool showInactiveMissions;
+
+    [Header("Textos de estado")]
+    [SerializeField] private string mainCategoryText = "Principal";
+    [SerializeField] private string optionalCategoryText = "Opcional";
+    [SerializeField] private string availableStatusText = "Disponible";
+    [SerializeField] private string activeStatusText = "Activa";
+    [SerializeField] private string readyToTurnInStatusText = "Lista para entregar";
+    [SerializeField] private string completedStatusText = "Completada";
+    [SerializeField] private string inactiveStatusText = "Inactiva";
+
+    [Header("Textos vacíos")]
+    [SerializeField] private string emptyAllMissionsText = "No hay misiones registradas.";
+    [SerializeField] private string noSelectedMissionTitle = "Sin misión seleccionada";
+    [SerializeField] private string noSelectedMissionDescription = "Selecciona una misión de la lista.";
+    [SerializeField] private string noVisibleObjectivesText = "Sin objetivos visibles.";
+
+    [Header("Track")]
+    [SerializeField] private string trackMissionText = "Seguir misión";
+    [SerializeField] private string untrackMissionText = "Dejar de seguir";
 
     [Header("Debug")]
-    [SerializeField] private bool logMissingReferences = true;
+    [SerializeField, Tooltip("Avisa en consola si faltan referencias críticas.")]
+    private bool logMissingReferences = true;
 
-    private readonly List<MissionJournalListRowUI> listRows = new();
+    private readonly List<MissionJournalListRowUI> missionRows = new();
     private readonly List<MissionJournalObjectiveRowUI> objectiveRows = new();
     private readonly List<MissionRuntimeState> visibleMissions = new();
 
     private MissionRuntimeState selectedMission;
+    private MissionRuntimeState currentTrackedMission;
 
     public event Action<MissionRuntimeState> TrackRequested;
     public event Action CloseRequested;
@@ -90,44 +125,22 @@ public sealed class MissionJournalView : MonoBehaviour
 
     private void Awake()
     {
-        if (trackButton != null)
-        {
-            trackButton.onClick.AddListener(HandleTrackClicked);
-        }
-
-        if (closeButton != null)
-        {
-            closeButton.onClick.AddListener(HandleCloseClicked);
-        }
-
-        if (headerCloseButton != null)
-        {
-            headerCloseButton.onClick.AddListener(HandleCloseClicked);
-        }
+        WireButtons();
+        HideInstant();
     }
 
-    private void OnDestroy()
+    private void OnEnable()
     {
-        if (trackButton != null)
-        {
-            trackButton.onClick.RemoveListener(HandleTrackClicked);
-        }
+        WireButtons();
+    }
 
-        if (closeButton != null)
-        {
-            closeButton.onClick.RemoveListener(HandleCloseClicked);
-        }
-
-        if (headerCloseButton != null)
-        {
-            headerCloseButton.onClick.RemoveListener(HandleCloseClicked);
-        }
+    private void OnDisable()
+    {
+        UnwireButtons();
     }
 
     public void Show()
     {
-        gameObject.SetActive(true);
-
         if (rootCanvasGroup == null)
         {
             return;
@@ -150,45 +163,36 @@ public sealed class MissionJournalView : MonoBehaviour
         rootCanvasGroup.blocksRaycasts = false;
     }
 
-    public void Render(IReadOnlyList<MissionRuntimeState> missions, MissionRuntimeState trackedMission)
+    public void Render(IReadOnlyList<MissionRuntimeState> allMissions, MissionRuntimeState trackedMission)
     {
+        currentTrackedMission = trackedMission;
+
         if (!HasRequiredReferences())
         {
             return;
         }
 
-        BuildVisibleMissionList(missions);
-        ResolveSelectedMission(trackedMission);
+        RebuildVisibleMissions(allMissions);
+        selectedMission = ResolveSelectedMissionAfterFilter(trackedMission);
 
         RenderMissionList();
         RenderSelectedMission();
+        RebuildDetailLayout();
+        ResetDetailScrollToTop();
     }
 
-    public void SelectMission(MissionRuntimeState missionState)
-    {
-        if (missionState == selectedMission)
-        {
-            return;
-        }
-
-        selectedMission = missionState;
-        RenderMissionList();
-        RenderSelectedMission();
-    }
-
-    private void BuildVisibleMissionList(IReadOnlyList<MissionRuntimeState> missions)
+    private void RebuildVisibleMissions(IReadOnlyList<MissionRuntimeState> allMissions)
     {
         visibleMissions.Clear();
 
-        if (missions == null)
+        if (allMissions == null)
         {
             return;
         }
 
-        for (int i = 0; i < missions.Count; i++)
+        for (int i = 0; i < allMissions.Count; i++)
         {
-            MissionRuntimeState missionState = missions[i];
-
+            MissionRuntimeState missionState = allMissions[i];
             if (!ShouldShowMission(missionState))
             {
                 continue;
@@ -212,44 +216,166 @@ public sealed class MissionJournalView : MonoBehaviour
             return false;
         }
 
-        if (missionState.IsInactive && !showInactiveMissions)
+        switch (visibilityPreset)
         {
-            return false;
-        }
+            case MissionJournalVisibilityPreset.MvpActivesAvailableCompleted:
+                return missionState.IsReadyToTurnIn ||
+                       missionState.IsActive ||
+                       missionState.IsAvailable ||
+                       missionState.IsCompleted;
 
-        if (missionState.IsCompleted && !showCompletedMissions)
-        {
-            return false;
-        }
+            case MissionJournalVisibilityPreset.OnlyActives:
+                return missionState.IsReadyToTurnIn || missionState.IsActive;
 
-        return true;
+            case MissionJournalVisibilityPreset.ActivesAndCompleted:
+                return missionState.IsReadyToTurnIn || missionState.IsActive || missionState.IsCompleted;
+
+            case MissionJournalVisibilityPreset.EverythingExceptInactive:
+                return !missionState.IsInactive;
+
+            case MissionJournalVisibilityPreset.Custom:
+                return ShouldShowMissionCustom(missionState);
+
+            default:
+                return false;
+        }
     }
 
-    private void ResolveSelectedMission(MissionRuntimeState trackedMission)
+    private bool ShouldShowMissionCustom(MissionRuntimeState missionState)
+    {
+        switch (missionState.State)
+        {
+            case MissionState.Inactive:
+                return showInactiveMissions;
+
+            case MissionState.Available:
+                return showAvailableMissions;
+
+            case MissionState.Active:
+                return showActiveMissions;
+
+            case MissionState.ReadyToTurnIn:
+                return showReadyToTurnInMissions;
+
+            case MissionState.Completed:
+                return showCompletedMissions;
+
+            default:
+                return false;
+        }
+    }
+
+    private int CompareMissionsForJournal(MissionRuntimeState a, MissionRuntimeState b)
+    {
+        int stateCompare = GetMissionStateSortPriority(a).CompareTo(GetMissionStateSortPriority(b));
+        if (stateCompare != 0)
+        {
+            return stateCompare;
+        }
+
+        int displayOrderA = a != null && a.Definition != null ? a.Definition.DisplayOrder : int.MaxValue;
+        int displayOrderB = b != null && b.Definition != null ? b.Definition.DisplayOrder : int.MaxValue;
+
+        int displayOrderCompare = displayOrderA.CompareTo(displayOrderB);
+        if (displayOrderCompare != 0)
+        {
+            return displayOrderCompare;
+        }
+
+        MissionCategory categoryA = a != null && a.Definition != null ? a.Definition.Category : MissionCategory.Optional;
+        MissionCategory categoryB = b != null && b.Definition != null ? b.Definition.Category : MissionCategory.Optional;
+
+        int categoryCompare = categoryA.CompareTo(categoryB);
+        if (categoryCompare != 0)
+        {
+            return categoryCompare;
+        }
+
+        string titleA = ResolveTitle(a);
+        string titleB = ResolveTitle(b);
+
+        int titleCompare = string.Compare(titleA, titleB, StringComparison.CurrentCultureIgnoreCase);
+        if (titleCompare != 0)
+        {
+            return titleCompare;
+        }
+
+        string idA = a != null ? a.MissionId : string.Empty;
+        string idB = b != null ? b.MissionId : string.Empty;
+        return string.Compare(idA, idB, StringComparison.Ordinal);
+    }
+
+    private int GetMissionStateSortPriority(MissionRuntimeState missionState)
+    {
+        if (missionState == null)
+        {
+            return 999;
+        }
+
+        switch (missionState.State)
+        {
+            case MissionState.ReadyToTurnIn:
+                return 0;
+
+            case MissionState.Active:
+                return 1;
+
+            case MissionState.Available:
+                return 2;
+
+            case MissionState.Completed:
+                return 3;
+
+            case MissionState.Inactive:
+            default:
+                return 999;
+        }
+    }
+
+    private MissionRuntimeState ResolveSelectedMissionAfterFilter(MissionRuntimeState trackedMission)
     {
         if (selectedMission != null && visibleMissions.Contains(selectedMission))
         {
-            return;
+            return selectedMission;
         }
 
         if (trackedMission != null && visibleMissions.Contains(trackedMission))
         {
-            selectedMission = trackedMission;
-            return;
+            return trackedMission;
         }
 
-        selectedMission = FindFirstByState(MissionState.Active)
-            ?? FindFirstByState(MissionState.ReadyToTurnIn)
-            ?? FindFirstByState(MissionState.Available)
-            ?? FindFirstByState(MissionState.Completed)
-            ?? (visibleMissions.Count > 0 ? visibleMissions[0] : null);
+        MissionRuntimeState best = FindFirstVisibleByState(MissionState.ReadyToTurnIn);
+        if (best != null)
+        {
+            return best;
+        }
+
+        best = FindFirstVisibleByState(MissionState.Active);
+        if (best != null)
+        {
+            return best;
+        }
+
+        best = FindFirstVisibleByState(MissionState.Available);
+        if (best != null)
+        {
+            return best;
+        }
+
+        best = FindFirstVisibleByState(MissionState.Completed);
+        if (best != null)
+        {
+            return best;
+        }
+
+        return visibleMissions.Count > 0 ? visibleMissions[0] : null;
     }
 
-    private MissionRuntimeState FindFirstByState(MissionState state)
+    private MissionRuntimeState FindFirstVisibleByState(MissionState state)
     {
         for (int i = 0; i < visibleMissions.Count; i++)
         {
-            if (visibleMissions[i].State == state)
+            if (visibleMissions[i] != null && visibleMissions[i].State == state)
             {
                 return visibleMissions[i];
             }
@@ -260,50 +386,63 @@ public sealed class MissionJournalView : MonoBehaviour
 
     private void RenderMissionList()
     {
-        ClearListRows();
+        ClearMissionRows();
 
+        bool hasVisibleMissions = visibleMissions.Count > 0;
         if (emptyListText != null)
         {
-            bool isEmpty = visibleMissions.Count == 0;
-            emptyListText.gameObject.SetActive(isEmpty);
-            emptyListText.text = isEmpty ? "No hay misiones visibles." : string.Empty;
+            emptyListText.gameObject.SetActive(!hasVisibleMissions);
+            emptyListText.text = hasVisibleMissions ? string.Empty : emptyAllMissionsText;
+        }
+
+        if (!hasVisibleMissions)
+        {
+            return;
         }
 
         for (int i = 0; i < visibleMissions.Count; i++)
         {
             MissionRuntimeState missionState = visibleMissions[i];
-
             MissionJournalListRowUI row = Instantiate(missionListRowPrefab, missionListContent);
-            row.Render(missionState, missionState == selectedMission);
-            row.Clicked += HandleRowClicked;
-
-            listRows.Add(row);
+            row.Clicked += HandleMissionRowClicked;
+            row.Render(missionState, ReferenceEquals(missionState, selectedMission));
+            missionRows.Add(row);
         }
     }
 
     private void RenderSelectedMission()
     {
-        ClearObjectiveRows();
-
         if (selectedMission == null || selectedMission.Definition == null)
         {
-            SetText(detailTitleText, "Selecciona una misión");
-            SetText(detailStatusText, string.Empty);
-            SetText(descriptionText, string.Empty);
-            SetRewardsPlaceholder(string.Empty);
-            SetTrackButton(false, "Trackear");
+            RenderEmptyDetail();
             return;
         }
 
-        MissionDefinition definition = selectedMission.Definition;
-
-        SetText(detailTitleText, GetMissionTitle(selectedMission));
-        SetText(detailStatusText, BuildDetailStatus(selectedMission));
-        SetText(descriptionText, GetMissionDescription(definition));
+        SetText(detailTitleText, ResolveTitle(selectedMission));
+        SetText(detailStatusText, BuildDetailStatusText(selectedMission));
+        SetText(descriptionText, ResolveDescription(selectedMission));
 
         RenderObjectives(selectedMission);
-        RenderRewards(definition);
+        RenderRewards(selectedMission.Definition);
         RenderTrackButton(selectedMission);
+    }
+
+    private void RenderEmptyDetail()
+    {
+        SetText(detailTitleText, noSelectedMissionTitle);
+        SetText(detailStatusText, string.Empty);
+        SetText(descriptionText, noSelectedMissionDescription);
+        RenderNoVisibleObjectives();
+
+        if (rewardsPlaceholderText != null)
+        {
+            rewardsPlaceholderText.text = string.Empty;
+        }
+
+        if (trackButton != null)
+        {
+            trackButton.gameObject.SetActive(false);
+        }
     }
 
     private void RenderObjectives(MissionRuntimeState missionState)
@@ -311,12 +450,10 @@ public sealed class MissionJournalView : MonoBehaviour
         ClearObjectiveRows();
 
         IReadOnlyList<MissionObjectiveRuntimeState> objectives = missionState.Objectives;
-
         for (int i = 0; i < objectives.Count; i++)
         {
             MissionObjectiveRuntimeState objectiveState = objectives[i];
-
-            if (!ShouldShowObjective(objectiveState))
+            if (!ShouldShowObjective(missionState, objectiveState))
             {
                 continue;
             }
@@ -328,20 +465,23 @@ public sealed class MissionJournalView : MonoBehaviour
 
         if (objectiveRows.Count == 0)
         {
-            MissionJournalObjectiveRowUI row = Instantiate(journalObjectiveRowPrefab, objectiveRowsContainer);
-            row.RenderFallback("Sin objetivos visibles.");
-            objectiveRows.Add(row);
+            RenderNoVisibleObjectives();
         }
     }
 
-    private bool ShouldShowObjective(MissionObjectiveRuntimeState objectiveState)
+    private bool ShouldShowObjective(MissionRuntimeState missionState, MissionObjectiveRuntimeState objectiveState)
     {
-        if (objectiveState == null || objectiveState.Definition == null)
+        if (missionState == null || objectiveState == null || objectiveState.Definition == null)
         {
             return false;
         }
 
-        if (objectiveState.Definition.Importance == ObjectiveImportance.Bonus && !showBonusObjectives)
+        if (objectiveState.IsBonus && !showBonusObjectives)
+        {
+            return false;
+        }
+
+        if (objectiveState.Definition.HiddenUntilActive && missionState.IsAvailable)
         {
             return false;
         }
@@ -349,41 +489,50 @@ public sealed class MissionJournalView : MonoBehaviour
         return true;
     }
 
+    private void RenderNoVisibleObjectives()
+    {
+        ClearObjectiveRows();
+
+        if (journalObjectiveRowPrefab == null || objectiveRowsContainer == null)
+        {
+            return;
+        }
+
+        MissionJournalObjectiveRowUI row = Instantiate(journalObjectiveRowPrefab, objectiveRowsContainer);
+        row.RenderFallback(noVisibleObjectivesText);
+        objectiveRows.Add(row);
+    }
+
     private void RenderRewards(MissionDefinition definition)
     {
-        bool hasVisibleRewards = false;
-        IReadOnlyList<MissionRewardDefinition> rewards = definition.Rewards;
-
-        for (int i = 0; i < rewards.Count; i++)
+        if (rewardsPlaceholderText == null)
         {
-            MissionRewardDefinition reward = rewards[i];
+            return;
+        }
 
+        if (definition == null || definition.Rewards == null || definition.Rewards.Count == 0)
+        {
+            rewardsPlaceholderText.text = noRewardsText;
+            return;
+        }
+
+        StringBuilder builder = new StringBuilder();
+
+        for (int i = 0; i < definition.Rewards.Count; i++)
+        {
+            MissionRewardDefinition reward = definition.Rewards[i];
             if (reward == null || !reward.ShowInJournal || reward.RewardType == MissionRewardType.None)
             {
                 continue;
             }
 
-            hasVisibleRewards = true;
-            break;
-        }
+            string displayName = reward.DisplayName;
+            if (string.IsNullOrWhiteSpace(displayName))
+            {
+                displayName = reward.RewardId;
+            }
 
-        SetRewardsPlaceholder(hasVisibleRewards ? BuildRewardsSummary(rewards) : noRewardsText);
-    }
-
-    private string BuildRewardsSummary(IReadOnlyList<MissionRewardDefinition> rewards)
-    {
-        if (rewards == null || rewards.Count == 0)
-        {
-            return noRewardsText;
-        }
-
-        System.Text.StringBuilder builder = new System.Text.StringBuilder();
-
-        for (int i = 0; i < rewards.Count; i++)
-        {
-            MissionRewardDefinition reward = rewards[i];
-
-            if (reward == null || !reward.ShowInJournal || reward.RewardType == MissionRewardType.None)
+            if (string.IsNullOrWhiteSpace(displayName))
             {
                 continue;
             }
@@ -394,55 +543,59 @@ public sealed class MissionJournalView : MonoBehaviour
             }
 
             builder.Append("• ");
-            builder.Append(string.IsNullOrWhiteSpace(reward.DisplayName) ? reward.RewardId : reward.DisplayName);
+            builder.Append(displayName);
         }
 
-        return builder.Length > 0 ? builder.ToString() : noRewardsText;
+        rewardsPlaceholderText.text = builder.Length > 0 ? builder.ToString() : noRewardsText;
     }
 
     private void RenderTrackButton(MissionRuntimeState missionState)
     {
-        bool canTrack = missionState.IsActive || missionState.IsReadyToTurnIn;
+        if (trackButton == null)
+        {
+            return;
+        }
+
+        bool canTrack = CanTrackFromJournal(missionState);
+        trackButton.gameObject.SetActive(canTrack);
 
         if (!canTrack)
         {
-            SetTrackButton(false, "Trackear");
             return;
         }
 
-        SetTrackButton(true, missionState.IsTracked ? "Dejar de trackear" : "Trackear");
-    }
+        trackButton.interactable = true;
 
-    private void SetTrackButton(bool interactable, string label)
-    {
-        if (trackButton != null)
+        if (trackButtonText != null)
         {
-            trackButton.interactable = interactable;
+            trackButtonText.text = missionState.IsTracked ? untrackMissionText : trackMissionText;
         }
-
-        SetText(trackButtonText, label);
     }
 
-    private void SetRewardsPlaceholder(string value)
+    private static bool CanTrackFromJournal(MissionRuntimeState missionState)
     {
-        if (rewardsPlaceholderText == null)
+        return missionState != null &&
+               missionState.Definition != null &&
+               (missionState.IsActive || missionState.IsReadyToTurnIn);
+    }
+
+    private void HandleMissionRowClicked(MissionRuntimeState missionState)
+    {
+        if (missionState == null)
         {
             return;
         }
 
-        bool hasText = !string.IsNullOrWhiteSpace(value);
-        rewardsPlaceholderText.gameObject.SetActive(hasText);
-        rewardsPlaceholderText.text = hasText ? value : string.Empty;
+        selectedMission = missionState;
+        RenderMissionList();
+        RenderSelectedMission();
+        RebuildDetailLayout();
+        ResetDetailScrollToTop();
     }
 
-    private void HandleRowClicked(MissionRuntimeState missionState)
+    private void HandleTrackButtonClicked()
     {
-        SelectMission(missionState);
-    }
-
-    private void HandleTrackClicked()
-    {
-        if (selectedMission == null)
+        if (!CanTrackFromJournal(selectedMission))
         {
             return;
         }
@@ -450,23 +603,94 @@ public sealed class MissionJournalView : MonoBehaviour
         TrackRequested?.Invoke(selectedMission);
     }
 
-    private void HandleCloseClicked()
+    private void HandleCloseButtonClicked()
     {
         CloseRequested?.Invoke();
     }
 
-    private void ClearListRows()
+    private string BuildDetailStatusText(MissionRuntimeState missionState)
     {
-        for (int i = 0; i < listRows.Count; i++)
+        if (missionState == null || missionState.Definition == null)
         {
-            if (listRows[i] != null)
-            {
-                listRows[i].Clicked -= HandleRowClicked;
-                Destroy(listRows[i].gameObject);
-            }
+            return string.Empty;
         }
 
-        listRows.Clear();
+        string category = missionState.Definition.Category == MissionCategory.Main
+            ? mainCategoryText
+            : optionalCategoryText;
+
+        return $"{category} · {ResolveStateText(missionState.State)}";
+    }
+
+    private string ResolveStateText(MissionState state)
+    {
+        switch (state)
+        {
+            case MissionState.Available:
+                return availableStatusText;
+
+            case MissionState.Active:
+                return activeStatusText;
+
+            case MissionState.ReadyToTurnIn:
+                return readyToTurnInStatusText;
+
+            case MissionState.Completed:
+                return completedStatusText;
+
+            case MissionState.Inactive:
+            default:
+                return inactiveStatusText;
+        }
+    }
+
+    private string ResolveDescription(MissionRuntimeState missionState)
+    {
+        if (missionState == null || missionState.Definition == null)
+        {
+            return string.Empty;
+        }
+
+        string fullDescription = missionState.Definition.FullDescription;
+        if (!string.IsNullOrWhiteSpace(fullDescription))
+        {
+            return fullDescription.Trim();
+        }
+
+        string shortDescription = missionState.Definition.ShortDescription;
+        if (!string.IsNullOrWhiteSpace(shortDescription))
+        {
+            return shortDescription.Trim();
+        }
+
+        return string.Empty;
+    }
+
+    private static string ResolveTitle(MissionRuntimeState missionState)
+    {
+        if (missionState == null || missionState.Definition == null)
+        {
+            return string.Empty;
+        }
+
+        string title = missionState.Definition.Title;
+        return string.IsNullOrWhiteSpace(title) ? missionState.MissionId : title.Trim();
+    }
+
+    private void ClearMissionRows()
+    {
+        for (int i = 0; i < missionRows.Count; i++)
+        {
+            if (missionRows[i] == null)
+            {
+                continue;
+            }
+
+            missionRows[i].Clicked -= HandleMissionRowClicked;
+            Destroy(missionRows[i].gameObject);
+        }
+
+        missionRows.Clear();
     }
 
     private void ClearObjectiveRows()
@@ -482,73 +706,111 @@ public sealed class MissionJournalView : MonoBehaviour
         objectiveRows.Clear();
     }
 
+    private void WireButtons()
+    {
+        if (trackButton != null)
+        {
+            trackButton.onClick.RemoveListener(HandleTrackButtonClicked);
+            trackButton.onClick.AddListener(HandleTrackButtonClicked);
+        }
+
+        if (closeButton != null)
+        {
+            closeButton.onClick.RemoveListener(HandleCloseButtonClicked);
+            closeButton.onClick.AddListener(HandleCloseButtonClicked);
+        }
+
+        if (headerCloseButton != null)
+        {
+            headerCloseButton.onClick.RemoveListener(HandleCloseButtonClicked);
+            headerCloseButton.onClick.AddListener(HandleCloseButtonClicked);
+        }
+    }
+
+    private void UnwireButtons()
+    {
+        if (trackButton != null)
+        {
+            trackButton.onClick.RemoveListener(HandleTrackButtonClicked);
+        }
+
+        if (closeButton != null)
+        {
+            closeButton.onClick.RemoveListener(HandleCloseButtonClicked);
+        }
+
+        if (headerCloseButton != null)
+        {
+            headerCloseButton.onClick.RemoveListener(HandleCloseButtonClicked);
+        }
+    }
+
+    private void RebuildDetailLayout()
+    {
+        Canvas.ForceUpdateCanvases();
+
+        if (objectiveRowsContainer != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(objectiveRowsContainer);
+        }
+
+        if (detailContent != null)
+        {
+            LayoutRebuilder.ForceRebuildLayoutImmediate(detailContent);
+        }
+
+        Canvas.ForceUpdateCanvases();
+    }
+
+    private void ResetDetailScrollToTop()
+    {
+        if (detailScrollRect == null)
+        {
+            return;
+        }
+
+        detailScrollRect.verticalNormalizedPosition = 1f;
+    }
+
     private bool HasRequiredReferences()
     {
-        bool hasReferences =
-            rootCanvasGroup != null &&
-            missionListContent != null &&
-            missionListRowPrefab != null &&
-            detailTitleText != null &&
-            detailStatusText != null &&
-            descriptionText != null &&
-            objectiveRowsContainer != null &&
-            journalObjectiveRowPrefab != null;
+        bool hasRequired = true;
 
-        if (!hasReferences && logMissingReferences)
+        if (missionListContent == null)
         {
-            Debug.LogWarning("MissionJournalView tiene referencias faltantes.", this);
+            hasRequired = false;
+            LogMissingReference(nameof(missionListContent));
         }
 
-        return hasReferences;
-    }
-
-    private static string GetMissionTitle(MissionRuntimeState missionState)
-    {
-        string title = missionState.Definition.Title;
-        return string.IsNullOrWhiteSpace(title) ? missionState.MissionId : title.Trim();
-    }
-
-    private static string GetMissionDescription(MissionDefinition definition)
-    {
-        if (!string.IsNullOrWhiteSpace(definition.FullDescription))
+        if (missionListRowPrefab == null)
         {
-            return definition.FullDescription.Trim();
+            hasRequired = false;
+            LogMissingReference(nameof(missionListRowPrefab));
         }
 
-        if (!string.IsNullOrWhiteSpace(definition.ShortDescription))
+        if (objectiveRowsContainer == null)
         {
-            return definition.ShortDescription.Trim();
+            hasRequired = false;
+            LogMissingReference(nameof(objectiveRowsContainer));
         }
 
-        return "Sin descripción.";
-    }
-
-    private static string BuildDetailStatus(MissionRuntimeState missionState)
-    {
-        return $"{GetCategoryText(missionState.Definition.Category)} · {GetStateText(missionState.State)}";
-    }
-
-    private static string GetCategoryText(MissionCategory category)
-    {
-        return category switch
+        if (journalObjectiveRowPrefab == null)
         {
-            MissionCategory.Main => "Principal",
-            MissionCategory.Optional => "Opcional",
-            _ => category.ToString()
-        };
+            hasRequired = false;
+            LogMissingReference(nameof(journalObjectiveRowPrefab));
+        }
+
+        return hasRequired;
     }
 
-    private static string GetStateText(MissionState state)
+    private void LogMissingReference(string fieldName)
     {
-        return state switch
+        if (!logMissingReferences)
         {
-            MissionState.Inactive => "Inactiva",
-            MissionState.Available => "Disponible",
-            MissionState.Active => "Activa",
-            MissionState.ReadyToTurnIn => "Lista para entregar",
-            MissionState.Completed => "Completada",
-            _ => state.ToString()
-        };
+            return;
+        }
+
+        Debug.LogWarning($"{nameof(MissionJournalView)}: falta asignar '{fieldName}'.", this);
     }
 
     private static void SetText(TMP_Text text, string value)
@@ -557,26 +819,5 @@ public sealed class MissionJournalView : MonoBehaviour
         {
             text.text = value ?? string.Empty;
         }
-    }
-
-    private static int CompareMissionsForJournal(MissionRuntimeState left, MissionRuntimeState right)
-    {
-        if (left == null && right == null) return 0;
-        if (left == null) return 1;
-        if (right == null) return -1;
-
-        int categoryCompare = left.Definition.Category.CompareTo(right.Definition.Category);
-        if (categoryCompare != 0)
-        {
-            return categoryCompare;
-        }
-
-        int orderCompare = left.Definition.DisplayOrder.CompareTo(right.Definition.DisplayOrder);
-        if (orderCompare != 0)
-        {
-            return orderCompare;
-        }
-
-        return string.Compare(left.MissionId, right.MissionId, StringComparison.Ordinal);
     }
 }
