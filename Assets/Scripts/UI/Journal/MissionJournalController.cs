@@ -1,106 +1,213 @@
 using UnityEngine;
 
 /// <summary>
-/// Orquesta el Journal de misiones.
+/// Controla la apertura/cierre del Mission Journal desde el estado del juego.
 /// 
-/// Responsabilidad:
-/// - Conecta MissionManager con MissionJournalView.
-/// - Escucha cambios de misiones.
-/// - Ejecuta acciones simples como trackear/cerrar.
-/// 
-/// No responsabilidad:
-/// - No decide progreso de misiones.
-/// - No acepta/entrega misiones.
-/// - No aplica recompensas.
-/// - No maneja todavía TAB/ESC/input global.
+/// Regla principal:
+/// - GameStateController es la fuente de verdad de la pantalla actual.
+/// - Este controller solo muestra/oculta la vista cuando el estado pasa a MissionJournal.
+/// - Input y botones piden abrir/cerrar, pero no activan el panel directamente.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class MissionJournalController : MonoBehaviour
 {
     [Header("Referencias")]
+    [SerializeField, Tooltip("Controlador central de estados del juego.")]
+    private GameStateController gameStateController;
+
+    [SerializeField, Tooltip("Gate de acciones. Bloquea abrir el Journal en combate u otros estados inválidos.")]
+    private GameplayActionGate actionGate;
+
     [SerializeField, Tooltip("Fuente de verdad del runtime de misiones.")]
     private MissionManager missionManager;
 
-    [SerializeField, Tooltip("Vista visual del Journal. Renderiza lista, detalle, objetivos y recompensas.")]
+    [SerializeField, Tooltip("Vista visual del Journal.")]
     private MissionJournalView journalView;
 
-    [SerializeField, Tooltip("Dimmer de pantalla usado como fondo/bloqueador visual del Journal.")]
+    [SerializeField, Tooltip("Dimmer de pantalla usado como fondo/bloqueador del Journal.")]
     private GameObject screenDimmer;
 
     [Header("Debug")]
-    [SerializeField, Tooltip("Abre el Journal automáticamente al iniciar para validar layout y render.")]
-    private bool openOnStartForDebug;
-
     [SerializeField, Tooltip("Muestra logs de diagnóstico del Journal.")]
     private bool logDebug;
 
+    private GameState returnStateAfterJournal = GameState.Gameplay;
+
     private void Reset()
     {
+        gameStateController = FindFirstObjectByType<GameStateController>();
+        actionGate = FindFirstObjectByType<GameplayActionGate>();
         missionManager = FindFirstObjectByType<MissionManager>();
         journalView = FindFirstObjectByType<MissionJournalView>(FindObjectsInactive.Include);
     }
 
     private void OnEnable()
     {
-        SubscribeMissionManager();
-        SubscribeView();
+        Subscribe();
     }
 
     private void Start()
     {
-        HideInstant();
-
-        if (openOnStartForDebug)
-        {
-            Open();
-        }
+        SyncVisibilityWithGameState();
     }
 
     private void OnDisable()
     {
-        UnsubscribeMissionManager();
-        UnsubscribeView();
+        Unsubscribe();
     }
 
-    public void Open()
+    /// <summary>
+    /// Usar para la tecla J.
+    /// Si el Journal está abierto, vuelve al estado anterior válido.
+    /// Si estamos en Gameplay, intenta abrir respetando GameplayActionGate.
+    /// En PauseMenu no hace nada: para eso usar RequestOpenFromPauseMenuButton().
+    /// </summary>
+    public void RequestToggleFromGameplayKey()
     {
-        if (!HasRequiredReferences())
+        if (gameStateController == null)
+        {
+            Debug.LogWarning($"{nameof(MissionJournalController)} necesita GameStateController.", this);
+            return;
+        }
+
+        if (gameStateController.CurrentState == GameState.MissionJournal)
+        {
+            RequestCloseToPreviousState();
+            return;
+        }
+
+        if (gameStateController.CurrentState != GameState.Gameplay)
         {
             return;
         }
 
-        if (screenDimmer != null)
+        RequestOpenJournal();
+    }
+
+    /// <summary>
+    /// Usar en el botón futuro del menú de pausa.
+    /// Permite ir desde PauseMenu a MissionJournal sin duplicar lógica.
+    /// </summary>
+    public void RequestOpenFromPauseMenuButton()
+    {
+        RequestOpenJournal();
+    }
+
+    /// <summary>
+    /// Usar en botones internos del Journal, como Header CloseButton o Footer CloseButton.
+    /// Si el Journal fue abierto desde PauseMenu, vuelve a PauseMenu; si fue abierto desde Gameplay, vuelve a Gameplay.
+    /// </summary>
+    public void RequestCloseToPreviousState()
+    {
+        if (gameStateController == null)
         {
-            screenDimmer.SetActive(true);
+            return;
         }
 
-        journalView.Show();
-        Refresh();
+        if (returnStateAfterJournal == GameState.PauseMenu)
+        {
+            gameStateController.TrySetState(GameState.PauseMenu);
+            return;
+        }
+
+        gameStateController.TryReturnToGameplay();
+    }
+
+    private void RequestOpenJournal()
+    {
+        if (gameStateController == null)
+        {
+            Debug.LogWarning($"{nameof(MissionJournalController)} necesita GameStateController.", this);
+            return;
+        }
+
+        GameplayActionBlockResult blockResult = GetJournalOpenBlockResult();
+
+        if (!blockResult.IsAllowed)
+        {
+            ShowBlockedFeedback(blockResult.Reason);
+
+            if (logDebug)
+            {
+                Debug.Log($"MissionJournalController: apertura bloqueada. {blockResult.Reason}", this);
+            }
+
+            return;
+        }
+
+        CacheReturnState();
+        bool changed = gameStateController.TryOpenMissionJournal();
 
         if (logDebug)
         {
-            Debug.Log("MissionJournalController: Journal abierto.", this);
+            Debug.Log($"MissionJournalController: TryOpenMissionJournal -> {changed}", this);
         }
     }
 
-    public void Close()
+    private void CacheReturnState()
     {
-        HideInstant();
-
-        if (logDebug)
+        if (gameStateController == null)
         {
-            Debug.Log("MissionJournalController: Journal cerrado.", this);
+            returnStateAfterJournal = GameState.Gameplay;
+            return;
         }
+
+        returnStateAfterJournal = gameStateController.CurrentState == GameState.PauseMenu
+            ? GameState.PauseMenu
+            : GameState.Gameplay;
     }
 
-    public void HideInstant()
+    private GameplayActionBlockResult GetJournalOpenBlockResult()
     {
+        if (actionGate == null)
+        {
+            return GameplayActionBlockResult.Allowed();
+        }
+
+        return actionGate.GetBlockResult(GameplayActionType.OpenMissionJournal);
+    }
+
+    private void ShowBlockedFeedback(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return;
+        }
+
+        TMJNotifications.ShowSystem(
+            reason,
+            NotificationPriority.Normal,
+            title: "Diario",
+            groupKey: "journal_blocked",
+            context: this);
+    }
+
+    private void HandleGameStateChanged(GameState previousState, GameState currentState)
+    {
+        SyncVisibilityWithGameState();
+    }
+
+    private void SyncVisibilityWithGameState()
+    {
+        bool shouldShow = gameStateController != null &&
+                          gameStateController.CurrentState == GameState.MissionJournal;
+
         if (screenDimmer != null)
         {
-            screenDimmer.SetActive(false);
+            screenDimmer.SetActive(shouldShow);
         }
 
-        if (journalView != null)
+        if (journalView == null)
+        {
+            return;
+        }
+
+        if (shouldShow)
+        {
+            journalView.Show();
+            Refresh();
+        }
+        else
         {
             journalView.HideInstant();
         }
@@ -108,8 +215,13 @@ public sealed class MissionJournalController : MonoBehaviour
 
     public void Refresh()
     {
-        if (!HasRequiredReferences())
+        if (missionManager == null || journalView == null)
         {
+            if (logDebug)
+            {
+                Debug.LogWarning($"{nameof(MissionJournalController)} necesita MissionManager y MissionJournalView.", this);
+            }
+
             return;
         }
 
@@ -123,20 +235,13 @@ public sealed class MissionJournalController : MonoBehaviour
             return;
         }
 
-        bool changed;
-
-        if (missionState.IsTracked)
-        {
-            changed = missionManager.TryClearTrackedMission();
-        }
-        else
-        {
-            changed = missionManager.TrySetTrackedMission(missionState.MissionId);
-        }
+        bool changed = missionState.IsTracked
+            ? missionManager.TryClearTrackedMission()
+            : missionManager.TrySetTrackedMission(missionState.MissionId);
 
         if (logDebug)
         {
-            Debug.Log($"MissionJournalController: Track toggle '{missionState.MissionId}' -> {changed}", this);
+            Debug.Log($"MissionJournalController: toggle track '{missionState.MissionId}' -> {changed}", this);
         }
 
         Refresh();
@@ -144,93 +249,86 @@ public sealed class MissionJournalController : MonoBehaviour
 
     private void HandleCloseRequested()
     {
-        Close();
+        RequestCloseToPreviousState();
     }
 
     private void HandleMissionChanged(MissionRuntimeState missionState)
     {
-        Refresh();
+        RefreshIfOpen();
     }
 
     private void HandleObjectiveChanged(MissionRuntimeState missionState, MissionObjectiveRuntimeState objectiveState)
     {
-        Refresh();
+        RefreshIfOpen();
     }
 
-    private bool HasRequiredReferences()
+    private void RefreshIfOpen()
     {
-        bool hasReferences = missionManager != null && journalView != null;
-
-        if (!hasReferences && logDebug)
+        if (gameStateController != null && gameStateController.CurrentState == GameState.MissionJournal)
         {
-            Debug.LogWarning("MissionJournalController necesita MissionManager y MissionJournalView.", this);
+            Refresh();
         }
-
-        return hasReferences;
     }
 
-    private void SubscribeMissionManager()
+    private void Subscribe()
     {
-        if (missionManager == null)
+        if (gameStateController != null)
         {
-            return;
+            gameStateController.GameStateChanged -= HandleGameStateChanged;
+            gameStateController.GameStateChanged += HandleGameStateChanged;
         }
 
-        missionManager.MissionAvailable -= HandleMissionChanged;
-        missionManager.MissionAccepted -= HandleMissionChanged;
-        missionManager.MissionReadyToTurnIn -= HandleMissionChanged;
-        missionManager.MissionCompleted -= HandleMissionChanged;
-        missionManager.ObjectiveUpdated -= HandleObjectiveChanged;
-        missionManager.ObjectiveCompleted -= HandleObjectiveChanged;
-        missionManager.TrackedMissionChanged -= HandleMissionChanged;
+        if (journalView != null)
+        {
+            journalView.TrackRequested -= HandleTrackRequested;
+            journalView.CloseRequested -= HandleCloseRequested;
 
-        missionManager.MissionAvailable += HandleMissionChanged;
-        missionManager.MissionAccepted += HandleMissionChanged;
-        missionManager.MissionReadyToTurnIn += HandleMissionChanged;
-        missionManager.MissionCompleted += HandleMissionChanged;
-        missionManager.ObjectiveUpdated += HandleObjectiveChanged;
-        missionManager.ObjectiveCompleted += HandleObjectiveChanged;
-        missionManager.TrackedMissionChanged += HandleMissionChanged;
+            journalView.TrackRequested += HandleTrackRequested;
+            journalView.CloseRequested += HandleCloseRequested;
+        }
+
+        if (missionManager != null)
+        {
+            missionManager.MissionAvailable -= HandleMissionChanged;
+            missionManager.MissionAccepted -= HandleMissionChanged;
+            missionManager.MissionReadyToTurnIn -= HandleMissionChanged;
+            missionManager.MissionCompleted -= HandleMissionChanged;
+            missionManager.ObjectiveUpdated -= HandleObjectiveChanged;
+            missionManager.ObjectiveCompleted -= HandleObjectiveChanged;
+            missionManager.TrackedMissionChanged -= HandleMissionChanged;
+
+            missionManager.MissionAvailable += HandleMissionChanged;
+            missionManager.MissionAccepted += HandleMissionChanged;
+            missionManager.MissionReadyToTurnIn += HandleMissionChanged;
+            missionManager.MissionCompleted += HandleMissionChanged;
+            missionManager.ObjectiveUpdated += HandleObjectiveChanged;
+            missionManager.ObjectiveCompleted += HandleObjectiveChanged;
+            missionManager.TrackedMissionChanged += HandleMissionChanged;
+        }
     }
 
-    private void UnsubscribeMissionManager()
+    private void Unsubscribe()
     {
-        if (missionManager == null)
+        if (gameStateController != null)
         {
-            return;
+            gameStateController.GameStateChanged -= HandleGameStateChanged;
         }
 
-        missionManager.MissionAvailable -= HandleMissionChanged;
-        missionManager.MissionAccepted -= HandleMissionChanged;
-        missionManager.MissionReadyToTurnIn -= HandleMissionChanged;
-        missionManager.MissionCompleted -= HandleMissionChanged;
-        missionManager.ObjectiveUpdated -= HandleObjectiveChanged;
-        missionManager.ObjectiveCompleted -= HandleObjectiveChanged;
-        missionManager.TrackedMissionChanged -= HandleMissionChanged;
-    }
-
-    private void SubscribeView()
-    {
-        if (journalView == null)
+        if (journalView != null)
         {
-            return;
+            journalView.TrackRequested -= HandleTrackRequested;
+            journalView.CloseRequested -= HandleCloseRequested;
         }
 
-        journalView.TrackRequested -= HandleTrackRequested;
-        journalView.CloseRequested -= HandleCloseRequested;
-
-        journalView.TrackRequested += HandleTrackRequested;
-        journalView.CloseRequested += HandleCloseRequested;
-    }
-
-    private void UnsubscribeView()
-    {
-        if (journalView == null)
+        if (missionManager != null)
         {
-            return;
+            missionManager.MissionAvailable -= HandleMissionChanged;
+            missionManager.MissionAccepted -= HandleMissionChanged;
+            missionManager.MissionReadyToTurnIn -= HandleMissionChanged;
+            missionManager.MissionCompleted -= HandleMissionChanged;
+            missionManager.ObjectiveUpdated -= HandleObjectiveChanged;
+            missionManager.ObjectiveCompleted -= HandleObjectiveChanged;
+            missionManager.TrackedMissionChanged -= HandleMissionChanged;
         }
-
-        journalView.TrackRequested -= HandleTrackRequested;
-        journalView.CloseRequested -= HandleCloseRequested;
     }
 }
