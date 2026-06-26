@@ -542,7 +542,7 @@ public sealed class MissionJournalView : MonoBehaviour
                 builder.AppendLine();
             }
 
-            builder.Append("• ");
+            //builder.Append("• ");
             builder.Append(displayName);
         }
 
