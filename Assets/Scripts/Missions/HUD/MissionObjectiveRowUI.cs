@@ -1,6 +1,5 @@
 using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 [DisallowMultipleComponent]
 public sealed class MissionObjectiveRowUI : MonoBehaviour
@@ -9,31 +8,31 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
     [SerializeField, Tooltip("Texto principal del objetivo.")]
     private TMP_Text descriptionText;
 
-    [SerializeField, Tooltip("Texto de progreso, por ejemplo 2/3. Puede quedar vacío si el objetivo no muestra progreso.")]
+    [SerializeField, Tooltip("Texto de progreso, por ejemplo 0/3.")]
     private TMP_Text progressText;
 
-    [SerializeField, Tooltip("Marca visual para objetivos completados. Puede ser un texto con ✓ o un ícono.")]
-    private GameObject completedMarker;
+    [SerializeField, Tooltip("Marcador visual. Ejemplo: • para pendiente, X para completado.")]
+    private TMP_Text stateMarkerText;
 
-    [SerializeField, Tooltip("CanvasGroup del root de la fila. Permite apagar raycast y asegurar alpha.")]
-    private CanvasGroup canvasGroup;
+    [Header("Marcadores")]
+    [SerializeField, Tooltip("Marcador mostrado para objetivos pendientes.")]
+    private string pendingMarker = "•";
 
-    [SerializeField, Tooltip("LayoutElement del root de la fila. Se usa para ajustar altura de una o dos líneas.")]
-    private LayoutElement layoutElement;
+    [SerializeField, Tooltip("Marcador mostrado para objetivos completados.")]
+    private string completedMarker = "X";
 
-    [Header("Texto")]
-    [SerializeField, Tooltip("Si está activo, el script fuerza wrapping/ellipsis para que los objetivos puedan ocupar dos líneas sin desbordar.")]
-    private bool configureDescriptionText = true;
+    [Header("Progreso")]
+    [SerializeField, Tooltip("Si está activo, el ProgressText queda siempre activo aunque esté vacío para mantener una columna estable.")]
+    private bool keepProgressColumnWhenEmpty = true;
 
     private void Reset()
     {
-        canvasGroup = GetComponent<CanvasGroup>();
-        layoutElement = GetComponent<LayoutElement>();
-
         TMP_Text[] texts = GetComponentsInChildren<TMP_Text>(true);
+
         for (int i = 0; i < texts.Length; i++)
         {
             string textName = texts[i].name;
+
             if (descriptionText == null && textName.Contains("Description"))
             {
                 descriptionText = texts[i];
@@ -42,19 +41,21 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
             {
                 progressText = texts[i];
             }
-            else if (completedMarker == null && textName.Contains("Completed"))
+            else if (stateMarkerText == null &&
+                     (textName.Contains("State") ||
+                      textName.Contains("Marker") ||
+                      textName.Contains("Completed")))
             {
-                completedMarker = texts[i].gameObject;
+                stateMarkerText = texts[i];
             }
         }
     }
 
-    private void Awake()
-    {
-        EnsureCanvasGroupState();
-    }
-
-    public void Render(MissionObjectiveRuntimeState objectiveState, bool allowDoubleLine, float singleLineHeight, float doubleLineHeight)
+    public void Render(
+        MissionObjectiveRuntimeState objectiveState,
+        bool allowDoubleLine,
+        float singleLineHeight,
+        float doubleLineHeight)
     {
         if (objectiveState == null || objectiveState.Definition == null)
         {
@@ -63,42 +64,26 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
         }
 
         string description = objectiveState.Definition.Description;
+
         if (string.IsNullOrWhiteSpace(description))
         {
             description = objectiveState.ObjectiveId;
         }
 
-        SetDescription(description.Trim(), allowDoubleLine);
+        SetText(descriptionText, description?.Trim());
+        SetText(stateMarkerText, objectiveState.IsCompleted ? completedMarker : pendingMarker);
         SetProgress(GetProgressText(objectiveState));
-        SetCompleted(objectiveState.IsCompleted);
-        SetHeight(allowDoubleLine ? doubleLineHeight : singleLineHeight);
-        SetVisible(true);
     }
 
-    public void RenderFallback(string text, bool allowDoubleLine, float singleLineHeight, float doubleLineHeight)
+    public void RenderFallback(
+        string text,
+        bool allowDoubleLine,
+        float singleLineHeight,
+        float doubleLineHeight)
     {
-        SetDescription(text, allowDoubleLine);
+        SetText(descriptionText, text);
+        SetText(stateMarkerText, pendingMarker);
         SetProgress(string.Empty);
-        SetCompleted(false);
-        SetHeight(allowDoubleLine ? doubleLineHeight : singleLineHeight);
-        SetVisible(true);
-    }
-
-    private void SetDescription(string value, bool allowDoubleLine)
-    {
-        if (descriptionText == null)
-        {
-            return;
-        }
-
-        descriptionText.text = value;
-
-        if (!configureDescriptionText)
-        {
-            return;
-        }
-        descriptionText.textWrappingMode = allowDoubleLine ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
-        descriptionText.overflowMode = TextOverflowModes.Ellipsis;
     }
 
     private void SetProgress(string value)
@@ -109,51 +94,9 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
         }
 
         bool hasProgress = !string.IsNullOrWhiteSpace(value);
-        progressText.gameObject.SetActive(hasProgress);
+
+        progressText.gameObject.SetActive(hasProgress || keepProgressColumnWhenEmpty);
         progressText.text = hasProgress ? value : string.Empty;
-    }
-
-    private void SetCompleted(bool isCompleted)
-    {
-        if (completedMarker != null)
-        {
-            completedMarker.SetActive(isCompleted);
-        }
-    }
-
-    private void SetHeight(float preferredHeight)
-    {
-        if (layoutElement == null)
-        {
-            return;
-        }
-
-        layoutElement.minHeight = Mathf.Max(24f, preferredHeight - 8f);
-        layoutElement.preferredHeight = Mathf.Max(24f, preferredHeight);
-        layoutElement.flexibleHeight = 0f;
-    }
-
-    private void SetVisible(bool visible)
-    {
-        EnsureCanvasGroupState();
-
-        if (canvasGroup == null)
-        {
-            return;
-        }
-
-        canvasGroup.alpha = visible ? 1f : 0f;
-    }
-
-    private void EnsureCanvasGroupState()
-    {
-        if (canvasGroup == null)
-        {
-            return;
-        }
-
-        canvasGroup.interactable = false;
-        canvasGroup.blocksRaycasts = false;
     }
 
     private static string GetProgressText(MissionObjectiveRuntimeState objectiveState)
@@ -169,5 +112,13 @@ public sealed class MissionObjectiveRowUI : MonoBehaviour
         }
 
         return $"{objectiveState.CurrentAmount}/{objectiveState.Definition.RequiredAmount}";
+    }
+
+    private static void SetText(TMP_Text text, string value)
+    {
+        if (text != null)
+        {
+            text.text = value ?? string.Empty;
+        }
     }
 }
