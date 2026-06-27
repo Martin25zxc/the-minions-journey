@@ -2,6 +2,14 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 
+/// <summary>
+/// Vista visual del HUD de misiones durante gameplay.
+///
+/// Responsabilidad:
+/// - Mostrar la misión trackeada.
+/// - Mostrar estado breve.
+/// - Instanciar/reusar filas de objetivos.
+/// </summary>
 [DisallowMultipleComponent]
 public sealed class MissionHUDView : MonoBehaviour
 {
@@ -18,7 +26,7 @@ public sealed class MissionHUDView : MonoBehaviour
     [SerializeField, Tooltip("Contenedor donde se instancian las filas de objetivos.")]
     private RectTransform objectiveRowsContainer;
 
-    [SerializeField, Tooltip("Prefab de una fila de objetivo. Debe tener MissionObjectiveRowUI.")]
+    [SerializeField, Tooltip("Prefab de una fila de objetivo del HUD. Debe tener MissionObjectiveRowUI.")]
     private MissionObjectiveRowUI objectiveRowPrefab;
 
     [Header("Contenido")]
@@ -44,16 +52,6 @@ public sealed class MissionHUDView : MonoBehaviour
     [SerializeField, Tooltip("Texto mostrado en el renglón secundario para misiones opcionales activas.")]
     private string optionalMissionStatusText = "Misión opcional";
 
-    [Header("Objetivos")]
-    [SerializeField, Tooltip("Permite que el texto del objetivo use hasta dos líneas dentro de cada fila.")]
-    private bool allowObjectiveDoubleLine = true;
-
-    [SerializeField, Min(24f), Tooltip("Altura recomendada para filas de una sola línea.")]
-    private float singleLineRowHeight = 36f;
-
-    [SerializeField, Min(36f), Tooltip("Altura recomendada para filas de doble línea.")]
-    private float doubleLineRowHeight = 56f;
-
     [Header("Textos")]
     [SerializeField, Tooltip("Texto mostrado cuando la misión está lista para entregar.")]
     private string readyToTurnInText = "Vuelve para entregar la misión.";
@@ -65,8 +63,8 @@ public sealed class MissionHUDView : MonoBehaviour
     [SerializeField, Tooltip("Avisa en consola si faltan referencias del HUD.")]
     private bool logMissingReferences = true;
 
-    private readonly List<MissionObjectiveRowUI> activeRows = new List<MissionObjectiveRowUI>();
-    private readonly List<MissionObjectiveRowUI> pooledRows = new List<MissionObjectiveRowUI>();
+    private readonly List<MissionObjectiveRowUI> activeRows = new();
+    private readonly List<MissionObjectiveRowUI> pooledRows = new();
 
     private void Reset()
     {
@@ -194,7 +192,7 @@ public sealed class MissionHUDView : MonoBehaviour
             }
 
             MissionObjectiveRowUI row = GetRow();
-            row.Render(objectiveState, allowObjectiveDoubleLine, singleLineRowHeight, doubleLineRowHeight);
+            row.Render(objectiveState);
             activeRows.Add(row);
             shownRows++;
         }
@@ -202,7 +200,7 @@ public sealed class MissionHUDView : MonoBehaviour
         if (shownRows == 0 && displayMode == MissionHUDDisplayMode.Expanded)
         {
             MissionObjectiveRowUI row = GetRow();
-            row.RenderFallback(noVisibleObjectivesText, allowObjectiveDoubleLine, singleLineRowHeight, doubleLineRowHeight);
+            row.RenderFallback(noVisibleObjectivesText);
             activeRows.Add(row);
         }
     }

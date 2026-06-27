@@ -77,6 +77,26 @@ public sealed class GameStateController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Abre el Journal desde Gameplay o desde PauseMenu.
+    /// No consulta reglas de combate: eso corresponde a GameplayActionGate.
+    /// </summary>
+    public bool TryOpenMissionJournal()
+    {
+        if (currentState == GameState.MissionJournal)
+        {
+            return true;
+        }
+
+        if (currentState != GameState.Gameplay && currentState != GameState.PauseMenu)
+        {
+            return false;
+        }
+
+        SetState(GameState.MissionJournal);
+        return true;
+    }
+
     public bool TryToggleMissionJournal()
     {
         if (currentState == GameState.MissionJournal)
@@ -84,13 +104,7 @@ public sealed class GameStateController : MonoBehaviour
             return TryReturnToGameplay();
         }
 
-        if (currentState != GameState.Gameplay)
-        {
-            return false;
-        }
-
-        SetState(GameState.MissionJournal);
-        return true;
+        return TryOpenMissionJournal();
     }
 
     public bool TryResolveEscape()
@@ -159,6 +173,8 @@ public sealed class GameStateController : MonoBehaviour
         switch (state)
         {
             case GameState.MissionJournal:
+                return PauseMode.HardPause;
+
             case GameState.Dialogue:
                 return PauseMode.SoftPause;
 

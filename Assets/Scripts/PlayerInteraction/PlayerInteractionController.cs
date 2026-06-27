@@ -13,6 +13,15 @@ public sealed class PlayerInteractionController : MonoBehaviour
     [SerializeField]
     private string interactInputDisplayText = "F";
 
+    [Header("Modal State")]
+    [Tooltip("Estado global del juego. Si está asignado, F solo se procesa durante Gameplay para no interactuar debajo de Journal/PauseMenu/etc.")]
+    [SerializeField]
+    private GameStateController gameStateController;
+
+    [Tooltip("Si está activo, cuando falta GameStateController se preserva el comportamiento anterior y se permite interactuar.")]
+    [SerializeField]
+    private bool allowInteractionWhenGameStateMissing = true;
+
     [Header("Player Reaction")]
     [Tooltip("Reproduce la animación Interact del jugador al presionar la tecla, aunque no haya un objeto cerca.")]
     [SerializeField]
@@ -69,6 +78,7 @@ public sealed class PlayerInteractionController : MonoBehaviour
 
     private bool warnedMissingThreatTracker;
     private bool warnedMissingInteractionReferences;
+    private bool warnedMissingGameStateController;
 
     public Key InteractKey => interactKey;
 
@@ -85,6 +95,7 @@ public sealed class PlayerInteractionController : MonoBehaviour
         threatTracker = GetComponent<PlayerThreatTracker>();
         focusController = GetComponent<PlayerInteractionFocusController>();
         scanner = GetComponent<PlayerInteractionScanner>();
+        gameStateController = FindFirstObjectByType<GameStateController>();
     }
 
     private void Awake()
@@ -114,6 +125,11 @@ public sealed class PlayerInteractionController : MonoBehaviour
             scanner = GetComponent<PlayerInteractionScanner>();
         }
 
+        if (gameStateController == null)
+        {
+            gameStateController = FindFirstObjectByType<GameStateController>();
+        }
+
         ValidateConfiguration();
     }
 
@@ -133,6 +149,18 @@ public sealed class PlayerInteractionController : MonoBehaviour
 
     public void HandleInteractInput()
     {
+        // Importante: si hay una pantalla modal abierta, F no pertenece al contexto actual.
+        // No reproducimos animación, no guardamos armas y no mostramos notificación.
+        if (!CanProcessInteractionInputNow())
+        {
+            if (logInteractions)
+            {
+                Debug.Log($"{name} ignored interact input because current state is not Gameplay.", this);
+            }
+
+            return;
+        }
+
         PlayPlayerReaction();
 
         if (!enableContextualInteraction)
@@ -175,6 +203,11 @@ public sealed class PlayerInteractionController : MonoBehaviour
         interactable = null;
         context = default;
 
+        if (!CanProcessInteractionInputNow())
+        {
+            return false;
+        }
+
         if (useFocusedInteractableWhenAvailable && focusController != null)
         {
             if (focusController.TryGetFocusedInteractable(out interactable, out context))
@@ -190,6 +223,17 @@ public sealed class PlayerInteractionController : MonoBehaviour
 
         WarnMissingInteractionReferencesOnce();
         return false;
+    }
+
+    private bool CanProcessInteractionInputNow()
+    {
+        if (gameStateController == null)
+        {
+            WarnMissingGameStateControllerOnce();
+            return allowInteractionWhenGameStateMissing;
+        }
+
+        return gameStateController.CurrentState == GameState.Gameplay;
     }
 
     private bool CanSheatheWeaponsNow()
@@ -247,6 +291,14 @@ public sealed class PlayerInteractionController : MonoBehaviour
                 "Assign at least the scanner, or disable contextual interaction.",
                 this);
         }
+
+        if (gameStateController == null && !allowInteractionWhenGameStateMissing)
+        {
+            Debug.LogWarning(
+                $"{name} has no {nameof(GameStateController)} assigned and {nameof(allowInteractionWhenGameStateMissing)} is disabled. " +
+                "Interaction input will be ignored until the reference is assigned.",
+                this);
+        }
     }
 
     private void WarnMissingThreatTrackerOnce()
@@ -273,6 +325,20 @@ public sealed class PlayerInteractionController : MonoBehaviour
         warnedMissingInteractionReferences = true;
         Debug.LogWarning(
             $"{name} tried contextual interaction, but no valid focus or scanner is available.",
+            this);
+    }
+
+    private void WarnMissingGameStateControllerOnce()
+    {
+        if (!logConfigurationWarnings || warnedMissingGameStateController)
+        {
+            return;
+        }
+
+        warnedMissingGameStateController = true;
+        Debug.LogWarning(
+            $"{name} has no {nameof(GameStateController)} assigned. " +
+            $"Interaction input will {(allowInteractionWhenGameStateMissing ? "preserve previous behaviour" : "be ignored")}.",
             this);
     }
 

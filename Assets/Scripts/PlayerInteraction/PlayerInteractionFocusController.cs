@@ -8,6 +8,13 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
     [SerializeField]
     private PlayerInteractionScanner scanner;
 
+    [SerializeField, Tooltip("Estado global del juego. Si está asignado, el foco de interacción solo existe durante Gameplay.")]
+    private GameStateController gameStateController;
+
+    [Tooltip("Si está activo, cuando falta GameStateController se preserva el comportamiento anterior y se permite mostrar foco.")]
+    [SerializeField]
+    private bool allowFocusWhenGameStateMissing = true;
+
     [Header("Focus")]
     [Tooltip("Cada cuánto se recalcula el foco para el prompt. No hace falta hacerlo cada frame.")]
     [SerializeField, Min(0.02f)]
@@ -21,9 +28,13 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
     [SerializeField]
     private bool logFocusChanges;
 
+    [SerializeField]
+    private bool logConfigurationWarnings = true;
+
     private float nextRefreshTime;
     private IPlayerInteractable currentInteractable;
     private InteractionContext currentContext;
+    private bool warnedMissingGameStateController;
 
     public event Action<IPlayerInteractable, IPlayerInteractable> FocusedInteractableChanged;
 
@@ -34,6 +45,7 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
     private void Reset()
     {
         scanner = GetComponent<PlayerInteractionScanner>();
+        gameStateController = FindFirstObjectByType<GameStateController>();
     }
 
     private void Awake()
@@ -41,6 +53,11 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
         if (scanner == null)
         {
             scanner = GetComponent<PlayerInteractionScanner>();
+        }
+
+        if (gameStateController == null)
+        {
+            gameStateController = FindFirstObjectByType<GameStateController>();
         }
     }
 
@@ -56,6 +73,15 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
 
     private void Update()
     {
+        // Si hay Journal/Pause/Dialog/etc. abierto, el prompt de F no debe quedar vivo.
+        // Usamos GameStateController en vez de GameplayActionGate para no cambiar reglas de combate existentes.
+        if (!CanShowFocusNow())
+        {
+            nextRefreshTime = Time.time;
+            SetFocus(null, default);
+            return;
+        }
+
         if (Time.time < nextRefreshTime)
         {
             return;
@@ -67,6 +93,13 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
 
     public void ForceRefreshFocus()
     {
+        if (!CanShowFocusNow())
+        {
+            nextRefreshTime = Time.time;
+            SetFocus(null, default);
+            return;
+        }
+
         nextRefreshTime = Time.time + refreshInterval;
         RefreshFocus();
     }
@@ -75,6 +108,13 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
     {
         interactable = currentInteractable;
         context = currentContext;
+
+        if (!CanShowFocusNow())
+        {
+            interactable = null;
+            context = default;
+            return false;
+        }
 
         if (scanner == null || interactable == null)
         {
@@ -88,6 +128,17 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
         }
 
         return true;
+    }
+
+    private bool CanShowFocusNow()
+    {
+        if (gameStateController == null)
+        {
+            WarnMissingGameStateControllerOnce();
+            return allowFocusWhenGameStateMissing;
+        }
+
+        return gameStateController.CurrentState == GameState.Gameplay;
     }
 
     private void RefreshFocus()
@@ -144,6 +195,20 @@ public sealed class PlayerInteractionFocusController : MonoBehaviour
         }
 
         FocusedInteractableChanged?.Invoke(previous, newInteractable);
+    }
+
+    private void WarnMissingGameStateControllerOnce()
+    {
+        if (!logConfigurationWarnings || warnedMissingGameStateController)
+        {
+            return;
+        }
+
+        warnedMissingGameStateController = true;
+        Debug.LogWarning(
+            $"{name} has no {nameof(GameStateController)} assigned. " +
+            $"Interaction focus will {(allowFocusWhenGameStateMissing ? "preserve previous behaviour" : "stay hidden")}.",
+            this);
     }
 
     private static string GetDebugName(IPlayerInteractable interactable)

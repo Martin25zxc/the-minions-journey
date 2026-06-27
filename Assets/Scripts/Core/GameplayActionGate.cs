@@ -83,13 +83,23 @@ public sealed class GameplayActionGate : MonoBehaviour
 
     private GameplayActionBlockResult CanOpenMissionJournal(bool isInCombat)
     {
+        // Si ya estamos dentro del Journal, permitimos la acción para que el flujo pueda cerrar
+        // o mantenerse sincronizado sin quedar bloqueado por reglas de apertura.
+        if (gameStateController.CurrentState == GameState.MissionJournal)
+        {
+            return GameplayActionBlockResult.Allowed();
+        }
+
+        // Regla principal de UX/gameplay: no abrir pantalla grande de lectura en combate.
         if (isInCombat)
         {
             return GameplayActionBlockResult.Blocked(combatJournalBlockedMessage);
         }
 
+        // Permitimos abrir desde Gameplay y desde PauseMenu.
+        // Esto prepara el botón futuro del menú ESC: "Diario".
         if (gameStateController.CurrentState != GameState.Gameplay &&
-            gameStateController.CurrentState != GameState.MissionJournal)
+            gameStateController.CurrentState != GameState.PauseMenu)
         {
             return GameplayActionBlockResult.Blocked(notGameplayBlockedMessage);
         }
