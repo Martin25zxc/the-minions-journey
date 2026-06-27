@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
-  m_Name: ED_Ranged_Royal
+  m_Name: ED_Ranged_Sentinel
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   maxHealth: 80
   moveSpeed: 2.8

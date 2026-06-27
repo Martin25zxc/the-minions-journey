@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6e038b1dd9429e04da6fd4f5fd3147d3, type: 3}
-  m_Name: ED_RangerMilitia_Barrage
+  m_Name: ED_RangerForest_Barrage
   m_EditorClassIdentifier: Assembly-CSharp::EnemyBarrageAttackProfile
-  minAttackRange: 2
+  minAttackRange: 3
   maxAttackRange: 10
   priority: 60
   cooldown: 6
   initialEngageDelay: 1.5
   applyInitialDelayOnlyOnce: 1
   telegraphTime: 0.45
-  shotCount: 5
+  shotCount: 3
   delayBetweenShots: 0.25
   shotWindupTime: 0.12
   recoveryTime: 0.35
@@ -27,8 +27,8 @@ MonoBehaviour:
   targetAimHeight: 0.7
   projectilePrefab: {fileID: 790463367074272646, guid: 7382377d9bc50f24ab2b62f5174c4e5c, type: 3}
   firePointLocalOffset: {x: 0, y: 0.8, z: 0.8}
-  projectileSpeed: 6
-  projectileDamage: 5
+  projectileSpeed: 8
+  projectileDamage: 3
   projectileLifetime: 4
   projectilesPerShot: 1
   spreadAngle: 0

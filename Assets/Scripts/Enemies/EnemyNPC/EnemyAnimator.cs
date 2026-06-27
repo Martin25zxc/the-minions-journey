@@ -28,6 +28,7 @@ public sealed class EnemyAnimator : MonoBehaviour
     private static readonly int HitFrontHash = Animator.StringToHash("HitFront");
     private static readonly int HitBackHash = Animator.StringToHash("HitBack");
     private static readonly int DieHash = Animator.StringToHash("Die");
+    private static readonly int DisengageHash = Animator.StringToHash("Disengage");
 
     [Header("References")]
     [SerializeField]
@@ -60,6 +61,7 @@ public sealed class EnemyAnimator : MonoBehaviour
     [SerializeField]
     private bool warnMissingParameters = true;
 
+    private bool hasDisengage;
     private bool hasMoveX;
     private bool hasMoveY;
     private bool hasMeleeAttack;
@@ -218,6 +220,17 @@ public sealed class EnemyAnimator : MonoBehaviour
         animator.SetTrigger(DieHash);
     }
 
+    public void PlayDisengage()
+    {
+        if (animator == null || !hasDisengage)
+        {
+            return;
+        }
+
+        animator.ResetTrigger(DisengageHash);
+        animator.SetTrigger(DisengageHash);
+    }
+
     private void UpdateLocomotion()
     {
         if (animator == null)
@@ -315,6 +328,7 @@ public sealed class EnemyAnimator : MonoBehaviour
         hasHitFront = HasParameter(HitFrontHash, AnimatorControllerParameterType.Trigger, "HitFront");
         hasHitBack = HasParameter(HitBackHash, AnimatorControllerParameterType.Trigger, "HitBack");
         hasDie = HasParameter(DieHash, AnimatorControllerParameterType.Trigger, "Die");
+        hasDisengage = HasParameter(DisengageHash, AnimatorControllerParameterType.Trigger, "Disengage");
     }
 
     private bool HasParameter(int hash, AnimatorControllerParameterType expectedType, string parameterName)
