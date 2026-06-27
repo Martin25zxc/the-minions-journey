@@ -462,7 +462,7 @@ MonoBehaviour:
   layoutElement: {fileID: 9003909556299171453}
   preferredHeight: 64
   pendingMarker: "\u25CB"
-  completedMarker: X
+  completedMarker: .
   prefixBonusObjectives: 1
   bonusPrefix: 'Opcional: '
   showProgressInJournal: 1
