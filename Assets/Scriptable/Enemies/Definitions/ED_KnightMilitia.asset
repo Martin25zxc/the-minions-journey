@@ -15,7 +15,7 @@ MonoBehaviour:
   maxHealth: 150
   moveSpeed: 4
   rotateSpeed: 720
-  detectionRange: 9
+  detectionRange: 10
   detectionAngle: 130
   proximityDetectionRange: 3
   loseAggroRange: 16
