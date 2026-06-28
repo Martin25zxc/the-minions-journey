@@ -29,7 +29,7 @@ MonoBehaviour:
     importance: 0
     description: Regreso al campamento
     requiredAmount: 1
-    targetId: survivor_camp_return
+    targetId: survivor_camp
     hiddenUntilActive: 0
     showProgress: 0
   rewards: []

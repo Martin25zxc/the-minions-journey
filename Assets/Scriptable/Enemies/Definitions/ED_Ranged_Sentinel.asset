@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
   m_Name: ED_Ranged_Sentinel
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
-  maxHealth: 80
-  moveSpeed: 2.8
+  maxHealth: 130
+  moveSpeed: 4
   rotateSpeed: 720
   detectionRange: 12
   detectionAngle: 150
