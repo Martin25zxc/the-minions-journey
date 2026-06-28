@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ED_Ranged_Sentinel
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   maxHealth: 130
-  moveSpeed: 4
+  moveSpeed: 3.5
   rotateSpeed: 720
   detectionRange: 12
   detectionAngle: 150

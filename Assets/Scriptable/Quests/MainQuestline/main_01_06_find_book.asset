@@ -27,9 +27,9 @@ MonoBehaviour:
     ser\xEDa una opci\xF3n?\r\n\r\nNo hay nadie que pueda responder por vos. Solo
     quedan las pertenencias de Minerva.\r\nQuiz\xE1 encuentres una respuesta buscando
     entre ellas."
-  startMode: 2
-  completionMode: 1
-  turnInTargetMode: 0
+  startMode: 0
+  completionMode: 0
+  turnInTargetMode: 99
   turnInTargetId: 
   requiredForLevelCompletion: 1
   objectives:

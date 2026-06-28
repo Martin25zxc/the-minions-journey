@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1a98e0e2f0b9dad4d92fc7821077bdc7, type: 3}
   m_Name: WD_Eldsvero_Sword_Legendary
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  itemName: KnightMilitia_Sword_Legendary
+  itemName: Eldsvero_Sword_Legendary
   displayName: Eldsvero
   description: 
   icon: {fileID: 21300000, guid: d26bd75cc591ce941807f1d0cf4aac60, type: 3}
@@ -21,7 +21,7 @@ MonoBehaviour:
   damageBonusMin: 100
   damageBonusMax: 120
   weaponType: 0
-  equippedModelPrefab: {fileID: 8381600336495543522, guid: 5cc6a0659ba34474fababd6a745396e7, type: 3}
+  equippedModelPrefab: {fileID: 919132149155446097, guid: 497c2e54cd399a84da0fcf2a8d714dcf, type: 3}
   equipmentVisualBackLeftPose:
     localPosition: {x: -0.141, y: 0.07, z: 0}
     localEulerAngles: {x: 0, y: -180, z: -45}
