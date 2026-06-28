@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc0b221f387b0df4e8bc38dc9e6f3ffa, type: 3}
+  m_Name: KnightsMilitia_LootTable
+  m_EditorClassIdentifier: Assembly-CSharp::LootDropTable
+  guaranteedDrops: []
+  rollGroups:
+  - groupId: Espadas
+    groupChancePercent: 33
+    mode: 0
+    minRolls: 1
+    maxRolls: 1
+    allowDuplicateItems: 0
+    entries:
+    - itemData: {fileID: 11400000, guid: 819fd628ba73960449bd667c0f61e550, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 50
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: 0621e7ccdc273af45981e9b420b5cce1, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 30
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: 986ebd2ec8ce7614fae1a4ca7c574746, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 20
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: 119caf8de14011542b2733b58a42c4e2, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 10
+      chancePercent: 0
+    - itemData: {fileID: 11400000, guid: 8a75be1fced46be44a3b354ebe35c504, type: 2}
+      minAmount: 1
+      maxAmount: 1
+      weight: 5
+      chancePercent: 0

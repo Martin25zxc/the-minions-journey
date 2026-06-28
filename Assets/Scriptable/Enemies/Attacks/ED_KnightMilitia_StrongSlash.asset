@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: ED_KnightMilitia_StrongSlash
   m_EditorClassIdentifier: Assembly-CSharp::EnemyMeleeAttackProfile
   priority: 50
-  damage: 20
+  damage: 18
   attackRange: 1.6
   hitRadius: 0.65
   hitForwardOffset: 1

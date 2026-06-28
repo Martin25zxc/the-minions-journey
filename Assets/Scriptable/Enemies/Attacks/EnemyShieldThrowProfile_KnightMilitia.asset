@@ -30,6 +30,7 @@ MonoBehaviour:
   outboundDamage: 10
   returnDamage: 8
   canHitSameTargetOnReturn: 1
+  sameTargetReturnHitGraceTime: 0.2
   targetLayers:
     serializedVersion: 2
     m_Bits: 8
@@ -38,11 +39,9 @@ MonoBehaviour:
     m_Bits: 3151872
   requireClearPathToTarget: 1
   snapBackOnBlockingHit: 1
-  applyImpact: 0
-  applyImpactOnOutbound: 1
-  applyImpactOnReturn: 1
-  impactSameTargetOnlyOncePerLaunch: 1
-  knockbackDistance: 0.2
-  knockbackDuration: 0.01
+  applyImpact: 1
+  applyImpactOnlyOncePerTargetPerThrow: 1
+  knockbackDistance: 1
+  knockbackDuration: 0.02
   stunDuration: 0
   interruptCurrentAction: 0

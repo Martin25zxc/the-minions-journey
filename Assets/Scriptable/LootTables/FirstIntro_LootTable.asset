@@ -14,6 +14,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::LootDropTable
   guaranteedDrops:
   - itemData: {fileID: 11400000, guid: d31a4d2a23fb9474397a0a5b5dd04894, type: 2}
-    amount: 1
-  - itemData: {fileID: 11400000, guid: 49ef3d52ddcf4344fad2bb3afbbf2946, type: 2}
-    amount: 1
+    minAmount: 1
+    maxAmount: 1
+    weight: 1
+    chancePercent: 100
+  - itemData: {fileID: 11400000, guid: f8e8e872c49694a459728cd674ef21a3, type: 2}
+    minAmount: 1
+    maxAmount: 1
+    weight: 1
+    chancePercent: 100
+  - itemData: {fileID: 11400000, guid: 8a75be1fced46be44a3b354ebe35c504, type: 2}
+    minAmount: 1
+    maxAmount: 1
+    weight: 1
+    chancePercent: 100
+  rollGroups: []

@@ -10,19 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 1a98e0e2f0b9dad4d92fc7821077bdc7, type: 3}
-  m_Name: WD_Barbarian_Axe_Epic
+  m_Name: WD_KnightMilitia_Sword_Common
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
-  itemName: Barbarian_Axe_Epic
-  displayName: "Hacha forjada con maestr\xEDa  "
-  description: "Un arma extraordinaria forjada por el abuelo de Juan. \xBFQu\xE9
-    habr\xE1 inspirado su creaci\xF3n?"
-  icon: {fileID: 21300000, guid: b9505e419a14dda4ea399d26d5955f94, type: 3}
-  worldModelPrefab: {fileID: 919132149155446097, guid: b52e7fb3a6775ba4dbc9c1c5ad3e398a, type: 3}
-  rarity: 3
-  damageBonusMin: 30
-  damageBonusMax: 35
+  itemName: KnightMilitia_Sword_Common
+  displayName: Espada falsificada
+  description: "Una espada muy mal mantenida, con claras se\xF1ales de mala t\xE9cnica."
+  icon: {fileID: 21300000, guid: 6acfb0a8a815ea34bbd71865161c661d, type: 3}
+  worldModelPrefab: {fileID: 919132149155446097, guid: a10d18810baffab439265549582b45f6, type: 3}
+  rarity: 0
+  damageBonusMin: 8
+  damageBonusMax: 14
   weaponType: 0
-  equippedModelPrefab: {fileID: 919132149155446097, guid: b52e7fb3a6775ba4dbc9c1c5ad3e398a, type: 3}
+  equippedModelPrefab: {fileID: 919132149155446097, guid: a10d18810baffab439265549582b45f6, type: 3}
   equipmentVisualBackLeftPose:
     localPosition: {x: -0.141, y: 0.07, z: 0}
     localEulerAngles: {x: 0, y: -180, z: -45}

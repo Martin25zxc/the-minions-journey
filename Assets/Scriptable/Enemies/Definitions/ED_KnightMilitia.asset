@@ -13,12 +13,12 @@ MonoBehaviour:
   m_Name: ED_KnightMilitia
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
   maxHealth: 150
-  moveSpeed: 4
+  moveSpeed: 6
   rotateSpeed: 720
   detectionRange: 10
   detectionAngle: 130
   proximityDetectionRange: 3
   loseAggroRange: 16
   targetMemoryDuration: 1.5
-  lootDropTable: {fileID: 0}
+  lootDropTable: {fileID: 11400000, guid: f72c5b7afa35ee5408183bf73b7b83ce, type: 2}
   bodyRadius: 0.45
