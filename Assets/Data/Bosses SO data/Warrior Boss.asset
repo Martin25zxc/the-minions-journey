@@ -13,5 +13,5 @@ MonoBehaviour:
   m_Name: Warrior Boss
   m_EditorClassIdentifier: Assembly-CSharp::BossDataSO
   prefab: {fileID: 123415141901231715, guid: fe8eaaa4f4e14cd44a48ffeb290979d2, type: 3}
-  maxHealth: 300
+  maxHealth: 500
   phases: []

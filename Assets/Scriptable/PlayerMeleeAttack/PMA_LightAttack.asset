@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Light Attack
   weaponUseSlot: 0
   baseDamage: 2
-  attackRange: 1.8
+  attackRange: 2
   attackArc: 100
   impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.2

@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Grapplinghook
   m_EditorClassIdentifier: Assembly-CSharp::SkillData
   skillID: hook
-  skillName: Gancho
-  description: Para engancharse
+  skillName: Gancho de Bonham
+  description: 'Te permite engancharte. Bonham hizo estragos al usarlo, es sorprendente
+    que lo haya perdido. '
   icon: {fileID: 21300000, guid: db3106b77c420c94982c40b34adad681, type: 3}
   cooldown: 2

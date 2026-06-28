@@ -13,7 +13,8 @@ MonoBehaviour:
   m_Name: Fireball
   m_EditorClassIdentifier: Assembly-CSharp::SkillData
   skillID: fireball
-  skillName: Bola de fuego
-  description: Una bola de fuego
+  skillName: "Llama de Drag\xF3n"
+  description: "El Drag\xF3n te doto de una llama que te permite arrojarle bolas
+    de fuegos a tus enemigos."
   icon: {fileID: 21300000, guid: 7467a21c77a4c1d44bb581c7d332c16e, type: 3}
   cooldown: 2

@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Spin Slash
   weaponUseSlot: 1
   baseDamage: 2.4
-  attackRange: 1.6
+  attackRange: 2.2
   attackArc: 360
   impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.55

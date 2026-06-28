@@ -23,9 +23,4 @@ MonoBehaviour:
     maxAmount: 1
     weight: 1
     chancePercent: 100
-  - itemData: {fileID: 11400000, guid: 8a75be1fced46be44a3b354ebe35c504, type: 2}
-    minAmount: 1
-    maxAmount: 1
-    weight: 1
-    chancePercent: 100
   rollGroups: []

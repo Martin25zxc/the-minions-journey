@@ -61,7 +61,6 @@ GameObject:
   - component: {fileID: 3591986163114149435}
   - component: {fileID: 7223538237006819537}
   - component: {fileID: -1047788572061107271}
-  - component: {fileID: 6423541352521032363}
   m_Layer: 7
   m_Name: Enemy_Ranged_Basic
   m_TagString: Untagged
@@ -522,24 +521,6 @@ MonoBehaviour:
   logChanges: 0
   debugRegisteredPlayerState: {fileID: 0}
   debugRegisteredTarget: {fileID: 0}
---- !u!114 &6423541352521032363
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2364045781912701925}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 53b58c40aac7e074d99cdee54bd11aac, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::EnemyDisengageAbility
-  actor: {fileID: 0}
-  movement: {fileID: 0}
-  enemyAnimator: {fileID: 0}
-  visualRoot: {fileID: 0}
-  profile: {fileID: 11400000, guid: a692f86107ed70d4d8333d2c5d4a7fe9, type: 2}
-  drawDebugGizmos: 1
 --- !u!1 &4016858465895438041
 GameObject:
   m_ObjectHideFlags: 0
