@@ -152,7 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6be309c291dc1e645aa5b4e4f825b648, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TopDownPlayerController
-  moveSpeed: 8
+  moveSpeed: 7
   sprintMultiplier: 4.5
   gameplayCamera: {fileID: 0}
   aimDeadZone: 0.001

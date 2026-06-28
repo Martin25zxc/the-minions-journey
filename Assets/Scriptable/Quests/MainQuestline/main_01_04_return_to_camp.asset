@@ -15,10 +15,19 @@ MonoBehaviour:
   missionId: main_01_04_return_to_camp
   category: 0
   displayOrder: 0
-  title: Regreso al campamento
-  shortDescription: Regresa al campamento y cuenta tus logros
-  fullDescription: 
-  startMode: 3
+  title: 'La llegada del alba '
+  shortDescription: "Tras derrotar al amo del valle, escuchas las trompetas del Imperio
+    del Alba. No vienen del puente hacia la fortaleza, sino del camino que dejaste
+    atr\xE1s. Vuelve al campamento."
+  fullDescription: "Aquel que quebr\xF3 a tu grupo con facilidad ahora no es m\xE1s
+    que otra memoria de este lugar. Un viento fuerte ruge en el Valle de los aires.\n\nEscuchas
+    trompetas, no tienes dudas, es la marcha del Alba.\n\nResuena a lo lejos, pero
+    para tu sorpresa no viene del otro lado del puente, viene desde abajo...Desde
+    el pueblo, desde el camino que ya cruzaste y posiblemente incluso desde el campamento.\n\nEl
+    puente esta delante tuyo, es la mejor oportunidad para cumplir la orden que trajo
+    a los Hopplos hasta aca.\n\nPero Somnus sigue herido y en su estado no podra
+    hacer nada contra la llegada del Alba."
+  startMode: 0
   completionMode: 0
   turnInTargetMode: 99
   turnInTargetId: 
@@ -29,7 +38,7 @@ MonoBehaviour:
     importance: 0
     description: Regreso al campamento
     requiredAmount: 1
-    targetId: survivor_camp_return
+    targetId: survivor_camp
     hiddenUntilActive: 0
     showProgress: 0
   rewards: []

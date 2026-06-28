@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8fe3fec1f323b1498a49cd2319e4d41, type: 3}
+  m_Name: optional_01_hungry_dragon
+  m_EditorClassIdentifier: Assembly-CSharp::MissionDefinition
+  missionId: optional_02_hungry_dragon
+  category: 1
+  displayOrder: 0
+  title: Hambriento
+  shortDescription: "Un drag\xF3n joven est\xE1 demasiado d\xE9bil para huir. Quiz\xE1
+    unas raciones del este pueblo puedan devolverle las fuerzas.\n"
+  fullDescription: "El drag\xF3n te mira, pero no parece querer pelear.\r\n\r\nIntenta
+    batir las alas para huir, apenas matiene el vuelo, no le quedan fuerzas.\r\n\r\nEl
+    Imperio del Alba siempre busca domar dragones j\xF3venes para usarlos como armas,
+    y parece que llegaste a tiempo para ayudarlo.\r\n\r\nEl drag\xF3n emite un sonido
+    bajo, casi suplicante. Recuerdas haber visto raciones de comida en algunas caba\xF1as
+    cercanas.\r\n\r\nQuiz\xE1 sea lo que necesita.\r\n"
+  startMode: 2
+  completionMode: 1
+  turnInTargetMode: 0
+  turnInTargetId: 
+  requiredForLevelCompletion: 0
+  objectives:
+  - objectiveId: collect_dragon_rations
+    objectiveType: 1
+    importance: 0
+    description: "Busca de comida para el drag\xF3n."
+    requiredAmount: 3
+    targetId: food_ration
+    hiddenUntilActive: 0
+    showProgress: 1
+  rewards:
+  - rewardType: 10
+    skill: {fileID: 11400000, guid: ddf5d7381b5c2ad42b4af85aea15933c, type: 2}
+    itemId: 
+    currencyId: 
+    quantity: 1
+    fullHeal: 0
+    healAmount: 0
+    worldEventId: 
+    showInJournal: 1
+    notifyOnGrant: 1
+    displayNameOverride: 
+    descriptionOverride: 
+    iconOverride: {fileID: 0}
+    designerNote: 
+  showInHUD: 1
+  showInJournal: 1
+  autoTrackOnAccept: 1

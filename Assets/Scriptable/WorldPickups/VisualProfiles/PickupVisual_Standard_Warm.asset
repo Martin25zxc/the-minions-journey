@@ -17,13 +17,13 @@ MonoBehaviour:
   designerNote: 
   visualScaleMultiplier: 1
   lightColor: {r: 1, g: 1, b: 1, a: 1}
-  lightIntensity: 0.8
+  lightIntensity: 0.45
   lightRange: 1.5
   particleColor: {r: 1, g: 1, b: 1, a: 1}
-  particleRateOverTime: 12
+  particleRateOverTime: 8
   particleStartSize: 0.4
   particleStartSpeed: 0.12
-  particleStartLifetime: 6
-  bobAmplitude: 0.12
+  particleStartLifetime: 5
+  bobAmplitude: 0.2
   bobFrequency: 1
   rotationSpeedY: 0.5

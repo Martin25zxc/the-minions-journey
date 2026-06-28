@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 38e4181fd2889c840b699086986f542d, type: 3}
   m_Name: ED_Ranged_Basic
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDefinition
-  maxHealth: 40
+  maxHealth: 45
   moveSpeed: 2.8
   rotateSpeed: 720
   detectionRange: 12
@@ -20,4 +20,5 @@ MonoBehaviour:
   proximityDetectionRange: 1.8
   loseAggroRange: 16
   targetMemoryDuration: 1.5
+  lootDropTable: {fileID: 0}
   bodyRadius: 0.45

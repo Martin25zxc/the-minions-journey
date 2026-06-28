@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1375440fc2c65c541bc2e0276a273c26, type: 3}
+  m_Name: ED_RangerMilitia_Disengage
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDisengageProfile
+  priority: 60
+  triggerDistance: 2
+  minTargetDistance: 0
+  cooldown: 3
+  retreatDistance: 8
+  minimumRetreatDistance: 0.8
+  distanceSearchSteps: 5
+  jumpDuration: 0.35
+  jumpHeight: 0.35
+  speedMultiplier: 1
+  startupTime: 0
+  recoveryTime: 0.15
+  blockingLayers:
+    serializedVersion: 2
+    m_Bits: 3151872
+  pathCheckHeight: 0.5
+  landingCheckHeight: 0.5
+  bodyRadiusOverride: 0

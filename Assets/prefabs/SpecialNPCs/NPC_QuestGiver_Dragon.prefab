@@ -1,0 +1,372 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &6806407129598271843
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6805853900923063170}
+  m_Layer: 14
+  m_Name: Visual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6805853900923063170
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6806407129598271843}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2553316220627049024}
+  m_Father: {fileID: 2020656583875899820}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7004398943951932787
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4098075048917110668}
+  m_Layer: 14
+  m_Name: QuestIndicator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4098075048917110668
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7004398943951932787}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 2, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 8231472374790933776}
+  m_Father: {fileID: 2020656583875899820}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &7626038841498045019
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2020656583875899820}
+  - component: {fileID: 5107243475389798452}
+  - component: {fileID: 7370629766613407372}
+  - component: {fileID: 8312639728942403693}
+  - component: {fileID: 2805339065796144803}
+  - component: {fileID: 5470794089043714325}
+  m_Layer: 14
+  m_Name: NPC_QuestGiver_Dragon
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2020656583875899820
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4098075048917110668}
+  - {fileID: 6805853900923063170}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!136 &5107243475389798452
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.675792
+  m_Height: 2
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7370629766613407372
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 14289401b7100c44cae8a9ad97f8aa52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NpcInteractable
+  interactableId: npc_questgiver_dragon
+  displayName: Dragon
+  interactionPriority: 50
+  canInteract: 1
+  canInteractWhileThreatened: 0
+  promptVerb: 1
+  customPromptLabel: 
+  showNotificationOnInteract: 1
+  notificationManager: {fileID: 0}
+  notificationChannel: 5
+  notificationPriority: 1
+  notificationDuration: -1
+  interactionMessage: "Todav\xEDa no hay di\xE1logo configurado para este NPC."
+  logInteraction: 1
+  onInteracted:
+    m_PersistentCalls:
+      m_Calls: []
+  onTalkedTo:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &8312639728942403693
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f31ebd0cd47914a4d9ed749e27d9cd82, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionActor
+  npcInteractable: {fileID: 7370629766613407372}
+  missionSet: {fileID: 11400000, guid: dcfd1c09688d96f42b9153aa8acaf6c7, type: 2}
+  actorIdOverride: 
+  logWarnings: 1
+--- !u!114 &2805339065796144803
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a32204c4c021f2b4e8f482e60789cbc6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionActorInteraction
+  missionActor: {fileID: 8312639728942403693}
+  missionManager: {fileID: 0}
+  notificationManager: {fileID: 0}
+  showLocalFeedback: 1
+  localFeedbackChannel: 0
+  activeMissionMessage: "Ya tienes esta misi\xF3n activa."
+  completedMissionMessage: "Ya completaste esta misi\xF3n."
+  unavailableMissionMessage: "Este personaje todav\xEDa no tiene una misi\xF3n disponible."
+  failedMissionActionMessage: "No se pudo gestionar la misi\xF3n ahora."
+  logInteractions: 1
+  onMissionAccepted:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissionTurnedIn:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissionAlreadyActive:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissionAlreadyCompleted:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissionUnavailable:
+    m_PersistentCalls:
+      m_Calls: []
+  onMissionActionFailed:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5470794089043714325
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7626038841498045019}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 646814f285a0c284bb227277fe13fa6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionActorIndicator
+  missionActor: {fileID: 8312639728942403693}
+  missionManager: {fileID: 0}
+  indicatorView: {fileID: 3870697179024495638}
+  showPendingTurnInIndicator: 1
+  refreshOnEnable: 1
+  logMissingReferences: 1
+--- !u!1001 &1988266309383876012
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 4098075048917110668}
+    m_Modifications:
+    - target: {fileID: 1640015291466919838, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_Name
+      value: PF_MissionIndicator
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+--- !u!114 &3870697179024495638 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 3323875598487484858, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+  m_PrefabInstance: {fileID: 1988266309383876012}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60dff20009aaabd4f98d103684761c69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MissionIndicatorView
+--- !u!4 &8231472374790933776 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7614370015267594428, guid: f95c10140ab2857498e534875511eb8e, type: 3}
+  m_PrefabInstance: {fileID: 1988266309383876012}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2658683911567752619
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6805853900923063170}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: -0.7
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_Name
+      value: Dragon Ice
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 3ff516e723a453e438913d9a9f77b7ba, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+--- !u!4 &2553316220627049024 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 1908b8f7375d9ff41a5fc3e1f3a3f67d, type: 3}
+  m_PrefabInstance: {fileID: 2658683911567752619}
+  m_PrefabAsset: {fileID: 0}

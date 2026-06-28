@@ -37,7 +37,7 @@ public sealed class WorldEventPickup : MonoBehaviour
     [SerializeField] private WorldEventPickupConsumeMode consumeMode = WorldEventPickupConsumeMode.DisableGameObject;
 
     [Header("Mission Requirement")]
-    [Tooltip("Útil mientras los responders todavía no activan/desactivan objetos. Evita que el jugador recoja objetivos antes de aceptar misión.")]
+    [Tooltip("Útil incluso cuando responders activan/desactivan objetos. Evita que el jugador recoja objetivos antes de aceptar misión si alguien dejó el objeto activo por error.")]
     [SerializeField] private bool requireMissionActive;
 
     [SerializeField] private MissionDefinition requiredMission;
@@ -45,8 +45,22 @@ public sealed class WorldEventPickup : MonoBehaviour
     [Header("Collector Filter")]
     [SerializeField] private string playerTag = "Player";
 
-    [Header("Visual")]
+    [Header("Visual Source")]
+    [Tooltip("InstantiateFromDefinition instancia el WorldModelPrefab de la Definition. UseExistingSceneVisual conserva el visual armado manualmente en escena/prefab.")]
+    [SerializeField] private WorldEventPickupVisualSource visualSource = WorldEventPickupVisualSource.InstantiateFromDefinition;
+
+    [Tooltip("Contenedor visual que recibe bob/rotación y puede apagarse al consumir. Normalmente se llama VisualRoot.")]
     [SerializeField] private Transform visualRoot;
+
+    [Tooltip("Anchor opcional para el modelo. Si está vacío, se usa VisualRoot. Recomendado cuando querés separar aura/partículas del modelo.")]
+    [SerializeField] private Transform modelRoot;
+
+    [Tooltip("Si está activo, aplica VisualScaleMultiplier del PickupVisualProfile al VisualRoot. Apagalo cuando quieras controlar la escala manualmente en la escena/prefab.")]
+    [SerializeField] private bool applyProfileScaleToVisualRoot = true;
+
+    [Tooltip("Solo para UseExistingSceneVisual. Si está activo, aplica offset/rotación/escala de la Definition al ModelRoot. Recomendado solo si asignaste un ModelRoot específico.")]
+    [SerializeField] private bool applyDefinitionTransformToExistingVisual;
+
     [SerializeField] private Light auraLight;
     [SerializeField] private ParticleSystem auraParticles;
 
@@ -65,7 +79,10 @@ public sealed class WorldEventPickup : MonoBehaviour
 
     public WorldEventPickupDefinition Definition => definition;
     public bool HasReported => hasReported;
-    public WorldEventPickupCollectMode ActiveCollectMode => overrideCollectMode ? collectMode : definition != null ? definition.DefaultCollectMode : collectMode;
+
+    public WorldEventPickupCollectMode ActiveCollectMode => overrideCollectMode
+        ? collectMode
+        : definition != null ? definition.DefaultCollectMode : collectMode;
 
     private void Reset()
     {
@@ -77,6 +94,15 @@ public sealed class WorldEventPickup : MonoBehaviour
             if (foundVisualRoot != null)
             {
                 visualRoot = foundVisualRoot;
+            }
+        }
+
+        if (modelRoot == null && visualRoot != null)
+        {
+            Transform foundModelRoot = visualRoot.Find("ModelRoot");
+            if (foundModelRoot != null)
+            {
+                modelRoot = foundModelRoot;
             }
         }
     }
@@ -126,33 +152,93 @@ public sealed class WorldEventPickup : MonoBehaviour
             CacheVisualInitialPosition();
         }
 
-        SpawnWorldModel();
+        if (visualSource == WorldEventPickupVisualSource.InstantiateFromDefinition)
+        {
+            SpawnWorldModel();
+        }
+        else
+        {
+            PrepareExistingSceneVisual();
+        }
+
         ApplyVisualProfile();
     }
 
     private void SpawnWorldModel()
     {
-        if (visualRoot == null)
+        Transform parent = GetModelParent();
+        if (parent == null)
         {
-            Debug.LogWarning($"{name} has no VisualRoot assigned.", this);
+            Debug.LogWarning($"{name} has no VisualRoot or ModelRoot assigned.", this);
             return;
         }
 
-        if (currentVisualInstance != null)
-        {
-            Destroy(currentVisualInstance);
-            currentVisualInstance = null;
-        }
+        ClearSpawnedVisualInstance();
 
         if (definition.WorldModelPrefab == null)
         {
-            Debug.LogWarning($"{definition.name} has no WorldModelPrefab assigned.", this);
+            Debug.LogWarning($"{definition.name} has no WorldModelPrefab assigned, but {name} is using InstantiateFromDefinition.", this);
             return;
         }
 
-        currentVisualInstance = Instantiate(definition.WorldModelPrefab, visualRoot);
-        currentVisualInstance.transform.localPosition = Vector3.zero;
-        currentVisualInstance.transform.localRotation = Quaternion.identity;
+        currentVisualInstance = Instantiate(definition.WorldModelPrefab, parent);
+        ApplyDefinitionTransform(currentVisualInstance.transform);
+    }
+
+    private void PrepareExistingSceneVisual()
+    {
+        // Si el modo se cambió en runtime desde Instantiate hacia Existing, limpiamos solo la instancia creada por este script.
+        ClearSpawnedVisualInstance();
+
+        if (!applyDefinitionTransformToExistingVisual)
+        {
+            return;
+        }
+
+        if (modelRoot == null)
+        {
+            Debug.LogWarning(
+                $"{name} is using UseExistingSceneVisual with Apply Definition Transform, but ModelRoot is not assigned. " +
+                "Assign a ModelRoot to avoid moving/scaling the full VisualRoot with aura/particles.",
+                this
+            );
+            return;
+        }
+
+        ApplyDefinitionTransform(modelRoot);
+    }
+
+    private Transform GetModelParent()
+    {
+        if (modelRoot != null)
+        {
+            return modelRoot;
+        }
+
+        return visualRoot;
+    }
+
+    private void ApplyDefinitionTransform(Transform target)
+    {
+        if (target == null || definition == null)
+        {
+            return;
+        }
+
+        target.localPosition = definition.ModelLocalPositionOffset;
+        target.localRotation = Quaternion.Euler(definition.ModelLocalEulerAngles);
+        target.localScale = definition.ModelLocalScale;
+    }
+
+    private void ClearSpawnedVisualInstance()
+    {
+        if (currentVisualInstance == null)
+        {
+            return;
+        }
+
+        Destroy(currentVisualInstance);
+        currentVisualInstance = null;
     }
 
     private void ApplyVisualProfile()
@@ -164,7 +250,7 @@ public sealed class WorldEventPickup : MonoBehaviour
             return;
         }
 
-        if (visualRoot != null)
+        if (visualRoot != null && applyProfileScaleToVisualRoot)
         {
             visualRoot.localScale = Vector3.one * profile.VisualScaleMultiplier;
         }
@@ -226,7 +312,7 @@ public sealed class WorldEventPickup : MonoBehaviour
     }
 
     /// <summary>
-    /// Punto público para adapters futuros de interacción, cinemática, pruebas o spawners.
+    /// Punto público para adapters de interacción, cinemática, pruebas o spawners.
     /// Para CollectMode.Interact, el adapter de IPlayerInteractable debe llamar a este método.
     /// </summary>
     public bool TryCollect(GameObject collector)
@@ -389,6 +475,20 @@ public sealed class WorldEventPickup : MonoBehaviour
         if (requireMissionActive && requiredMission == null)
         {
             Debug.LogWarning($"{name} requires mission active but has no RequiredMission assigned.", this);
+        }
+
+        if (visualSource == WorldEventPickupVisualSource.InstantiateFromDefinition &&
+            definition != null &&
+            definition.WorldModelPrefab == null)
+        {
+            Debug.LogWarning($"{name} uses InstantiateFromDefinition, but its Definition has no WorldModelPrefab assigned.", this);
+        }
+
+        if (visualSource == WorldEventPickupVisualSource.UseExistingSceneVisual &&
+            applyDefinitionTransformToExistingVisual &&
+            modelRoot == null)
+        {
+            Debug.LogWarning($"{name} wants to apply Definition transform to an existing visual, but ModelRoot is not assigned.", this);
         }
     }
 #endif

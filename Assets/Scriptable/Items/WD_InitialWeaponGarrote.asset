@@ -13,8 +13,9 @@ MonoBehaviour:
   m_Name: WD_InitialWeaponGarrote
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   itemName: Garrote
-  displayName: Garrote
-  description: 
+  displayName: Garrote en mal estado
+  description: "Lo us\xF3 Mart\u2019en hasta que cay\xF3 en batalla. El garrote quedo
+    en mejor estado que \xE9l."
   icon: {fileID: 21300000, guid: dc038b2ab22c65c4488779487c9dae97, type: 3}
   worldModelPrefab: {fileID: 8381600336495543522, guid: 3c4c211211b5f4f4b9ff9ceba1c685aa, type: 3}
   rarity: 0
@@ -22,12 +23,6 @@ MonoBehaviour:
   damageBonusMax: 15
   weaponType: 1
   equippedModelPrefab: {fileID: 433687607784990684, guid: d5f90141112282c4394a5391cfe041b9, type: 3}
-  handLocalPosition: {x: 0, y: 0.9, z: 0}
-  handLocalEulerAngles: {x: 0, y: 0, z: 0}
-  handLocalScale: {x: 1, y: 1, z: 1}
-  backLocalPosition: {x: 0, y: -0.35, z: 0}
-  backLocalEulerAngles: {x: 0, y: -185, z: -45}
-  backLocalScale: {x: -1, y: -1, z: 1}
   equipmentVisualBackLeftPose:
     localPosition: {x: 0.22, y: -0.2, z: 0}
     localEulerAngles: {x: 0, y: -185, z: -45}

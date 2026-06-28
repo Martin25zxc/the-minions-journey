@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Leap Slash
   weaponUseSlot: 1
   baseDamage: 2.6
-  attackRange: 1.82
+  attackRange: 2.2
   attackArc: 130
   impactOriginOffset: {x: 0.6, y: 0.35}
   impactDelaySeconds: 0.52

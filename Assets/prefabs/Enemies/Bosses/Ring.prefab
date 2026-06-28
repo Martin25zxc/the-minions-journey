@@ -83,7 +83,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb1da77d72ff4e54489fa0a1dd42258f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RingController
-  damage: 20
+  damage: 30
   targetLayers:
     serializedVersion: 2
     m_Bits: 8

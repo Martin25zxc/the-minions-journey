@@ -15,7 +15,7 @@ MonoBehaviour:
   displayName: Heavy Attack
   weaponUseSlot: 1
   baseDamage: 2.2
-  attackRange: 1.8
+  attackRange: 2
   attackArc: 120
   impactOriginOffset: {x: 0, y: 0}
   impactDelaySeconds: 0.32
