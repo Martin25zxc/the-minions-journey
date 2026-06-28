@@ -22,6 +22,6 @@ MonoBehaviour:
   visualProfile: {fileID: 11400000, guid: 5a61afc8f519fb4499a624f32ef9767e, type: 2}
   defaultCollectMode: 10
   defaultPromptVerb: Superar nivel
-  eventType: 4
-  targetId: hook_artifact
+  eventType: 1
+  targetId: alba_mage_book
   amount: 1
