@@ -44,5 +44,5 @@ MonoBehaviour:
     - itemData: {fileID: 11400000, guid: bb4a5314316c1a540ad3700e93fb0c3b, type: 2}
       minAmount: 1
       maxAmount: 1
-      weight: 5
+      weight: 50
       chancePercent: 0

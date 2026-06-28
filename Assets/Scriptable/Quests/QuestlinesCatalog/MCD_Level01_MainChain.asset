@@ -33,4 +33,16 @@ MonoBehaviour:
     targetMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
     action: 1
     executeOnce: 1
-    developerNote: Etc
+    developerNote: Desbloquea fase 2
+  - sourceMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
+    trigger: 0
+    targetMission: {fileID: 11400000, guid: a4d9178eb65d6c440b96789296fc028a, type: 2}
+    action: 0
+    executeOnce: 1
+    developerNote: Bola de fuego en fase 2
+  - sourceMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
+    trigger: 2
+    targetMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
+    action: 1
+    executeOnce: 1
+    developerNote: Desbloquea batalla con la maga

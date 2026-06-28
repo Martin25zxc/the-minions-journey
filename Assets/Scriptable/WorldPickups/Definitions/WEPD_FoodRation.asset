@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63af08c9de1f88c4b9c5f7c4d8909b75, type: 3}
+  m_Name: WEPD_FoodRation
+  m_EditorClassIdentifier: Assembly-CSharp::WorldEventPickupDefinition
+  pickupId: WEPD_FoodRation
+  displayName: Raciones de comida
+  description: Estas raciones de comida serviran.
+  worldModelPrefab: {fileID: 1925589780204414691, guid: b5af25ebf2535ee4399c3ee273319ab4, type: 3}
+  visualProfile: {fileID: 11400000, guid: 1138dda28e158e148a307af0c19429f9, type: 2}
+  defaultCollectMode: 0
+  defaultPromptVerb: 
+  eventType: 1
+  targetId: food_ration
+  amount: 1
