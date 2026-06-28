@@ -698,7 +698,7 @@ MonoBehaviour:
   damageOwner: {fileID: 6730660139592308344}
   laserDuration: 3
   laserRange: 30
-  damagePerSecond: 20
+  damagePerSecond: 30
   rotateSpeed: 120
   warningColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   damageColor: {r: 1, g: 0, b: 0, a: 1}

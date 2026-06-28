@@ -15,7 +15,7 @@ MonoBehaviour:
   guaranteedDrops: []
   rollGroups:
   - groupId: Espadas
-    groupChancePercent: 33
+    groupChancePercent: 45
     mode: 0
     minRolls: 1
     maxRolls: 1
@@ -44,5 +44,5 @@ MonoBehaviour:
     - itemData: {fileID: 11400000, guid: 8a75be1fced46be44a3b354ebe35c504, type: 2}
       minAmount: 1
       maxAmount: 1
-      weight: 5
+      weight: 8
       chancePercent: 0

@@ -47,7 +47,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ProjectileAttackController
   projectileSpeed: 60
-  damage: 10
+  damage: 15
   targetLayers:
     serializedVersion: 2
     m_Bits: 8

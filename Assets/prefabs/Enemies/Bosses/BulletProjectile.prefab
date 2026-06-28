@@ -76,7 +76,7 @@ MonoBehaviour:
   projectileSpeed: 5
   canBounce: 0
   maxBounces: 1
-  damage: 10
+  damage: 15
   targetLayers:
     serializedVersion: 2
     m_Bits: 8

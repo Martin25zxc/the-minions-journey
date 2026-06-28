@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: MCD_Level01_MainChain
   m_EditorClassIdentifier: Assembly-CSharp::MissionChainDefinition
   chainId: level01_main_chain
-  displayName: Level 01 Main Chain
+  displayName: Level 01 Main Questline
   rules:
   - sourceMission: {fileID: 11400000, guid: 258001d40de4bf743b4999f5f5fd3cf0, type: 2}
     trigger: 2
@@ -42,7 +42,13 @@ MonoBehaviour:
     developerNote: Bola de fuego en fase 2
   - sourceMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
     trigger: 2
-    targetMission: {fileID: 11400000, guid: 831f0e7fd851b754eb0ea3c1fcff4917, type: 2}
+    targetMission: {fileID: 11400000, guid: d50bca438ebb28c40aa69ab14c1900d0, type: 2}
     action: 1
     executeOnce: 1
     developerNote: Desbloquea batalla con la maga
+  - sourceMission: {fileID: 11400000, guid: d50bca438ebb28c40aa69ab14c1900d0, type: 2}
+    trigger: 2
+    targetMission: {fileID: 11400000, guid: 5d7e719b5d230ae40834ff10a80a273f, type: 2}
+    action: 1
+    executeOnce: 1
+    developerNote: Ultima Mision

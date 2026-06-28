@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a98e0e2f0b9dad4d92fc7821077bdc7, type: 3}
+  m_Name: WD_Eldsvero_Sword_Legendary
+  m_EditorClassIdentifier: Assembly-CSharp::WeaponData
+  itemName: KnightMilitia_Sword_Legendary
+  displayName: Eldsvero
+  description: 
+  icon: {fileID: 21300000, guid: d26bd75cc591ce941807f1d0cf4aac60, type: 3}
+  worldModelPrefab: {fileID: 919132149155446097, guid: 497c2e54cd399a84da0fcf2a8d714dcf, type: 3}
+  rarity: 4
+  damageBonusMin: 100
+  damageBonusMax: 120
+  weaponType: 0
+  equippedModelPrefab: {fileID: 8381600336495543522, guid: 5cc6a0659ba34474fababd6a745396e7, type: 3}
+  equipmentVisualBackLeftPose:
+    localPosition: {x: -0.141, y: 0.07, z: 0}
+    localEulerAngles: {x: 0, y: -180, z: -45}
+    localScale: {x: 1, y: -1, z: 1}
+  equipmentVisualBackRightPose:
+    localPosition: {x: 0.141, y: 0.07, z: 0}
+    localEulerAngles: {x: 0, y: -180, z: 45}
+    localScale: {x: -1, y: -1, z: 1}
+  equipmentVisualHandPose:
+    localPosition: {x: 0, y: 0, z: 0}
+    localEulerAngles: {x: 0, y: 0, z: 0}
+    localScale: {x: -1, y: 1, z: 1}
