@@ -36,7 +36,7 @@ MonoBehaviour:
   - objectiveId: acquire_book
     objectiveType: 4
     importance: 0
-    description: Busca entre pertenencias de Minerva
+    description: Busca entre pertenencias de Minerva.
     requiredAmount: 1
     targetId: alba_mage_book
     hiddenUntilActive: 0

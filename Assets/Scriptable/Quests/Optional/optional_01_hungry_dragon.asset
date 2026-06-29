@@ -18,12 +18,12 @@ MonoBehaviour:
   title: Hambriento
   shortDescription: "Un drag\xF3n joven est\xE1 demasiado d\xE9bil para huir. Quiz\xE1
     unas raciones del este pueblo puedan devolverle las fuerzas.\n"
-  fullDescription: "El drag\xF3n te mira, pero no parece querer pelear.\r\n\r\nIntenta
+  fullDescription: "El drag\xF3n te mira, pero no parece querer pelear.\r\nIntenta
     batir las alas para huir, apenas matiene el vuelo, no le quedan fuerzas.\r\n\r\nEl
     Imperio del Alba siempre busca domar dragones j\xF3venes para usarlos como armas,
     y parece que llegaste a tiempo para ayudarlo.\r\n\r\nEl drag\xF3n emite un sonido
     bajo, casi suplicante. Recuerdas haber visto raciones de comida en algunas caba\xF1as
-    cercanas.\r\n\r\nQuiz\xE1 sea lo que necesita.\r\n"
+    cercanas.\r\nQuiz\xE1 sea lo que necesita.\r\n"
   startMode: 2
   completionMode: 1
   turnInTargetMode: 0

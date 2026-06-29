@@ -18,12 +18,13 @@ MonoBehaviour:
   title: Hacia lo alto del valle
   shortDescription: "Somnus cree que el l\xEDder enemigo volver\xE1 por el artefacto.
     Aprovecha el factor sorpresa y s\xEDguelo hacia lo alto del valle."
-  fullDescription: "Lo encontraste... Entonces todav\xEDa tenemos una oportunidad.\n\nEse
+  fullDescription: "Lo encontraste... entonces todav\xEDa tenemos una oportunidad.\n\nEse
     artefacto lo usaba con gran habilidad, pero su furia hizo que lo perdiera. No
     va a tardar en notar que ya no lo tiene. Volver\xE1 por \xE9l.\n\nLo escuch\xE9
     gritar que disfrutar\xEDa de un fest\xEDn en lo alto del valle. Si vas ahora,
-    quiz\xE1 puedas alcanzarlo antes de que se prepare.\n\nYo voy a tardar en curarme.
-    Vos todav\xEDa pod\xE9s moverte.\n\nVe. Persigue tu destino."
+    quiz\xE1 puedas alcanzarlo antes de que se de cuente de lo que perdio.\nVoy a
+    tardar en curarme, vos todav\xEDa pod\xE9s moverte...\n\nVe y persigue tu destino,
+    por los Hopplos!"
   startMode: 0
   completionMode: 0
   turnInTargetMode: 99

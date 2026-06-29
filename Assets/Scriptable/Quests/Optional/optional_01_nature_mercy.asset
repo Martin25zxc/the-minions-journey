@@ -17,8 +17,11 @@ MonoBehaviour:
   displayOrder: 0
   title: Favor del bosque
   shortDescription: "Re\xFAne hongos luminosos para Bau"
-  fullDescription: "Bau desconf\xEDa de los humanos del pueblo, pero parece dispuesto
-    a ayudarte si le traes frutos del valle"
+  fullDescription: "Este no querer luchar.\nEste tener nombre. \nEste ser Bau. Bau
+    entiende dolor de los tuyos.\n\nB\xE1rbaros de carne aplastaron amigos de Bau...
+    talaron, rompieron ra\xEDces...\nBau poder ayudarte, pero Bau necesitar hongos
+    luminosos.\n\nCon aires del valle y bendici\xF3n de ents, hongos luminosos curar
+    heridas. Trae hongos a Bau, y Bau ense\xF1arte a usar bendici\xF3n curativa."
   startMode: 2
   completionMode: 1
   turnInTargetMode: 0

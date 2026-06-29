@@ -36,7 +36,7 @@ MonoBehaviour:
   - objectiveId: return_to_camp
     objectiveType: 0
     importance: 0
-    description: Regreso al campamento
+    description: Regreso al campamento.
     requiredAmount: 1
     targetId: survivor_camp
     hiddenUntilActive: 0
