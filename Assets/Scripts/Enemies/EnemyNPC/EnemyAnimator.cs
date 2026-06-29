@@ -13,11 +13,14 @@ using UnityEngine;
 /// - RangedAttack trigger
 /// - HitFront   trigger
 /// - HitBack    trigger
-/// - Die        trigger
+/// - Disengage   trigger
+/// - ShieldThrow trigger
+/// - IsDead      bool
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class EnemyAnimator : MonoBehaviour
 {
+    private static readonly int IsDeadHash = Animator.StringToHash("IsDead");
     private static readonly int MoveXHash = Animator.StringToHash("MoveX");
     private static readonly int MoveYHash = Animator.StringToHash("MoveY");
     private static readonly int MeleeAttackHash = Animator.StringToHash("MeleeAttack");
@@ -27,7 +30,6 @@ public sealed class EnemyAnimator : MonoBehaviour
     private static readonly int RangedAttackHash = Animator.StringToHash("RangedAttack");
     private static readonly int HitFrontHash = Animator.StringToHash("HitFront");
     private static readonly int HitBackHash = Animator.StringToHash("HitBack");
-    private static readonly int DieHash = Animator.StringToHash("Die");
     private static readonly int DisengageHash = Animator.StringToHash("Disengage");
     private static readonly int ShieldThrowHash = Animator.StringToHash("ShieldThrow");
 
@@ -74,7 +76,8 @@ public sealed class EnemyAnimator : MonoBehaviour
     private bool hasRangedAttack;
     private bool hasHitFront;
     private bool hasHitBack;
-    private bool hasDie;
+    private bool hasIsDead;
+    private bool isDeadVisual;
 
     private void Awake()
     {
@@ -212,15 +215,17 @@ public sealed class EnemyAnimator : MonoBehaviour
             return;
         }
 
-        SetLocomotionValues(0f, 0f);
+        isDeadVisual = true;
+
+        ResetActionTriggersForDeath();
+        SetLocomotionValuesImmediate(0f, 0f);
         SetOnAir(false);
-        if (!hasDie)
+
+        if (hasIsDead)
         {
+            animator.SetBool(IsDeadHash, true);
             return;
         }
-
-        animator.ResetTrigger(DieHash);
-        animator.SetTrigger(DieHash);
     }
 
     public void PlayDisengage()
@@ -341,9 +346,9 @@ public sealed class EnemyAnimator : MonoBehaviour
         hasRangedAttack = HasParameter(RangedAttackHash, AnimatorControllerParameterType.Trigger, "RangedAttack");
         hasHitFront = HasParameter(HitFrontHash, AnimatorControllerParameterType.Trigger, "HitFront");
         hasHitBack = HasParameter(HitBackHash, AnimatorControllerParameterType.Trigger, "HitBack");
-        hasDie = HasParameter(DieHash, AnimatorControllerParameterType.Trigger, "Die");
         hasDisengage = HasParameter(DisengageHash, AnimatorControllerParameterType.Trigger, "Disengage");
         hasShieldThrow = HasParameter(ShieldThrowHash, AnimatorControllerParameterType.Trigger, "ShieldThrow");
+        hasIsDead = HasParameter(IsDeadHash, AnimatorControllerParameterType.Bool, "IsDead");
     }
 
     private bool HasParameter(int hash, AnimatorControllerParameterType expectedType, string parameterName)
@@ -389,6 +394,76 @@ public sealed class EnemyAnimator : MonoBehaviour
         return false;
     }
 
+    private void ResetActionTriggersForDeath()
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (hasMeleeAttack)
+        {
+            animator.ResetTrigger(MeleeAttackHash);
+        }
+
+        if (hasLeapStart)
+        {
+            animator.ResetTrigger(LeapStartHash);
+        }
+
+        if (hasLeapLand)
+        {
+            animator.ResetTrigger(LeapLandHash);
+        }
+
+        if (hasRangedAttack)
+        {
+            animator.ResetTrigger(RangedAttackHash);
+        }
+
+        if (hasHitFront)
+        {
+            animator.ResetTrigger(HitFrontHash);
+        }
+
+        if (hasHitBack)
+        {
+            animator.ResetTrigger(HitBackHash);
+        }
+
+        if (hasDisengage)
+        {
+            animator.ResetTrigger(DisengageHash);
+        }
+
+        if (hasShieldThrow)
+        {
+            animator.ResetTrigger(ShieldThrowHash);
+        }
+    }
+
+    private void SetLocomotionValuesImmediate(float moveX, float moveY)
+    {
+        if (animator == null)
+        {
+            return;
+        }
+
+        if (hasMoveX)
+        {
+            animator.SetFloat(MoveXHash, moveX);
+        }
+
+        if (hasMoveY)
+        {
+            animator.SetFloat(MoveYHash, moveY);
+        }
+    }
+
+    private bool IsDeathLocked()
+    {
+        return isDeadVisual || actor != null && !actor.IsAlive;
+    }
     private void OnValidate()
     {
         locomotionDampTime = Mathf.Max(0.01f, locomotionDampTime);
