@@ -91,7 +91,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: Plate_03
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4218318805365527497, guid: 8ad79b265210cac4180535b79fd4f14c, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -157,7 +158,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: Food_02 (1)
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7907484904471629608, guid: 219b3ba7a1084d44ba6ba3754e84f3a4, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -223,7 +225,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: Food_03
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 1740044312513956998, guid: dae57aea7aee8914da3ecfa4dc3e092d, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -301,7 +304,8 @@ PrefabInstance:
       propertyPath: m_Name
       value: Food_01 (1)
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 5604304507745494508, guid: 53a440911d2c3a54e980d8098965d99f, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

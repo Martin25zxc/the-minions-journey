@@ -21,7 +21,7 @@ MonoBehaviour:
   modelLocalScale: {x: 1.5, y: 1.5, z: 1.5}
   visualProfile: {fileID: 11400000, guid: 5a61afc8f519fb4499a624f32ef9767e, type: 2}
   defaultCollectMode: 10
-  defaultPromptVerb: "Concluir cap\xEDtulo"
+  defaultPromptVerb: Concluir cap
   eventType: 1
   targetId: alba_mage_book
   amount: 1
