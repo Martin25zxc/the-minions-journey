@@ -4,36 +4,50 @@ using UnityEngine;
 public sealed class MissionNotificationBridge : MonoBehaviour
 {
     [Header("Referencias")]
-    [SerializeField, Tooltip("Manager de misiones que emite eventos runtime.")]
+    [SerializeField, Tooltip("Manager de misiones que emite eventos runtime. Si queda vacío, se intenta resolver automáticamente.")]
     private MissionManager missionManager;
-
-    [SerializeField, Tooltip("Manager genérico de notificaciones. Este bridge solo traduce eventos de misión a toasts.")]
-    private NotificationManager notificationManager;
 
     [Header("Qué mostrar")]
     [SerializeField, Tooltip("Muestra toast cuando se acepta una misión.")]
     private bool showMissionAccepted = true;
 
-    [SerializeField, Tooltip("Muestra toast cuando cambia el progreso de un objetivo.")]
-    private bool showObjectiveUpdated = true;
-
-    [SerializeField, Tooltip("Muestra toast cuando un objetivo se completa.")]
-    private bool showObjectiveCompleted = true;
-
-    [SerializeField, Tooltip("Muestra toast cuando una misión queda lista para entregar.")]
-    private bool showMissionReadyToTurnIn = true;
-
     [SerializeField, Tooltip("Muestra toast cuando una misión se completa.")]
     private bool showMissionCompleted = true;
+
+    [SerializeField, Tooltip("Opcional. Muestra toast cuando una misión queda lista para entregar. Desactivado por defecto para evitar ruido.")]
+    private bool showMissionReadyToTurnIn;
+
+    [Header("Texto")]
+    [SerializeField]
+    private string newMissionTitle = "Nueva misión";
+
+    [SerializeField, TextArea(1, 2), Tooltip("{0} se reemplaza por el nombre de la misión.")]
+    private string newMissionMessageFormat = "{0}. Revisa el Diario de Misiones.";
+
+    [SerializeField]
+    private string completedMissionTitle = "Misión completada";
+
+    [SerializeField, TextArea(1, 2), Tooltip("{0} se reemplaza por el nombre de la misión.")]
+    private string completedMissionMessageFormat = "Se ha completado: {0}";
+
+    [SerializeField]
+    private string readyToTurnInTitle = "Misión lista para entregar";
+
+    [SerializeField, TextArea(1, 2), Tooltip("{0} se reemplaza por el nombre de la misión.")]
+    private string readyToTurnInMessageFormat = "{0}. Revisa el Diario de Misiones.";
 
     private void Reset()
     {
         missionManager = FindFirstObjectByType<MissionManager>();
-        notificationManager = FindFirstObjectByType<NotificationManager>();
     }
 
     private void OnEnable()
     {
+        if (missionManager == null)
+        {
+            missionManager = FindFirstObjectByType<MissionManager>();
+        }
+
         Subscribe();
     }
 
@@ -50,10 +64,8 @@ public sealed class MissionNotificationBridge : MonoBehaviour
         }
 
         missionManager.MissionAccepted += HandleMissionAccepted;
-        missionManager.ObjectiveUpdated += HandleObjectiveUpdated;
-        missionManager.ObjectiveCompleted += HandleObjectiveCompleted;
-        missionManager.MissionReadyToTurnIn += HandleMissionReadyToTurnIn;
         missionManager.MissionCompleted += HandleMissionCompleted;
+        missionManager.MissionReadyToTurnIn += HandleMissionReadyToTurnIn;
     }
 
     private void Unsubscribe()
@@ -64,10 +76,8 @@ public sealed class MissionNotificationBridge : MonoBehaviour
         }
 
         missionManager.MissionAccepted -= HandleMissionAccepted;
-        missionManager.ObjectiveUpdated -= HandleObjectiveUpdated;
-        missionManager.ObjectiveCompleted -= HandleObjectiveCompleted;
-        missionManager.MissionReadyToTurnIn -= HandleMissionReadyToTurnIn;
         missionManager.MissionCompleted -= HandleMissionCompleted;
+        missionManager.MissionReadyToTurnIn -= HandleMissionReadyToTurnIn;
     }
 
     private void HandleMissionAccepted(MissionRuntimeState missionState)
@@ -77,61 +87,15 @@ public sealed class MissionNotificationBridge : MonoBehaviour
             return;
         }
 
-        ShowMissionNotification(
-            title: "Misión iniciada",
-            message: GetMissionTitle(missionState),
-            priority: NotificationPriority.Normal,
-            groupKey: $"mission_accepted:{missionState?.MissionId}");
-    }
+        string missionTitle = GetMissionTitle(missionState);
+        string message = FormatMessage(newMissionMessageFormat, missionTitle);
 
-    private void HandleObjectiveUpdated(MissionRuntimeState missionState, MissionObjectiveRuntimeState objectiveState)
-    {
-        if (!showObjectiveUpdated || objectiveState == null || objectiveState.IsCompleted)
-        {
-            return;
-        }
-
-        if (!objectiveState.Definition.ShowProgress)
-        {
-            return;
-        }
-
-        string description = GetObjectiveDescription(objectiveState);
-        string message = $"{description} {objectiveState.GetProgressText()}";
-
-        ShowMissionNotification(
-            title: "Objetivo actualizado",
+        TMJNotifications.ShowMission(
             message: message,
-            priority: NotificationPriority.Low,
-            groupKey: $"objective_updated:{missionState?.MissionId}:{objectiveState.ObjectiveId}");
-    }
-
-    private void HandleObjectiveCompleted(MissionRuntimeState missionState, MissionObjectiveRuntimeState objectiveState)
-    {
-        if (!showObjectiveCompleted || objectiveState == null)
-        {
-            return;
-        }
-
-        ShowMissionNotification(
-            title: "Objetivo completado",
-            message: GetObjectiveDescription(objectiveState),
             priority: NotificationPriority.Normal,
-            groupKey: $"objective_completed:{missionState?.MissionId}:{objectiveState.ObjectiveId}");
-    }
-
-    private void HandleMissionReadyToTurnIn(MissionRuntimeState missionState)
-    {
-        if (!showMissionReadyToTurnIn)
-        {
-            return;
-        }
-
-        ShowMissionNotification(
-            title: "Misión lista para entregar",
-            message: GetMissionTitle(missionState),
-            priority: NotificationPriority.High,
-            groupKey: $"mission_ready:{missionState?.MissionId}");
+            title: newMissionTitle,
+            groupKey: $"mission_accepted:{missionState?.MissionId}",
+            context: this);
     }
 
     private void HandleMissionCompleted(MissionRuntimeState missionState)
@@ -141,27 +105,33 @@ public sealed class MissionNotificationBridge : MonoBehaviour
             return;
         }
 
-        ShowMissionNotification(
-            title: "Misión completada",
-            message: GetMissionTitle(missionState),
-            priority: NotificationPriority.Critical,
-            groupKey: $"mission_completed:{missionState?.MissionId}");
+        string missionTitle = GetMissionTitle(missionState);
+        string message = FormatMessage(completedMissionMessageFormat, missionTitle);
+
+        TMJNotifications.ShowMission(
+            message: message,
+            priority: NotificationPriority.High,
+            title: completedMissionTitle,
+            groupKey: $"mission_completed:{missionState?.MissionId}",
+            context: this);
     }
 
-    private void ShowMissionNotification(string title, string message, NotificationPriority priority, string groupKey)
+    private void HandleMissionReadyToTurnIn(MissionRuntimeState missionState)
     {
-        if (notificationManager == null || string.IsNullOrWhiteSpace(message))
+        if (!showMissionReadyToTurnIn)
         {
             return;
         }
 
-        notificationManager.Show(NotificationData.Create(
+        string missionTitle = GetMissionTitle(missionState);
+        string message = FormatMessage(readyToTurnInMessageFormat, missionTitle);
+
+        TMJNotifications.ShowMission(
             message: message,
-            channel: NotificationChannel.Mission,
-            priority: priority,
-            duration: -1f,
-            title: title,
-            groupKey: groupKey));
+            priority: NotificationPriority.Normal,
+            title: readyToTurnInTitle,
+            groupKey: $"mission_ready_to_turn_in:{missionState?.MissionId}",
+            context: this);
     }
 
     private static string GetMissionTitle(MissionRuntimeState missionState)
@@ -179,18 +149,13 @@ public sealed class MissionNotificationBridge : MonoBehaviour
         return missionState.MissionId;
     }
 
-    private static string GetObjectiveDescription(MissionObjectiveRuntimeState objectiveState)
+    private static string FormatMessage(string format, string missionTitle)
     {
-        if (objectiveState == null || objectiveState.Definition == null)
+        if (string.IsNullOrWhiteSpace(format))
         {
-            return "Objetivo";
+            return missionTitle;
         }
 
-        if (!string.IsNullOrWhiteSpace(objectiveState.Definition.Description))
-        {
-            return objectiveState.Definition.Description;
-        }
-
-        return objectiveState.ObjectiveId;
+        return string.Format(format, missionTitle);
     }
 }

@@ -12,7 +12,7 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
     private MissionChainDefinition[] chainDefinitions;
 
     [Header("Sincronización")]
-    [SerializeField, Tooltip("Si está activo, al iniciar revisa el estado actual y ejecuta reglas cuyo trigger ya se cumplió. Útil si el responder se activa tarde.")]
+    [SerializeField, Tooltip("Si está activo, al iniciar revisa el estado actual y ejecuta reglas cuyo trigger ya se cumplió. Útil si el responder se activa tarde o para recuperar una chain que quedó en Available por un error anterior.")]
     private bool synchronizeFromCurrentStateOnStart = true;
 
     [Header("Debug")]
@@ -266,18 +266,23 @@ public sealed class MissionAvailabilityResponder : MonoBehaviour
             targetState = missionManager.GetMissionState(rule.TargetMissionId);
             if (targetState == null || !targetState.IsAvailable)
             {
+                Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} no pudo dejar Available la misión destino '{rule.TargetMissionId}' antes de iniciarla.", this);
                 return ChainActionStatus.Failed;
             }
         }
 
         if (!targetState.IsAvailable)
         {
+            Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} intentó iniciar '{rule.TargetMissionId}', pero la misión no está Available. Estado actual: {targetState.State}.", this);
             return ChainActionStatus.Failed;
         }
 
-        bool accepted = missionManager.TryAcceptMission(rule.TargetMissionId, originalGiverId: null);
+        // Importante: las cadenas de misión son transición interna del sistema, no una interacción manual del jugador.
+        // Por eso no deben fallar por combate/GameActionGate; si fallan, una misión principal puede quedar Available pero no Active.
+        bool accepted = missionManager.TryAcceptMissionFromSystem(rule.TargetMissionId, originalGiverId: null);
         if (!accepted)
         {
+            Debug.LogWarning($"{nameof(MissionAvailabilityResponder)} no pudo iniciar automáticamente la misión '{rule.TargetMissionId}'. Quedó Available pero no Active. Revisar configuración de la misión/cadena.", this);
             return ChainActionStatus.Failed;
         }
 

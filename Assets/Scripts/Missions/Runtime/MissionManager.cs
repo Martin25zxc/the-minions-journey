@@ -198,38 +198,47 @@ public sealed class MissionManager : MonoBehaviour
             return false;
         }
 
-        bool accepted = runtimeState.Accept(originalGiverId, Time.time);
+        return AcceptMissionInternal(runtimeState, originalGiverId);
+    }
 
-        if (!accepted)
+    /// <summary>
+    /// Acepta/inicia una misión desde sistemas internos, como cadenas de misión o AutoOnLevelStart.
+    /// No consulta GameplayActionGate porque no representa una interacción manual del jugador.
+    /// Usar TryAcceptMission para NPCs, prompts, UI o cualquier acción iniciada por input del jugador.
+    /// </summary>
+    public bool TryAcceptMissionFromSystem(MissionDefinition mission, string originalGiverId = null)
+    {
+        EnsureInitialized();
+
+        if (mission == null)
         {
-            if (logChanges)
-            {
-                Debug.Log($"No se pudo aceptar la misión '{missionId}'. Estado actual: {runtimeState.State}.", this);
-            }
-
+            Debug.LogWarning($"{nameof(MissionManager)} recibió una MissionDefinition null para aceptación de sistema.", this);
             return false;
         }
 
-        bool trackedChanged = false;
-        if (runtimeState.Definition.AutoTrackOnAccept)
+        if (!TryEnsureMissionRegistered(mission, out MissionRuntimeState runtimeState))
         {
-            trackedChanged = SetTrackedMissionInternal(runtimeState, emitEvent: false);
+            return false;
         }
 
-        if (logChanges)
+        return AcceptMissionInternal(runtimeState, originalGiverId);
+    }
+
+    /// <summary>
+    /// Acepta/inicia una misión desde sistemas internos, como cadenas de misión o AutoOnLevelStart.
+    /// No consulta GameplayActionGate porque no representa una interacción manual del jugador.
+    /// Usar TryAcceptMission para NPCs, prompts, UI o cualquier acción iniciada por input del jugador.
+    /// </summary>
+    public bool TryAcceptMissionFromSystem(string missionId, string originalGiverId = null)
+    {
+        EnsureInitialized();
+
+        if (!TryGetRuntimeState(missionId, out MissionRuntimeState runtimeState))
         {
-            Debug.Log($"Misión aceptada: {runtimeState.MissionId}", this);
+            return false;
         }
 
-        RefreshDebugStates();
-        MissionAccepted?.Invoke(runtimeState);
-
-        if (trackedChanged)
-        {
-            TrackedMissionChanged?.Invoke(trackedMission);
-        }
-
-        return true;
+        return AcceptMissionInternal(runtimeState, originalGiverId);
     }
 
     public bool TryReportWorldEvent(GameWorldEvent worldEvent)
@@ -435,7 +444,7 @@ public sealed class MissionManager : MonoBehaviour
                 continue;
             }
 
-            TryAcceptMission(runtimeState.MissionId, originalGiverId: null);
+            TryAcceptMissionFromSystem(runtimeState.MissionId, originalGiverId: null);
         }
     }
 
@@ -517,6 +526,48 @@ public sealed class MissionManager : MonoBehaviour
         statesByMissionId.Add(missionId, runtimeState);
         orderedStates.Add(runtimeState);
         return runtimeState;
+    }
+
+    private bool AcceptMissionInternal(MissionRuntimeState runtimeState, string originalGiverId)
+    {
+        if (runtimeState == null)
+        {
+            return false;
+        }
+
+        string missionId = runtimeState.MissionId;
+        bool accepted = runtimeState.Accept(originalGiverId, Time.time);
+
+        if (!accepted)
+        {
+            if (logChanges)
+            {
+                Debug.Log($"No se pudo aceptar la misión '{missionId}'. Estado actual: {runtimeState.State}.", this);
+            }
+
+            return false;
+        }
+
+        bool trackedChanged = false;
+        if (runtimeState.Definition.AutoTrackOnAccept)
+        {
+            trackedChanged = SetTrackedMissionInternal(runtimeState, emitEvent: false);
+        }
+
+        if (logChanges)
+        {
+            Debug.Log($"Misión aceptada: {runtimeState.MissionId}", this);
+        }
+
+        RefreshDebugStates();
+        MissionAccepted?.Invoke(runtimeState);
+
+        if (trackedChanged)
+        {
+            TrackedMissionChanged?.Invoke(trackedMission);
+        }
+
+        return true;
     }
 
     private void DispatchProgressEvents(MissionRuntimeState missionState, MissionProgressResult result)

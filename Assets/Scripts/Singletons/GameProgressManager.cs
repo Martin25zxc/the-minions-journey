@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// Singleton de progreso de partida. 
+/// Singleton de progreso de partida.
 ///
 /// [DefaultExecutionOrder] garantiza que su Awake() corra antes que el de
 /// cualquier script sin el atributo, sin depender de la posición en la
@@ -34,26 +34,95 @@ public class GameProgressManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        acquiredSet = new HashSet<string>(acquiredSkillIDs);
+        RebuildAcquiredSetFromSerializedList();
     }
 
-    public bool IsAcquired(string skillID) => acquiredSet.Contains(skillID);
+    public bool IsAcquired(string skillID)
+    {
+        EnsureAcquiredSet();
+        string normalizedId = NormalizeSkillId(skillID);
+        return !string.IsNullOrEmpty(normalizedId) && acquiredSet.Contains(normalizedId);
+    }
 
-    // TODO Skills/Rewards:
-    // Considerar cambiar Acquire para que devuelva bool, o agregar un TryAcquire(skillID).
-    // Eso permitiría saber si la skill fue realmente adquirida ahora o si ya existía,
-    // útil para MissionRewardApplier, notificaciones y pickups/easter eggs.
+    /// <summary>
+    /// Intenta adquirir una skill.
+    /// Devuelve true solo cuando la skill se agrega por primera vez.
+    /// Esto permite que rewards/notificaciones eviten mensajes duplicados.
+    /// </summary>
+    public bool TryAcquire(string skillID)
+    {
+        EnsureAcquiredSet();
+
+        string normalizedId = NormalizeSkillId(skillID);
+        if (string.IsNullOrEmpty(normalizedId))
+        {
+            Debug.LogWarning("GameProgressManager.TryAcquire recibió un skillID vacío o inválido.", this);
+            return false;
+        }
+
+        if (!acquiredSet.Add(normalizedId))
+        {
+            return false; // ya la tenía, no notifica de nuevo
+        }
+
+        acquiredSkillIDs.Add(normalizedId);
+        OnSkillAcquired?.Invoke(normalizedId);
+        return true;
+    }
+
+    /// <summary>
+    /// Compatibilidad con llamadas existentes y posibles UnityEvents.
+    /// Si necesitás saber si realmente se adquirió algo nuevo, usá TryAcquire.
+    /// </summary>
     public void Acquire(string skillID)
     {
-        if (!acquiredSet.Add(skillID)) return; // ya la tenía, no notifica de nuevo
-
-        acquiredSkillIDs.Add(skillID);
-        OnSkillAcquired?.Invoke(skillID);
+        TryAcquire(skillID);
     }
 
     public void SetRespawnPoint(Vector3 point) => respawnPoint = point;
 
     public Vector3 GetRespawnPoint() => respawnPoint;
+
+    private void EnsureAcquiredSet()
+    {
+        if (acquiredSet == null)
+        {
+            RebuildAcquiredSetFromSerializedList();
+        }
+    }
+
+    private void RebuildAcquiredSetFromSerializedList()
+    {
+        acquiredSet = new HashSet<string>(StringComparer.Ordinal);
+
+        if (acquiredSkillIDs == null)
+        {
+            acquiredSkillIDs = new List<string>();
+            return;
+        }
+
+        // Limpia entradas vacías/duplicadas preservando el orden autoral de la lista serializada.
+        for (int i = acquiredSkillIDs.Count - 1; i >= 0; i--)
+        {
+            string normalizedId = NormalizeSkillId(acquiredSkillIDs[i]);
+
+            if (string.IsNullOrEmpty(normalizedId) || acquiredSet.Contains(normalizedId))
+            {
+                acquiredSkillIDs.RemoveAt(i);
+                continue;
+            }
+
+            acquiredSkillIDs[i] = normalizedId;
+            acquiredSet.Add(normalizedId);
+        }
+
+        acquiredSkillIDs.Reverse();
+    }
+
+    private static string NormalizeSkillId(string skillID)
+    {
+        return string.IsNullOrWhiteSpace(skillID) ? string.Empty : skillID.Trim();
+    }
 
     // TODO: acá después conectás tu sistema de save/load real
     // (JSON, PlayerPrefs, lo que uses) para persistir acquiredSkillIDs y respawnPoint.

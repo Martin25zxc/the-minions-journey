@@ -5,15 +5,25 @@ using UnityEngine;
 public sealed class MissionRewardApplier : MonoBehaviour
 {
     [Header("Referencias")]
-    [SerializeField, Tooltip("MissionManager que emite el evento MissionCompleted. Este applier se suscribe a ese evento y aplica las recompensas declaradas en MissionDefinition.")]
+    [SerializeField, Tooltip("MissionManager que emite MissionCompleted. Si queda vacío, se intenta resolver automáticamente al habilitarse.")]
     private MissionManager missionManager;
+
+    [Header("Notificaciones")]
+    [SerializeField, Tooltip("Muestra una notificación cuando una reward SkillUnlock desbloquea una habilidad nueva.")]
+    private bool notifySkillUnlocks = true;
+
+    [SerializeField, Tooltip("Título usado para notificaciones de habilidades desbloqueadas.")]
+    private string skillUnlockTitle = "Nueva habilidad desbloqueada";
+
+    [SerializeField, Tooltip("Texto final para guiar al jugador hacia la UI de habilidades/inventario.")]
+    private string skillUnlockHint = "Revisa el inventario.";
 
     [Header("Debug")]
     [SerializeField]
     private bool logRewards;
 
     // Runtime guard: evita aplicar dos veces las recompensas de la misma misión
-    // si el MissionManager emite completion más de una vez por refresh/debug/reentrada.
+    // si el MissionManager llama este método más de una vez por refresh/debug/reentrada.
     // Cuando exista Save/Load real, decidir si este estado debe persistirse o si
     // el MissionManager garantiza que solo emite completion una vez por misión.
     private readonly HashSet<string> appliedMissionIds = new();
@@ -34,10 +44,6 @@ public sealed class MissionRewardApplier : MonoBehaviour
         {
             missionManager.MissionCompleted += HandleMissionCompleted;
         }
-        else if (logRewards)
-        {
-            Debug.LogWarning("MissionRewardApplier: no hay MissionManager asignado/encontrado. No se aplicarán rewards por evento.", this);
-        }
     }
 
     private void OnDisable()
@@ -48,20 +54,20 @@ public sealed class MissionRewardApplier : MonoBehaviour
         }
     }
 
-    private void HandleMissionCompleted(MissionRuntimeState runtimeState)
+    private void HandleMissionCompleted(MissionRuntimeState missionState)
     {
-        if (runtimeState == null)
+        if (missionState == null)
         {
-            Debug.LogWarning("MissionRewardApplier: recibió MissionCompleted con runtimeState null.", this);
             return;
         }
 
-        ApplyRewards(runtimeState.Definition);
+        ApplyRewards(missionState.Definition);
     }
 
     /// <summary>
     /// Llamar una sola vez cuando la misión llega a Completed.
     /// No llamar en ReadyToTurnIn, ni durante refreshes de HUD/Journal.
+    /// Se mantiene público para herramientas/debug o integración manual puntual.
     /// </summary>
     public void ApplyRewards(MissionDefinition mission)
     {
@@ -179,14 +185,34 @@ public sealed class MissionRewardApplier : MonoBehaviour
             return;
         }
 
-        // GameProgressManager.Acquire todavía es void por compatibilidad con el equipo de habilidades.
-        // Cuando se coordine el cambio a bool/TryAcquire, acá se podrá evitar notificaciones/logs duplicados.
-        GameProgressManager.Instance.Acquire(skillId);
+        bool acquiredNow = GameProgressManager.Instance.TryAcquire(skillId);
 
         if (logRewards)
         {
-            Debug.Log($"MissionRewardApplier: misión '{mission.MissionId}' otorgó SkillUnlock '{skillId}'.", this);
+            string result = acquiredNow ? "otorgó" : "ya tenía";
+            Debug.Log($"MissionRewardApplier: misión '{mission.MissionId}' {result} SkillUnlock '{skillId}'.", this);
         }
+
+        if (acquiredNow && notifySkillUnlocks)
+        {
+            ShowSkillUnlockNotification(reward, skillId);
+        }
+    }
+
+    private void ShowSkillUnlockNotification(MissionRewardDefinition reward, string skillId)
+    {
+        string displayName = !string.IsNullOrWhiteSpace(reward.DisplayName)
+            ? reward.DisplayName
+            : skillId;
+
+        string message = $"Has desbloqueado una nueva habilidad: {displayName}. {skillUnlockHint}";
+
+        TMJNotifications.ShowInventory(
+            message: message,
+            priority: NotificationPriority.High,
+            title: skillUnlockTitle,
+            groupKey: $"skill_unlocked:{skillId}",
+            context: this);
     }
 
     private void WarnNotImplemented(MissionDefinition mission, MissionRewardDefinition reward, string reason)
