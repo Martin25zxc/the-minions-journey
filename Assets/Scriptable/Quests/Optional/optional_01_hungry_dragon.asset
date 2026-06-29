@@ -24,7 +24,7 @@ MonoBehaviour:
     y parece que llegaste a tiempo para ayudarlo.\r\n\r\nEl drag\xF3n emite un sonido
     bajo, casi suplicante. Recuerdas haber visto raciones de comida en algunas caba\xF1as
     cercanas.\r\nQuiz\xE1 sea lo que necesita.\r\n"
-  startMode: 2
+  startMode: 0
   completionMode: 1
   turnInTargetMode: 0
   turnInTargetId: 

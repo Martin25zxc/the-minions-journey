@@ -5,14 +5,22 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+public enum MissionJournalCompletedSortMode
+{
+    DefinitionOrder,
+    CompletionTimeAscending,
+    CompletionTimeDescending
+}
+
 /// <summary>
-/// Vista visual del Journal.
-/// 
-/// Responsabilidad:
-/// - Renderizar lista de misiones.
-/// - Renderizar detalle de la misión seleccionada.
-/// - Renderizar objetivos.
-/// - Renderizar bloque de recompensas.
+/// Vista principal del Mission Journal.
+///
+/// Etapa 4A:
+/// - Permite configurar desde Inspector qué estados de misión se muestran.
+/// - MVP: muestra Active / ReadyToTurnIn, Available y Completed; oculta Inactive.
+/// - Ordena por estado accionable: ReadyToTurnIn, Active, Available, Completed.
+/// - Respeta MissionDefinition.ShowInJournal.
+/// - Oculta el botón de trackeo si la misión seleccionada no es trackeable.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class MissionJournalView : MonoBehaviour
@@ -35,6 +43,9 @@ public sealed class MissionJournalView : MonoBehaviour
     [SerializeField] private TMP_Text detailTitleText;
     [SerializeField] private TMP_Text detailStatusText;
     [SerializeField] private TMP_Text descriptionText;
+
+    [SerializeField, Tooltip("Opcional. Ajusta la altura del DescriptionBlock según el texto renderizado.")]
+    private MissionJournalDescriptionBlockSizer descriptionBlockSizer;
 
     [Header("Detalle Scroll")]
     [SerializeField, Tooltip("ScrollRect del panel derecho. Se resetea arriba al cambiar de misión.")]
@@ -60,6 +71,7 @@ public sealed class MissionJournalView : MonoBehaviour
     [SerializeField, Tooltip("Texto mostrado cuando la misión no tiene rewards visibles.")]
     private string noRewardsText = "Sin recompensas visibles.";
 
+    
     [Header("Botones")]
     [SerializeField] private Button trackButton;
     [SerializeField] private TMP_Text trackButtonText;
@@ -103,6 +115,10 @@ public sealed class MissionJournalView : MonoBehaviour
     [Header("Track")]
     [SerializeField] private string trackMissionText = "Seguir misión";
     [SerializeField] private string untrackMissionText = "Dejar de seguir";
+
+    [Header("Orden")]
+    [SerializeField, Tooltip("Cómo ordenar misiones completadas dentro del bloque Completed.")]
+    private MissionJournalCompletedSortMode completedSortMode = MissionJournalCompletedSortMode.CompletionTimeAscending;
 
     [Header("Debug")]
     [SerializeField, Tooltip("Avisa en consola si faltan referencias críticas.")]
@@ -273,36 +289,54 @@ public sealed class MissionJournalView : MonoBehaviour
             return stateCompare;
         }
 
-        int displayOrderA = a != null && a.Definition != null ? a.Definition.DisplayOrder : int.MaxValue;
-        int displayOrderB = b != null && b.Definition != null ? b.Definition.DisplayOrder : int.MaxValue;
-
-        int displayOrderCompare = displayOrderA.CompareTo(displayOrderB);
-        if (displayOrderCompare != 0)
+        if (a != null &&
+            b != null &&
+            a.State == MissionState.Completed &&
+            b.State == MissionState.Completed)
         {
-            return displayOrderCompare;
+            int completedCompare = CompareCompletedMissions(a, b);
+            if (completedCompare != 0)
+            {
+                return completedCompare;
+            }
         }
 
-        MissionCategory categoryA = a != null && a.Definition != null ? a.Definition.Category : MissionCategory.Optional;
-        MissionCategory categoryB = b != null && b.Definition != null ? b.Definition.Category : MissionCategory.Optional;
+        return CompareByDefinitionOrder(a, b);
+    }
 
-        int categoryCompare = categoryA.CompareTo(categoryB);
-        if (categoryCompare != 0)
+    private int CompareCompletedMissions(MissionRuntimeState a, MissionRuntimeState b)
+    {
+        switch (completedSortMode)
         {
-            return categoryCompare;
+            case MissionJournalCompletedSortMode.CompletionTimeAscending:
+                return CompareCompletedAtTime(a, b, ascending: true);
+
+            case MissionJournalCompletedSortMode.CompletionTimeDescending:
+                return CompareCompletedAtTime(a, b, ascending: false);
+
+            case MissionJournalCompletedSortMode.DefinitionOrder:
+            default:
+                return 0;
+        }
+    }
+
+    private static int CompareCompletedAtTime(MissionRuntimeState a, MissionRuntimeState b, bool ascending)
+    {
+        bool aHasTime = a.CompletedAtTime >= 0f;
+        bool bHasTime = b.CompletedAtTime >= 0f;
+
+        if (aHasTime && bHasTime)
+        {
+            int compare = a.CompletedAtTime.CompareTo(b.CompletedAtTime);
+            return ascending ? compare : -compare;
         }
 
-        string titleA = ResolveTitle(a);
-        string titleB = ResolveTitle(b);
-
-        int titleCompare = string.Compare(titleA, titleB, StringComparison.CurrentCultureIgnoreCase);
-        if (titleCompare != 0)
+        if (aHasTime != bHasTime)
         {
-            return titleCompare;
+            return aHasTime ? -1 : 1;
         }
 
-        string idA = a != null ? a.MissionId : string.Empty;
-        string idB = b != null ? b.MissionId : string.Empty;
-        return string.Compare(idA, idB, StringComparison.Ordinal);
+        return 0;
     }
 
     private int GetMissionStateSortPriority(MissionRuntimeState missionState)
@@ -420,7 +454,9 @@ public sealed class MissionJournalView : MonoBehaviour
 
         SetText(detailTitleText, ResolveTitle(selectedMission));
         SetText(detailStatusText, BuildDetailStatusText(selectedMission));
-        SetText(descriptionText, ResolveDescription(selectedMission));
+        string description = ResolveDescription(selectedMission);
+        SetText(descriptionText, description);
+        RefreshDescriptionBlockSize(description);
 
         RenderObjectives(selectedMission);
         RenderRewards(selectedMission.Definition);
@@ -432,6 +468,7 @@ public sealed class MissionJournalView : MonoBehaviour
         SetText(detailTitleText, noSelectedMissionTitle);
         SetText(detailStatusText, string.Empty);
         SetText(descriptionText, noSelectedMissionDescription);
+        RefreshDescriptionBlockSize(noSelectedMissionDescription);
         RenderNoVisibleObjectives();
 
         if (rewardsPlaceholderText != null)
@@ -745,6 +782,17 @@ public sealed class MissionJournalView : MonoBehaviour
         }
     }
 
+
+    private void RefreshDescriptionBlockSize(string description)
+    {
+        if (descriptionBlockSizer == null)
+        {
+            return;
+        }
+
+        descriptionBlockSizer.RefreshSize(description);
+    }
+
     private void RebuildDetailLayout()
     {
         Canvas.ForceUpdateCanvases();
@@ -819,5 +867,46 @@ public sealed class MissionJournalView : MonoBehaviour
         {
             text.text = value ?? string.Empty;
         }
+    }
+
+    private static int CompareByDefinitionOrder(MissionRuntimeState a, MissionRuntimeState b)
+    {
+        if (a == null && b == null)
+        {
+            return 0;
+        }
+
+        if (a == null)
+        {
+            return 1;
+        }
+
+        if (b == null)
+        {
+            return -1;
+        }
+
+        int displayOrderCompare = a.Definition.DisplayOrder.CompareTo(b.Definition.DisplayOrder);
+        if (displayOrderCompare != 0)
+        {
+            return displayOrderCompare;
+        }
+
+        int categoryCompare = a.Definition.Category.CompareTo(b.Definition.Category);
+        if (categoryCompare != 0)
+        {
+            return categoryCompare;
+        }
+
+        string titleA = string.IsNullOrWhiteSpace(a.Definition.Title) ? a.MissionId : a.Definition.Title;
+        string titleB = string.IsNullOrWhiteSpace(b.Definition.Title) ? b.MissionId : b.Definition.Title;
+
+        int titleCompare = string.Compare(titleA, titleB, System.StringComparison.CurrentCultureIgnoreCase);
+        if (titleCompare != 0)
+        {
+            return titleCompare;
+        }
+
+        return string.Compare(a.MissionId, b.MissionId, System.StringComparison.Ordinal);
     }
 }
