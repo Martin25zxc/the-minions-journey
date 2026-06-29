@@ -9,7 +9,8 @@ using UnityEngine.UI;
 /// - Mostrar/ocultar PauseMenuRoot según GameState.PauseMenu.
 /// - Botón Continuar: vuelve a Gameplay.
 /// - Botón Diario: abre el Mission Journal usando el flujo existente.
-/// - Botón Salir: placeholder para Etapa 5C.
+/// - Botón Salir: abre ConfirmDialogController.
+/// - Si ConfirmDialog está abierto, oculta visualmente el PauseMenu sin cambiar GameState.
 ///
 /// No lee ESC. ESC lo maneja GameModalInputController.
 /// No activa/desactiva el Journal directamente.
@@ -27,21 +28,24 @@ public sealed class PauseMenuController : MonoBehaviour
     [SerializeField, Tooltip("Controller existente del Journal. Debe vivir fuera de MissionJournalRoot.")]
     private MissionJournalController missionJournalController;
 
+    [SerializeField, Tooltip("Modal de confirmación usado por el botón Salir.")]
+    private ConfirmDialogController confirmDialogController;
+
     [Header("UI Root")]
     [SerializeField, Tooltip("CanvasGroup del PauseMenuRoot.")]
     private CanvasGroup rootCanvasGroup;
 
-    [SerializeField, Tooltip("Si está activo, además del CanvasGroup se activa/desactiva el GameObject del root. Para UI modal suele ser seguro dejarlo apagado.")]
+    [SerializeField, Tooltip("Si está activo, además del CanvasGroup se activa/desactiva el GameObject del root. Recomendado: false si este script vive en PauseMenuRoot.")]
     private bool setRootGameObjectActive;
+
+    [Header("Confirm Dialog")]
+    [SerializeField, Tooltip("Si está activo, el PauseMenu se oculta visualmente mientras el ConfirmDialog está abierto.")]
+    private bool hidePauseMenuBehindConfirmDialog = true;
 
     [Header("Botones")]
     [SerializeField] private Button continueButton;
     [SerializeField] private Button journalButton;
     [SerializeField] private Button exitButton;
-
-    [Header("Salida placeholder")]
-    [SerializeField, Tooltip("Mensaje temporal hasta implementar ConfirmDialog en Etapa 5C.")]
-    private string exitNotImplementedMessage = "La salida con confirmación se implementará en la Etapa 5C.";
 
     [Header("Selección UI")]
     [SerializeField, Tooltip("Limpia el selected del EventSystem al cerrar o cambiar pantalla para que los botones no queden marcados.")]
@@ -50,43 +54,33 @@ public sealed class PauseMenuController : MonoBehaviour
     [Header("Debug")]
     [SerializeField] private bool logDebug;
 
+    private bool pauseMenuHiddenByConfirmDialog;
+
     private void Reset()
     {
         gameStateController = FindFirstObjectByType<GameStateController>();
         actionGate = FindFirstObjectByType<GameplayActionGate>();
         missionJournalController = FindFirstObjectByType<MissionJournalController>();
+        confirmDialogController = FindFirstObjectByType<ConfirmDialogController>(FindObjectsInactive.Include);
         rootCanvasGroup = GetComponent<CanvasGroup>();
     }
 
     private void Awake()
     {
-        if (gameStateController == null)
-        {
-            gameStateController = FindFirstObjectByType<GameStateController>();
-        }
-
-        if (actionGate == null)
-        {
-            actionGate = FindFirstObjectByType<GameplayActionGate>();
-        }
-
-        if (missionJournalController == null)
-        {
-            missionJournalController = FindFirstObjectByType<MissionJournalController>();
-        }
-
-        if (rootCanvasGroup == null)
-        {
-            rootCanvasGroup = GetComponent<CanvasGroup>();
-        }
-
+        ResolveMissingReferences();
         WireButtons();
+        SubscribeConfirmDialog();
+
+        // Defensa contra prefabs/scenes que quedaron guardados visibles por accidente.
+        ApplyRootVisibility(false);
         SyncVisibilityWithGameState();
     }
 
     private void OnEnable()
     {
+        ResolveMissingReferences();
         WireButtons();
+        SubscribeConfirmDialog();
 
         if (gameStateController != null)
         {
@@ -100,6 +94,7 @@ public sealed class PauseMenuController : MonoBehaviour
     private void OnDisable()
     {
         UnwireButtons();
+        UnsubscribeConfirmDialog();
 
         if (gameStateController != null)
         {
@@ -110,6 +105,7 @@ public sealed class PauseMenuController : MonoBehaviour
     public void RequestResume()
     {
         ClearSelectionIfNeeded();
+        CloseConfirmDialogIfOpen();
 
         if (gameStateController == null)
         {
@@ -123,6 +119,7 @@ public sealed class PauseMenuController : MonoBehaviour
     public void RequestOpenJournal()
     {
         ClearSelectionIfNeeded();
+        CloseConfirmDialogIfOpen();
 
         if (actionGate != null)
         {
@@ -152,18 +149,63 @@ public sealed class PauseMenuController : MonoBehaviour
         }
     }
 
-    public void RequestExitPlaceholder()
+    public void RequestExitConfirmation()
     {
         ClearSelectionIfNeeded();
 
-        if (!string.IsNullOrWhiteSpace(exitNotImplementedMessage))
+        if (confirmDialogController == null)
         {
             TMJNotifications.ShowSystem(
-                exitNotImplementedMessage,
+                "No hay diálogo de confirmación configurado.",
                 NotificationPriority.Normal,
                 title: "Salir",
-                groupKey: "pause_menu_exit_placeholder",
+                groupKey: "pause_menu_missing_confirm_dialog",
                 context: this);
+            return;
+        }
+
+        if (hidePauseMenuBehindConfirmDialog)
+        {
+            pauseMenuHiddenByConfirmDialog = true;
+            SyncVisibilityWithGameState();
+        }
+
+        confirmDialogController.ShowExitConfirmation();
+    }
+
+    public void HideInstant()
+    {
+        pauseMenuHiddenByConfirmDialog = false;
+        ApplyRootVisibility(false);
+        CloseConfirmDialogIfOpen();
+        ClearSelectionIfNeeded();
+    }
+
+    private void ResolveMissingReferences()
+    {
+        if (gameStateController == null)
+        {
+            gameStateController = FindFirstObjectByType<GameStateController>();
+        }
+
+        if (actionGate == null)
+        {
+            actionGate = FindFirstObjectByType<GameplayActionGate>();
+        }
+
+        if (missionJournalController == null)
+        {
+            missionJournalController = FindFirstObjectByType<MissionJournalController>();
+        }
+
+        if (confirmDialogController == null)
+        {
+            confirmDialogController = FindFirstObjectByType<ConfirmDialogController>(FindObjectsInactive.Include);
+        }
+
+        if (rootCanvasGroup == null)
+        {
+            rootCanvasGroup = GetComponent<CanvasGroup>();
         }
     }
 
@@ -174,11 +216,19 @@ public sealed class PauseMenuController : MonoBehaviour
 
     private void SyncVisibilityWithGameState()
     {
-        bool shouldShow = gameStateController != null && gameStateController.CurrentState == GameState.PauseMenu;
-        SetVisible(shouldShow);
+        bool isPauseState = gameStateController != null && gameStateController.CurrentState == GameState.PauseMenu;
+
+        if (!isPauseState)
+        {
+            pauseMenuHiddenByConfirmDialog = false;
+            CloseConfirmDialogIfOpen();
+        }
+
+        bool shouldShow = isPauseState && !pauseMenuHiddenByConfirmDialog;
+        ApplyRootVisibility(shouldShow);
     }
 
-    private void SetVisible(bool visible)
+    private void ApplyRootVisibility(bool visible)
     {
         if (rootCanvasGroup != null)
         {
@@ -187,9 +237,13 @@ public sealed class PauseMenuController : MonoBehaviour
             rootCanvasGroup.blocksRaycasts = visible;
         }
 
-        if (setRootGameObjectActive)
+        // Para este controller, desactivar el GameObject del root es peligroso:
+        // si el script vive en PauseMenuRoot y el root se apaga, deja de escuchar cambios de GameState
+        // y puede no restaurarse al cerrar ConfirmDialog. Por eso esta versión NO desactiva el GameObject;
+        // solo usa CanvasGroup. Dejar Set Root GameObject Active apagado en Inspector.
+        if (setRootGameObjectActive && logDebug)
         {
-            gameObject.SetActive(visible);
+            Debug.LogWarning("PauseMenuController: Set Root GameObject Active está activo, pero esta versión lo ignora para evitar desincronización. Usar CanvasGroup.", this);
         }
 
         if (!visible)
@@ -199,7 +253,57 @@ public sealed class PauseMenuController : MonoBehaviour
 
         if (logDebug)
         {
-            Debug.Log($"PauseMenu visible: {visible}", this);
+            Debug.Log($"PauseMenu visible: {visible}. HiddenByConfirm: {pauseMenuHiddenByConfirmDialog}", this);
+        }
+    }
+
+    private void SubscribeConfirmDialog()
+    {
+        if (confirmDialogController == null)
+        {
+            return;
+        }
+
+        confirmDialogController.DialogShown -= HandleConfirmDialogShown;
+        confirmDialogController.DialogHidden -= HandleConfirmDialogHidden;
+
+        confirmDialogController.DialogShown += HandleConfirmDialogShown;
+        confirmDialogController.DialogHidden += HandleConfirmDialogHidden;
+    }
+
+    private void UnsubscribeConfirmDialog()
+    {
+        if (confirmDialogController == null)
+        {
+            return;
+        }
+
+        confirmDialogController.DialogShown -= HandleConfirmDialogShown;
+        confirmDialogController.DialogHidden -= HandleConfirmDialogHidden;
+    }
+
+    private void HandleConfirmDialogShown(ConfirmDialogController dialog)
+    {
+        if (!hidePauseMenuBehindConfirmDialog)
+        {
+            return;
+        }
+
+        pauseMenuHiddenByConfirmDialog = true;
+        SyncVisibilityWithGameState();
+    }
+
+    private void HandleConfirmDialogHidden(ConfirmDialogController dialog)
+    {
+        pauseMenuHiddenByConfirmDialog = false;
+        SyncVisibilityWithGameState();
+    }
+
+    private void CloseConfirmDialogIfOpen()
+    {
+        if (confirmDialogController != null && confirmDialogController.IsOpen)
+        {
+            confirmDialogController.HideInstant();
         }
     }
 
@@ -219,8 +323,8 @@ public sealed class PauseMenuController : MonoBehaviour
 
         if (exitButton != null)
         {
-            exitButton.onClick.RemoveListener(RequestExitPlaceholder);
-            exitButton.onClick.AddListener(RequestExitPlaceholder);
+            exitButton.onClick.RemoveListener(RequestExitConfirmation);
+            exitButton.onClick.AddListener(RequestExitConfirmation);
         }
     }
 
@@ -238,7 +342,7 @@ public sealed class PauseMenuController : MonoBehaviour
 
         if (exitButton != null)
         {
-            exitButton.onClick.RemoveListener(RequestExitPlaceholder);
+            exitButton.onClick.RemoveListener(RequestExitConfirmation);
         }
     }
 

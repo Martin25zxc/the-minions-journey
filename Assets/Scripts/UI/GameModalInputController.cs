@@ -5,11 +5,9 @@ using UnityEngine.InputSystem;
 /// Input global mínimo para resolver pantallas modales.
 ///
 /// ESC no pertenece al Journal ni al PauseMenu de forma individual:
-/// - Si hay un modal abierto, lo resuelve.
+/// - Si hay ConfirmDialog abierto, lo cierra.
+/// - Si hay un modal de GameState abierto, lo resuelve.
 /// - Si estamos en Gameplay, puede abrir PauseMenu cuando el menú visual esté listo.
-///
-/// Para evitar abrir un PauseMenu invisible durante esta etapa,
-/// allowEscapeToOpenPauseMenu arranca apagado.
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class GameModalInputController : MonoBehaviour
@@ -21,6 +19,9 @@ public sealed class GameModalInputController : MonoBehaviour
     [SerializeField]
     private GameplayActionGate actionGate;
 
+    [SerializeField, Tooltip("Submodal de confirmación. Si está abierto, ESC lo cierra antes de resolver PauseMenu.")]
+    private ConfirmDialogController confirmDialogController;
+
     [Header("Input")]
     [SerializeField]
     private Key escapeKey = Key.Escape;
@@ -28,7 +29,7 @@ public sealed class GameModalInputController : MonoBehaviour
     [Header("Pause Menu")]
     [Tooltip("Si está activo, ESC desde Gameplay abre PauseMenu. Activarlo cuando PauseMenuRoot tenga controller visual funcionando.")]
     [SerializeField]
-    private bool allowEscapeToOpenPauseMenu;
+    private bool allowEscapeToOpenPauseMenu = true;
 
     [Header("Debug")]
     [SerializeField]
@@ -38,6 +39,7 @@ public sealed class GameModalInputController : MonoBehaviour
     {
         gameStateController = FindFirstObjectByType<GameStateController>();
         actionGate = FindFirstObjectByType<GameplayActionGate>();
+        confirmDialogController = FindFirstObjectByType<ConfirmDialogController>(FindObjectsInactive.Include);
     }
 
     private void Awake()
@@ -50,6 +52,11 @@ public sealed class GameModalInputController : MonoBehaviour
         if (actionGate == null)
         {
             actionGate = FindFirstObjectByType<GameplayActionGate>();
+        }
+
+        if (confirmDialogController == null)
+        {
+            confirmDialogController = FindFirstObjectByType<ConfirmDialogController>(FindObjectsInactive.Include);
         }
     }
 
@@ -69,6 +76,18 @@ public sealed class GameModalInputController : MonoBehaviour
 
     private void ResolveEscape()
     {
+        if (confirmDialogController != null && confirmDialogController.IsOpen)
+        {
+            confirmDialogController.Cancel();
+
+            if (logDebug)
+            {
+                Debug.Log("ESC cerró ConfirmDialog.", this);
+            }
+
+            return;
+        }
+
         if (gameStateController == null)
         {
             Debug.LogWarning($"{nameof(GameModalInputController)} necesita {nameof(GameStateController)}.", this);
