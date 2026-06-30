@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -6,7 +7,6 @@ using UnityEngine.InputSystem;
 [DisallowMultipleComponent]
 public sealed class VisualInventoryManager : MonoBehaviour
 {
-    // ── Inspector wiring ─────────────────────────────────────────────────
     [Header("Dependencies")]
     [SerializeField] private InventoryManager inventoryManager;
     [SerializeField] private TMJ_WeaponLoadout weaponLoadout;
@@ -15,23 +15,27 @@ public sealed class VisualInventoryManager : MonoBehaviour
     [SerializeField] private Transform inventoryContainer;
     [SerializeField] private Transform equippedContainer;
 
+    [Header("Equipped Slot Anchors (optional but recommended)")]
+    [Tooltip("Fixed UI anchor for the LightAttack equipped weapon. Assign this to keep the visual slot stable even when HeavyAttack is empty.")]
+    [SerializeField] private Transform lightAttackEquippedSlotRoot;
+
+    [Tooltip("Fixed UI anchor for the HeavyAttack equipped weapon. Assign this to keep the visual slot stable even when LightAttack is empty.")]
+    [SerializeField] private Transform heavyAttackEquippedSlotRoot;
+
+    [Tooltip("When true, equipped item visuals stretch to fill the assigned Light/Heavy slot root.")]
+    [SerializeField] private bool stretchEquippedSlotToRoot = true;
+
     [Header("Slot Prefab")]
     [SerializeField] private ItemVisualSlot slotPrefab;
+
+    [Header("Details Panel")]
+    [SerializeField] private InventoryItemDetailsPanel detailsPanel;
 
     [Header("Toggle")]
     [SerializeField] private GameObject inventoryScrollView;
     [SerializeField] private GameObject equippedScrollView;
     [SerializeField] private Key toggleKey = Key.I;
 
-    [Header("Equip Settings")]
-    [Tooltip("If true, manual equip ignores WeaponType and uses the first free slot when possible. Auto-equip is handled by InventoryManager Option A.")]
-    [SerializeField] private bool ignoreWeaponType = false;
-
-    [Header("Feedback (optional)")]
-    [SerializeField] private TextMeshProUGUI feedbackLabel;
-    [SerializeField, Min(0.1f)] private float feedbackDuration = 2f;
-
-    // ── Runtime state ────────────────────────────────────────────────────
     private readonly Dictionary<int, ItemVisualSlot> _slotMap = new();
 
     private readonly Dictionary<TMJ_WeaponUseSlot, ItemVisualSlot> _equippedSlots = new()
@@ -42,7 +46,6 @@ public sealed class VisualInventoryManager : MonoBehaviour
 
     private Coroutine _feedbackCoroutine;
 
-    // ── Unity lifecycle ──────────────────────────────────────────────────
     private void Awake()
     {
         if (inventoryManager == null)
@@ -71,7 +74,6 @@ public sealed class VisualInventoryManager : MonoBehaviour
 
         if (weaponLoadout != null)
         {
-            // Best practice: the UI mirrors the loadout instead of assuming equip state by itself.
             weaponLoadout.OnLoadoutChanged += SyncWithWeaponLoadout;
         }
     }
@@ -101,6 +103,9 @@ public sealed class VisualInventoryManager : MonoBehaviour
         }
 
         SyncWithWeaponLoadout();
+
+        detailsPanel?.Clear();
+        detailsPanel?.SetVisible(IsInventoryOpen());
     }
 
     private void Update()
@@ -111,32 +116,38 @@ public sealed class VisualInventoryManager : MonoBehaviour
         }
 
         bool show = inventoryScrollView != null && !inventoryScrollView.activeSelf;
+
         inventoryScrollView?.SetActive(show);
         equippedScrollView?.SetActive(show);
+        detailsPanel?.SetVisible(show);
+
+        if (show)
+        {
+            detailsPanel?.Clear();
+        }
+        else
+        {
+            CloseAllSlotActions();
+        }
     }
 
-    // ── External InventoryManager event handlers ──────────────────────────
     private void HandleExternalItemAdded(ItemData item)
     {
         CreateSlot(item, inventoryContainer, isEquipped: false);
-
-        // Harmless before auto-equip. Useful if a caller modifies the loadout before/without AddItem events.
         SyncWithWeaponLoadout();
     }
 
     private void HandleExternalItemRemoved(ItemData item)
     {
-        // With ItemData-only inventories, duplicates are ambiguous.
-        // Best-effort rule: remove a non-equipped matching visual first, then an equipped one if necessary.
         ItemVisualSlot target = FindSlotForExternalRemoval(item);
 
         if (target != null)
         {
             DestroySlotDirect(target, updateLoadout: true);
+            detailsPanel?.Clear();
         }
     }
 
-    // ── Slot creation / destruction ───────────────────────────────────────
     private ItemVisualSlot CreateSlot(ItemData item, Transform parent, bool isEquipped)
     {
         if (item == null || slotPrefab == null || parent == null)
@@ -148,9 +159,11 @@ public sealed class VisualInventoryManager : MonoBehaviour
         slot.Bind(item);
         slot.SetEquipped(isEquipped);
 
-        slot.OnEquipRequested += HandleEquip;
+        slot.OnEquipToUseSlotRequested += HandleEquipToUseSlot;
+        slot.OnUnequipRequested += HandleUnequipRequested;
         slot.OnDiscardRequested += HandleDiscard;
-        slot.OnDestroyRequested += HandleDestroy;
+        slot.OnHoverEnter += HandleSlotHoverEnter;
+        slot.OnHoverExit += HandleSlotHoverExit;
 
         _slotMap[slot.GetInstanceID()] = slot;
         return slot;
@@ -163,21 +176,14 @@ public sealed class VisualInventoryManager : MonoBehaviour
             return;
         }
 
-        foreach (TMJ_WeaponUseSlot useSlot in System.Enum.GetValues(typeof(TMJ_WeaponUseSlot)))
+        if (TryGetUseSlotForSlot(slot, out TMJ_WeaponUseSlot useSlot))
         {
-            if (_equippedSlots[useSlot] != slot)
-            {
-                continue;
-            }
-
             _equippedSlots[useSlot] = null;
 
             if (updateLoadout)
             {
                 weaponLoadout?.EquipWeapon(useSlot, null);
             }
-
-            break;
         }
 
         UnsubscribeSlot(slot);
@@ -185,23 +191,16 @@ public sealed class VisualInventoryManager : MonoBehaviour
         Destroy(slot.gameObject);
     }
 
-    // ── Equip / Unequip ──────────────────────────────────────────────────
-    private void HandleEquip(ItemVisualSlot slot)
+    private void HandleEquipToUseSlot(ItemVisualSlot slot, TMJ_WeaponUseSlot targetUseSlot)
     {
         if (slot == null)
         {
             return;
         }
 
-        if (slot.IsEquipped)
-        {
-            Unequip(slot);
-            return;
-        }
-
         if (slot.Data is not WeaponData weapon)
         {
-            ShowFeedback($"{slot.Data.DisplayName} no es equipable.");
+            ShowFeedback($"{GetItemDisplayName(slot.Data)} no es equipable.");
             return;
         }
 
@@ -211,76 +210,67 @@ public sealed class VisualInventoryManager : MonoBehaviour
             return;
         }
 
-        TMJ_WeaponUseSlot targetUseSlot = ResolveManualEquipSlot(weapon);
+        if (slot.IsEquipped)
+        {
+            ShowFeedback($"{weapon.DisplayName} ya está equipada. Desequipala antes de cambiarla de slot.");
+            return;
+        }
 
-        // Swap: displace current occupant back to inventory first.
+        // Remove the selected weapon from the normal inventory first.
+        // This frees one inventory position before returning a displaced equipped weapon.
+        RemoveFromInventorySilently(slot.Data);
+
         ItemVisualSlot displaced = _equippedSlots[targetUseSlot];
         if (displaced != null)
         {
-            MoveToInventory(displaced, targetUseSlot, updateLoadout: false);
+            bool returned = MoveToInventory(displaced, targetUseSlot, updateLoadout: false);
+            if (!returned)
+            {
+                // Rollback best-effort: put the selected item back in inventory.
+                AddToInventorySilently(slot.Data);
+                ShowFeedback("Inventario lleno, no se puede cambiar el arma equipada.");
+                return;
+            }
         }
 
-        MoveToEquipped(slot, targetUseSlot, weapon, updateLoadout: true);
-        ShowFeedback($"{weapon.DisplayName} equipado.");
+        PlaceInEquipped(slot, targetUseSlot, weapon, updateLoadout: true);
+        detailsPanel?.Show(slot.Data);
+        ShowFeedback($"{weapon.DisplayName} equipado en {FormatUseSlot(targetUseSlot)}.");
     }
 
-    private TMJ_WeaponUseSlot ResolveManualEquipSlot(WeaponData weapon)
+    private void HandleUnequipRequested(ItemVisualSlot slot)
     {
-        // If allowed, manual equip behaves like Option A: first empty slot wins.
-        if (ignoreWeaponType && TryGetFirstEmptyUseSlot(out TMJ_WeaponUseSlot freeSlot))
+        if (slot == null)
         {
-            return freeSlot;
+            return;
         }
 
-        if (!ignoreWeaponType)
+        if (!TryGetUseSlotForSlot(slot, out TMJ_WeaponUseSlot useSlot))
         {
-            return weapon.WeaponType == WeaponType.MainHand
-                ? TMJ_WeaponUseSlot.LightAttack
-                : TMJ_WeaponUseSlot.HeavyAttack;
+            return;
         }
 
-        // Both slots occupied and ignoreWeaponType is true: keep old swap fallback.
-        return TMJ_WeaponUseSlot.HeavyAttack;
-    }
-
-    private void Unequip(ItemVisualSlot slot)
-    {
-        if (inventoryManager != null && inventoryManager.IsFull)
+        bool moved = MoveToInventory(slot, useSlot, updateLoadout: true);
+        if (!moved)
         {
             ShowFeedback("Inventario lleno, no se puede desequipar.");
             return;
         }
 
-        foreach (TMJ_WeaponUseSlot useSlot in System.Enum.GetValues(typeof(TMJ_WeaponUseSlot)))
-        {
-            if (_equippedSlots[useSlot] != slot)
-            {
-                continue;
-            }
-
-            MoveToInventory(slot, useSlot, updateLoadout: true);
-            ShowFeedback($"{slot.Data.DisplayName} desequipado.");
-            return;
-        }
+        detailsPanel?.Show(slot.Data);
+        //ShowFeedback($"{GetItemDisplayName(slot.Data)} desequipado.");
     }
 
-    private void MoveToEquipped(ItemVisualSlot slot, TMJ_WeaponUseSlot useSlot, WeaponData weapon, bool updateLoadout)
+    private void PlaceInEquipped(ItemVisualSlot slot, TMJ_WeaponUseSlot useSlot, WeaponData weapon, bool updateLoadout)
     {
         if (slot == null || weapon == null)
         {
             return;
         }
 
-        // Equipped items are removed from InventoryManager's normal item list.
-        // Suppress the visual event because this same slot is being moved, not destroyed.
-        if (inventoryManager != null)
-        {
-            inventoryManager.OnItemRemoved -= HandleExternalItemRemoved;
-            inventoryManager.RemoveItem(slot.Data);
-            inventoryManager.OnItemRemoved += HandleExternalItemRemoved;
-        }
+        Transform targetParent = GetEquippedSlotRoot(useSlot);
+        ParentSlot(slot, targetParent, ShouldStretchInEquippedRoot(targetParent));
 
-        slot.transform.SetParent(equippedContainer, false);
         slot.SetEquipped(true);
         _equippedSlots[useSlot] = slot;
 
@@ -290,22 +280,23 @@ public sealed class VisualInventoryManager : MonoBehaviour
         }
     }
 
-    private void MoveToInventory(ItemVisualSlot slot, TMJ_WeaponUseSlot useSlot, bool updateLoadout)
+    private bool MoveToInventory(ItemVisualSlot slot, TMJ_WeaponUseSlot useSlot, bool updateLoadout)
     {
         if (slot == null)
         {
-            return;
+            return false;
         }
 
-        // Important: allowAutoEquip:false prevents an unequipped item from immediately re-equipping itself.
         if (inventoryManager != null)
         {
-            inventoryManager.OnItemAdded -= HandleExternalItemAdded;
-            inventoryManager.AddItem(slot.Data, allowAutoEquip: false);
-            inventoryManager.OnItemAdded += HandleExternalItemAdded;
+            bool added = AddToInventorySilently(slot.Data);
+            if (!added)
+            {
+                return false;
+            }
         }
 
-        slot.transform.SetParent(inventoryContainer, false);
+        ParentSlot(slot, inventoryContainer, stretchToParent: false);
         slot.SetEquipped(false);
         _equippedSlots[useSlot] = null;
 
@@ -313,9 +304,10 @@ public sealed class VisualInventoryManager : MonoBehaviour
         {
             weaponLoadout?.EquipWeapon(useSlot, null);
         }
+
+        return true;
     }
 
-    // ── Loadout/UI synchronization ────────────────────────────────────────
     private void SyncWithWeaponLoadout()
     {
         if (weaponLoadout == null)
@@ -361,14 +353,89 @@ public sealed class VisualInventoryManager : MonoBehaviour
         {
             availableSlot = CreateSlot(desiredWeapon, equippedContainer, isEquipped: true);
         }
+        else
+        {
+            RemoveFromInventorySilently(availableSlot.Data);
+        }
 
-        MoveToEquipped(availableSlot, useSlot, desiredWeapon, updateLoadout: false);
+        PlaceInEquipped(availableSlot, useSlot, desiredWeapon, updateLoadout: false);
     }
 
     private void EnsureSlotLooksEquipped(ItemVisualSlot slot)
     {
-        slot.transform.SetParent(equippedContainer, false);
+        if (slot == null)
+        {
+            return;
+        }
+
+        if (TryGetUseSlotForSlot(slot, out TMJ_WeaponUseSlot useSlot))
+        {
+            Transform targetParent = GetEquippedSlotRoot(useSlot);
+            ParentSlot(slot, targetParent, ShouldStretchInEquippedRoot(targetParent));
+        }
+        else
+        {
+            ParentSlot(slot, equippedContainer, stretchToParent: false);
+        }
+
         slot.SetEquipped(true);
+    }
+
+    private Transform GetEquippedSlotRoot(TMJ_WeaponUseSlot useSlot)
+    {
+        Transform target = useSlot switch
+        {
+            TMJ_WeaponUseSlot.LightAttack => lightAttackEquippedSlotRoot,
+            TMJ_WeaponUseSlot.HeavyAttack => heavyAttackEquippedSlotRoot,
+            _ => null
+        };
+
+        return target != null ? target : equippedContainer;
+    }
+
+    private bool ShouldStretchInEquippedRoot(Transform targetParent)
+    {
+        if (!stretchEquippedSlotToRoot || targetParent == null)
+        {
+            return false;
+        }
+
+        // Do not stretch when using the legacy common equipped container fallback.
+        // That container may still have a GridLayoutGroup controlling its children.
+        return targetParent != equippedContainer;
+    }
+
+    private static void ParentSlot(ItemVisualSlot slot, Transform parent, bool stretchToParent)
+    {
+        if (slot == null || parent == null)
+        {
+            return;
+        }
+
+        Transform slotTransform = slot.transform;
+        slotTransform.SetParent(parent, false);
+        slotTransform.localScale = Vector3.one;
+
+        if (slotTransform is not RectTransform rectTransform)
+        {
+            return;
+        }
+
+        if (stretchToParent)
+        {
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            rectTransform.offsetMin = Vector2.zero;
+            rectTransform.offsetMax = Vector2.zero;
+            rectTransform.anchoredPosition = Vector2.zero;
+            return;
+        }
+
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = Vector2.zero;
     }
 
     private ItemVisualSlot FindAvailableSlotForItem(ItemData item)
@@ -421,25 +488,21 @@ public sealed class VisualInventoryManager : MonoBehaviour
         return false;
     }
 
-    private bool TryGetFirstEmptyUseSlot(out TMJ_WeaponUseSlot useSlot)
+    private bool TryGetUseSlotForSlot(ItemVisualSlot slot, out TMJ_WeaponUseSlot useSlot)
     {
-        if (_equippedSlots[TMJ_WeaponUseSlot.LightAttack] == null)
+        foreach (KeyValuePair<TMJ_WeaponUseSlot, ItemVisualSlot> pair in _equippedSlots)
         {
-            useSlot = TMJ_WeaponUseSlot.LightAttack;
-            return true;
-        }
-
-        if (_equippedSlots[TMJ_WeaponUseSlot.HeavyAttack] == null)
-        {
-            useSlot = TMJ_WeaponUseSlot.HeavyAttack;
-            return true;
+            if (pair.Value == slot)
+            {
+                useSlot = pair.Key;
+                return true;
+            }
         }
 
         useSlot = default;
         return false;
     }
 
-    // ── Discard / Destroy ────────────────────────────────────────────────
     private void HandleDiscard(ItemVisualSlot slot)
     {
         if (slot == null)
@@ -447,23 +510,17 @@ public sealed class VisualInventoryManager : MonoBehaviour
             return;
         }
 
-        ItemData item = slot.Data;
-        RemoveFromInventorySilently(item);
-        DestroySlotDirect(slot, updateLoadout: true);
-        ShowFeedback($"{item.DisplayName} descartado.");
-    }
-
-    private void HandleDestroy(ItemVisualSlot slot)
-    {
-        if (slot == null)
+        if (slot.IsEquipped)
         {
+            ShowFeedback("Desequipá el arma antes de descartarla.");
             return;
         }
 
         ItemData item = slot.Data;
         RemoveFromInventorySilently(item);
         DestroySlotDirect(slot, updateLoadout: true);
-        ShowFeedback($"{item.DisplayName} destruido.");
+        detailsPanel?.Clear();
+        ShowFeedback($"{GetItemDisplayName(item)} descartado.");
     }
 
     private void RemoveFromInventorySilently(ItemData item)
@@ -478,7 +535,52 @@ public sealed class VisualInventoryManager : MonoBehaviour
         inventoryManager.OnItemRemoved += HandleExternalItemRemoved;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────
+    private bool AddToInventorySilently(ItemData item)
+    {
+        if (inventoryManager == null || item == null)
+        {
+            return false;
+        }
+
+        inventoryManager.OnItemAdded -= HandleExternalItemAdded;
+        bool added = inventoryManager.AddItem(item, allowAutoEquip: false);
+        inventoryManager.OnItemAdded += HandleExternalItemAdded;
+        return added;
+    }
+
+    private void HandleSlotHoverEnter(ItemVisualSlot slot)
+    {
+        if (!IsInventoryOpen() || slot == null)
+        {
+            return;
+        }
+
+        detailsPanel?.Show(slot.Data);
+    }
+
+    private void HandleSlotHoverExit(ItemVisualSlot slot)
+    {
+        // Intentionally left empty.
+        // Keeping the last hovered item visible lets the player read long descriptions.
+        // not keep
+    }
+
+    private bool IsInventoryOpen()
+    {
+        return inventoryScrollView != null && inventoryScrollView.activeSelf;
+    }
+
+    private void CloseAllSlotActions()
+    {
+        foreach (ItemVisualSlot slot in _slotMap.Values)
+        {
+            if (slot != null)
+            {
+                slot.CloseActions();
+            }
+        }
+    }
+
     private void UnsubscribeSlot(ItemVisualSlot slot)
     {
         if (slot == null)
@@ -486,9 +588,41 @@ public sealed class VisualInventoryManager : MonoBehaviour
             return;
         }
 
-        slot.OnEquipRequested -= HandleEquip;
+        slot.OnEquipToUseSlotRequested -= HandleEquipToUseSlot;
+        slot.OnUnequipRequested -= HandleUnequipRequested;
         slot.OnDiscardRequested -= HandleDiscard;
-        slot.OnDestroyRequested -= HandleDestroy;
+        slot.OnHoverEnter -= HandleSlotHoverEnter;
+        slot.OnHoverExit -= HandleSlotHoverExit;
+    }
+
+    private static string FormatUseSlot(TMJ_WeaponUseSlot useSlot)
+    {
+        return useSlot switch
+        {
+            TMJ_WeaponUseSlot.LightAttack => "ataque ligero",
+            TMJ_WeaponUseSlot.HeavyAttack => "ataque pesado",
+            _ => useSlot.ToString()
+        };
+    }
+
+    private static string GetItemDisplayName(ItemData item)
+    {
+        if (item == null)
+        {
+            return "Item";
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.DisplayName))
+        {
+            return item.DisplayName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(item.ItemName))
+        {
+            return item.ItemName;
+        }
+
+        return "Item";
     }
 
     private void ShowFeedback(string message)
@@ -499,32 +633,5 @@ public sealed class VisualInventoryManager : MonoBehaviour
             "Inventario",
             $"inventory_feedback:{message}",
             this);
-
-    //     if (feedbackLabel == null)
-    //     {
-    //         return;
-    //     }
-
-    //     feedbackLabel.text = message;
-    //     feedbackLabel.gameObject.SetActive(true);
-
-    //     if (_feedbackCoroutine != null)
-    //     {
-    //         StopCoroutine(_feedbackCoroutine);
-    //     }
-
-    //     _feedbackCoroutine = StartCoroutine(HideFeedbackAfterDelay());
-    }
-
-    private System.Collections.IEnumerator HideFeedbackAfterDelay()
-    {
-        yield return new WaitForSeconds(feedbackDuration);
-
-        if (feedbackLabel != null)
-        {
-            feedbackLabel.gameObject.SetActive(false);
-        }
-
-        _feedbackCoroutine = null;
     }
 }
