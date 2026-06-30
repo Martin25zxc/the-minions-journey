@@ -1,49 +1,70 @@
 using System;
-using UnityEngine;
-using UnityEngine.UI;
-using UnityEngine.EventSystems;
+using System.Collections;
 using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 /// <summary>
-/// Visual representation of a single inventory slot.
-/// Used for both inventory and equipped containers — behavior
-/// adapts via SetEquipped(bool).
+/// Visual representation of a single inventory/equipped item slot.
 ///
-///  [Root] ItemVisualSlot.cs  (Image + RectTransform)
-///   ├── [Image]      BackgroundImage
-///   ├── [Image]      FrameImage
-///   ├── [Image]      IconImage
-///   ├── [GameObject] HoverPanel
-///   │    ├── [TMP] NameLabel
-///   │    ├── [TMP] DescriptionLabel
-///   │    └── [TMP] StatsLabel
-///   └── [GameObject] ButtonsPanel
-///        ├── [Button] EquipButton      ← "Equipar" / "Desequipar"
-///        ├── [Button] DiscardButton    ← hidden when equipped
-///        └── [Button] DestroyButton   ← hidden when equipped
+/// This slot is intentionally UI-only:
+/// - Shows icon, rarity frame/background and optional rarity text.
+/// - Shows contextual action buttons.
+/// - Emits events to VisualInventoryManager.
+/// - Does not build item descriptions; those belong to InventoryItemDetailsPanel.
+///
+/// Recommended prefab hierarchy:
+/// ItemVisualSlot
+/// ├── BackgroundImage
+/// ├── FrameImage
+/// ├── IconImage
+/// ├── RarityLabel                 optional
+/// └── ButtonsPanel
+///     ├── LightAttackButton        shown for inventory WeaponData
+///     ├── HeavyAttackButton        shown for inventory WeaponData
+///     └── DiscardButton            shown for inventory items, with inline confirmation
+///
+/// Equipped slots show only the LightAttackButton field, relabelled as "Desequipar".
 /// </summary>
 [DisallowMultipleComponent]
 public sealed class ItemVisualSlot : MonoBehaviour,
     IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
-    // ── Inspector wiring ─────────────────────────────────────────────────
     [Header("Slot Images")]
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Image frameImage;
     [SerializeField] private Image iconImage;
 
-    [Header("Hover Panel")]
-    [SerializeField] private GameObject hoverPanel;
-    [SerializeField] private TextMeshProUGUI nameLabel;
-    [SerializeField] private TextMeshProUGUI descriptionLabel;
-    [SerializeField] private TextMeshProUGUI statsLabel;
+    [Header("Rarity Label (optional)")]
+    [SerializeField] private TextMeshProUGUI rarityLabel;
+    [SerializeField] private bool showRarityLabel = true;
 
     [Header("Action Buttons Panel")]
     [SerializeField] private GameObject buttonsPanel;
-    [SerializeField] private Button equipButton;
-    [SerializeField] private TextMeshProUGUI equipButtonLabel;
+
+    [Tooltip("Inventory weapon: equips to LightAttack. Equipped item: unequips.")]
+    [SerializeField] private Button lightAttackButton;
+    [SerializeField] private TextMeshProUGUI lightAttackButtonLabel;
+
+    [Tooltip("Inventory weapon: equips to HeavyAttack. Hidden for equipped and non-weapon items.")]
+    [SerializeField] private Button heavyAttackButton;
+    [SerializeField] private TextMeshProUGUI heavyAttackButtonLabel;
+
+    [Tooltip("Removes the item from inventory. Hidden for equipped items.")]
     [SerializeField] private Button discardButton;
-    [SerializeField] private Button destroyButton;
+    [SerializeField] private TextMeshProUGUI discardButtonLabel;
+
+    [Header("Button Text")]
+    [SerializeField] private string equipLightText = "Slot.L";
+    [SerializeField] private string equipHeavyText = "Slot.P";
+    [SerializeField] private string unequipText = "Desequipar";
+    [SerializeField] private string discardText = "Descartar";
+    [SerializeField] private string discardConfirmText = "¿Seguro?";
+
+    [Header("Discard Confirmation")]
+    [SerializeField] private bool requireDiscardConfirmation = true;
+    [SerializeField, Min(0.1f)] private float discardConfirmationSeconds = 1.5f;
 
     [Header("Rarity Frame Sprites")]
     [SerializeField] private Sprite frameCommon;
@@ -53,8 +74,7 @@ public sealed class ItemVisualSlot : MonoBehaviour,
     [SerializeField] private Sprite frameLegendary;
 
     [Header("Background Sprites")]
-    [Tooltip("When true, all rarities share backgroundUniversal. " +
-             "When false, each rarity uses its own background sprite.")]
+    [Tooltip("When true, all rarities share backgroundUniversal. When false, each rarity uses its own background sprite.")]
     [SerializeField] private bool useUniversalBackground = true;
 
     [Tooltip("Used for all rarities when useUniversalBackground is true.")]
@@ -66,83 +86,316 @@ public sealed class ItemVisualSlot : MonoBehaviour,
     [SerializeField] private Sprite backgroundEpic;
     [SerializeField] private Sprite backgroundLegendary;
 
-    // ── Runtime state ────────────────────────────────────────────────────
     private ItemData _data;
     private bool _isEquipped;
+    private bool _discardConfirmationArmed;
+    private Coroutine _discardConfirmationCoroutine;
 
-    // ── Events ───────────────────────────────────────────────────────────
-    public event Action<ItemVisualSlot> OnEquipRequested;
+    public event Action<ItemVisualSlot, TMJ_WeaponUseSlot> OnEquipToUseSlotRequested;
+    public event Action<ItemVisualSlot> OnUnequipRequested;
     public event Action<ItemVisualSlot> OnDiscardRequested;
-    public event Action<ItemVisualSlot> OnDestroyRequested;
+    public event Action<ItemVisualSlot> OnHoverEnter;
+    public event Action<ItemVisualSlot> OnHoverExit;
 
     public ItemData Data => _data;
     public bool IsEquipped => _isEquipped;
 
-    // ── Initialization ───────────────────────────────────────────────────
     private void Awake()
     {
-        equipButton.onClick.AddListener(() => { HideButtons(); OnEquipRequested?.Invoke(this); });
-        discardButton.onClick.AddListener(() => { HideButtons(); OnDiscardRequested?.Invoke(this); });
-        destroyButton.onClick.AddListener(() => { HideButtons(); OnDestroyRequested?.Invoke(this); });
+        if (lightAttackButton != null)
+        {
+            lightAttackButton.onClick.AddListener(HandlePrimaryButtonClicked);
+        }
 
-        hoverPanel.SetActive(false);
-        buttonsPanel.SetActive(false);
+        if (heavyAttackButton != null)
+        {
+            heavyAttackButton.onClick.AddListener(HandleHeavyAttackButtonClicked);
+        }
+
+        if (discardButton != null)
+        {
+            discardButton.onClick.AddListener(HandleDiscardButtonClicked);
+        }
+
+        HideButtons();
     }
 
-    // ── Public API ───────────────────────────────────────────────────────
+    private void OnDisable()
+    {
+        ResetDiscardConfirmation();
+    }
+
+    private void OnDestroy()
+    {
+        if (lightAttackButton != null)
+        {
+            lightAttackButton.onClick.RemoveListener(HandlePrimaryButtonClicked);
+        }
+
+        if (heavyAttackButton != null)
+        {
+            heavyAttackButton.onClick.RemoveListener(HandleHeavyAttackButtonClicked);
+        }
+
+        if (discardButton != null)
+        {
+            discardButton.onClick.RemoveListener(HandleDiscardButtonClicked);
+        }
+    }
+
     public void Bind(ItemData itemData)
     {
         _data = itemData;
 
-        iconImage.sprite = itemData.Icon;
-        iconImage.enabled = itemData.Icon != null;
+        if (_data == null)
+        {
+            ClearVisuals();
+            HideButtons();
+            return;
+        }
 
-        frameImage.sprite = RarityToFrameSprite(itemData.Rarity);
+        if (iconImage != null)
+        {
+            iconImage.sprite = _data.Icon;
+            iconImage.enabled = _data.Icon != null;
+        }
 
-        backgroundImage.sprite = useUniversalBackground
-            ? backgroundUniversal
-            : RarityToBackgroundSprite(itemData.Rarity);
+        if (frameImage != null)
+        {
+            frameImage.sprite = RarityToFrameSprite(_data.Rarity);
+        }
 
-        nameLabel.text = itemData.DisplayName;
-        descriptionLabel.text = itemData.Description;
-        statsLabel.text = BuildStatsText(itemData);
+        if (backgroundImage != null)
+        {
+            backgroundImage.sprite = useUniversalBackground
+                ? backgroundUniversal
+                : RarityToBackgroundSprite(_data.Rarity);
+        }
 
-        hoverPanel.SetActive(false);
-        buttonsPanel.SetActive(false);
+        RefreshRarityLabel();
+        ResetDiscardConfirmation();
+        HideButtons();
     }
 
     /// <summary>
     /// Switches the slot between inventory and equipped visual state.
-    /// Equipped slots only show the Unequip button.
+    /// Inventory weapon slots show Light/Heavy/Discard.
+    /// Equipped slots show only Unequip.
     /// </summary>
     public void SetEquipped(bool equipped)
     {
         _isEquipped = equipped;
-        equipButtonLabel.text = equipped ? "Desequipar" : "Equipar";
-        discardButton.gameObject.SetActive(!equipped);
-        destroyButton.gameObject.SetActive(!equipped);
+        ResetDiscardConfirmation();
+        RefreshButtonState();
     }
 
-    // ── Pointer callbacks ────────────────────────────────────────────────
+    public void CloseActions()
+    {
+        HideButtons();
+    }
+
     public void OnPointerEnter(PointerEventData eventData)
     {
-        if (!buttonsPanel.activeSelf)
-            hoverPanel.SetActive(true);
+        OnHoverEnter?.Invoke(this);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        hoverPanel.SetActive(false);
+        OnHoverExit?.Invoke(this);
     }
 
     public void OnPointerClick(PointerEventData eventData)
     {
-        hoverPanel.SetActive(false);
-        buttonsPanel.SetActive(!buttonsPanel.activeSelf);
+        if (eventData != null && eventData.button != PointerEventData.InputButton.Left)
+        {
+            return;
+        }
+
+        if (buttonsPanel == null)
+        {
+            return;
+        }
+
+        bool shouldShow = !buttonsPanel.activeSelf;
+        buttonsPanel.SetActive(shouldShow);
+
+        if (shouldShow)
+        {
+            RefreshButtonState();
+        }
+        else
+        {
+            ResetDiscardConfirmation();
+        }
     }
 
-    // ── Private helpers ──────────────────────────────────────────────────
-    private void HideButtons() => buttonsPanel.SetActive(false);
+    private void HandlePrimaryButtonClicked()
+    {
+        if (_data == null)
+        {
+            HideButtons();
+            return;
+        }
+
+        if (_isEquipped)
+        {
+            HideButtons();
+            OnUnequipRequested?.Invoke(this);
+            return;
+        }
+
+        if (_data is WeaponData)
+        {
+            HideButtons();
+            OnEquipToUseSlotRequested?.Invoke(this, TMJ_WeaponUseSlot.LightAttack);
+        }
+    }
+
+    private void HandleHeavyAttackButtonClicked()
+    {
+        if (_data is not WeaponData || _isEquipped)
+        {
+            HideButtons();
+            return;
+        }
+
+        HideButtons();
+        OnEquipToUseSlotRequested?.Invoke(this, TMJ_WeaponUseSlot.HeavyAttack);
+    }
+
+    private void HandleDiscardButtonClicked()
+    {
+        if (_data == null || _isEquipped)
+        {
+            HideButtons();
+            return;
+        }
+
+        if (!requireDiscardConfirmation)
+        {
+            ConfirmDiscard();
+            return;
+        }
+
+        if (!_discardConfirmationArmed)
+        {
+            ArmDiscardConfirmation();
+            return;
+        }
+
+        ConfirmDiscard();
+    }
+
+    private void ConfirmDiscard()
+    {
+        ResetDiscardConfirmation();
+        HideButtons();
+        OnDiscardRequested?.Invoke(this);
+    }
+
+    private void ArmDiscardConfirmation()
+    {
+        _discardConfirmationArmed = true;
+
+        if (discardButtonLabel != null)
+        {
+            discardButtonLabel.text = discardConfirmText;
+        }
+
+        if (_discardConfirmationCoroutine != null)
+        {
+            StopCoroutine(_discardConfirmationCoroutine);
+        }
+
+        _discardConfirmationCoroutine = StartCoroutine(ResetDiscardConfirmationAfterDelay());
+    }
+
+    private IEnumerator ResetDiscardConfirmationAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(discardConfirmationSeconds);
+        ResetDiscardConfirmation();
+    }
+
+    private void ResetDiscardConfirmation()
+    {
+        _discardConfirmationArmed = false;
+
+        if (_discardConfirmationCoroutine != null)
+        {
+            StopCoroutine(_discardConfirmationCoroutine);
+            _discardConfirmationCoroutine = null;
+        }
+
+        if (discardButtonLabel != null)
+        {
+            discardButtonLabel.text = discardText;
+        }
+    }
+
+    private void RefreshButtonState()
+    {
+        bool isWeapon = _data is WeaponData;
+
+        if (_isEquipped)
+        {
+            SetButtonVisible(lightAttackButton, true);
+            SetButtonVisible(heavyAttackButton, false);
+            SetButtonVisible(discardButton, false);
+            SetLabel(lightAttackButtonLabel, unequipText);
+            return;
+        }
+
+        SetButtonVisible(lightAttackButton, isWeapon);
+        SetButtonVisible(heavyAttackButton, isWeapon);
+        SetButtonVisible(discardButton, true);
+
+        SetLabel(lightAttackButtonLabel, equipLightText);
+        SetLabel(heavyAttackButtonLabel, equipHeavyText);
+        SetLabel(discardButtonLabel, discardText);
+    }
+
+    private void HideButtons()
+    {
+        ResetDiscardConfirmation();
+        buttonsPanel?.SetActive(false);
+    }
+
+    private void RefreshRarityLabel()
+    {
+        if (rarityLabel == null)
+        {
+            return;
+        }
+
+        bool show = showRarityLabel && _data != null;
+        rarityLabel.gameObject.SetActive(show);
+        rarityLabel.text = show ? FormatRarity(_data.Rarity) : string.Empty;
+    }
+
+    private void ClearVisuals()
+    {
+        if (iconImage != null)
+        {
+            iconImage.sprite = null;
+            iconImage.enabled = false;
+        }
+
+        if (frameImage != null)
+        {
+            frameImage.sprite = null;
+        }
+
+        if (backgroundImage != null)
+        {
+            backgroundImage.sprite = null;
+        }
+
+        if (rarityLabel != null)
+        {
+            rarityLabel.text = string.Empty;
+            rarityLabel.gameObject.SetActive(false);
+        }
+    }
 
     private Sprite RarityToFrameSprite(ItemRarity rarity) => rarity switch
     {
@@ -164,21 +417,29 @@ public sealed class ItemVisualSlot : MonoBehaviour,
         _ => backgroundCommon
     };
 
-    private static string BuildStatsText(ItemData data)
+    private static string FormatRarity(ItemRarity rarity) => rarity switch
     {
-        if (data is WeaponData weapon)
+        ItemRarity.Common => "Común",
+        ItemRarity.Uncommon => "Poco común",
+        ItemRarity.Rare => "Rara",
+        ItemRarity.Epic => "Épica",
+        ItemRarity.Legendary => "Legendaria",
+        _ => rarity.ToString()
+    };
+
+    private static void SetButtonVisible(Button button, bool visible)
+    {
+        if (button != null)
         {
-            string typeText = weapon.WeaponType switch
-            {
-                WeaponType.MainHand => "Arma ligera",
-                WeaponType.OffHand => "Arma pesada",
-                _ => "Desconocido"
-            };
-            return $"Tipo: {typeText}\n" +
-                   $"Daño: {weapon.DamageBonusMin:F1} – {weapon.DamageBonusMax:F1}\n";
-
+            button.gameObject.SetActive(visible);
         }
+    }
 
-        return $"Rareza: {data.Rarity}";
+    private static void SetLabel(TextMeshProUGUI label, string text)
+    {
+        if (label != null)
+        {
+            label.text = text;
+        }
     }
 }
