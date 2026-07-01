@@ -22,7 +22,6 @@ public sealed class RandomTreeScatterWindow : EditorWindow
     private int seed;
     private bool useRandomSeed = true;
     private Vector3 lastPaintHitPoint;
-    private bool hasPaintHitPoint;
     private double nextPaintTime;
 
     [MenuItem("Tools/Environment/Random Tree Scatter")]
@@ -129,12 +128,10 @@ public sealed class RandomTreeScatterWindow : EditorWindow
         Ray ray = HandleUtility.GUIPointToWorldRay(currentEvent.mousePosition);
         if (!TryRaycastGround(ray, out RaycastHit hit))
         {
-            hasPaintHitPoint = false;
             return;
         }
 
         lastPaintHitPoint = hit.point;
-        hasPaintHitPoint = true;
 
         Handles.color = new Color(0.2f, 1f, 0.4f, 0.9f);
         Handles.DrawWireDisc(hit.point, hit.normal, brushRadius);
