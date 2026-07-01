@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 /// <summary>
 /// Bloque serializable de respuestas de escena para una misión.
@@ -8,15 +9,17 @@ using UnityEngine;
 /// - cuándo se ejecuta dentro del flujo de la misión;
 /// - si debe filtrar por un objetivo específico;
 /// - qué objetos activa/desactiva;
-/// - qué WorldFlags setea.
+/// - qué WorldFlags setea;
+/// - qué acciones custom de escena invoca.
 ///
-/// No decide progreso de misión, no entrega recompensas y no muestra UI.
+/// No decide progreso de misión, no entrega recompensas y no modifica UI directamente.
+/// Para comportamientos especiales, invoca componentes dedicados mediante Custom Scene Actions.
 /// </summary>
 [Serializable]
 public sealed class MissionSceneResponseBlock
 {
     [Header("Identity")]
-    [Tooltip("Nombre humano del bloque para leer la secuencia de la misión en el Inspector y en logs. Ejemplos: 'Enable Mushrooms', 'Set Hook Received Flag', 'Clean Up Hook'.")]
+    [Tooltip("Nombre humano del bloque para leer la secuencia de la misión en el Inspector y en logs. Ejemplos: 'Enable Mushrooms', 'Secret Boss Hint', 'Dragon Farewell'.")]
     [SerializeField]
     private string blockName = "Scene Response";
 
@@ -54,6 +57,11 @@ public sealed class MissionSceneResponseBlock
     [Tooltip("Valor que se escribirá en todos los flags de Flags To Set. Normalmente true. Usar false solo si realmente se necesita limpiar/desactivar un hecho del mundo.")]
     [SerializeField]
     private bool flagValue = true;
+
+    [Header("Custom Scene Actions")]
+    [Tooltip("Acciones especiales de escena invocadas por este bloque. Usar para notificaciones narrativas, retirada de NPCs, activar spawners, reproducir animaciones simples, etc. Evitar poner aquí lógica de rewards o progreso de misión.")]
+    [SerializeField]
+    private UnityEvent customSceneActions = new UnityEvent();
 
     [Header("Execution")]
     [Tooltip("Si está activo, este bloque se ejecuta una sola vez por sesión/play mode. Mantener activo para evitar doble activación, doble flag o doble limpieza ante eventos duplicados.")]
@@ -113,9 +121,15 @@ public sealed class MissionSceneResponseBlock
 
     public void Execute(WorldFlagRegistry worldFlagRegistry, Component logContext, bool logDebug)
     {
+        // Orden intencional:
+        // 1) Primero activar objetos necesarios para que las acciones custom puedan operar sobre ellos.
+        // 2) Luego setear flags del mundo.
+        // 3) Después invocar acciones especiales.
+        // 4) Finalmente desactivar objetos de limpieza.
         SetObjectsActive(objectsToEnable, true, logContext, logDebug);
-        SetObjectsActive(objectsToDisable, false, logContext, logDebug);
         SetWorldFlags(worldFlagRegistry, logContext, logDebug);
+        InvokeCustomSceneActions(logContext, logDebug);
+        SetObjectsActive(objectsToDisable, false, logContext, logDebug);
 
         hasExecuted = true;
     }
@@ -193,6 +207,28 @@ public sealed class MissionSceneResponseBlock
             {
                 Debug.Log($"MissionSceneResponseBlock '{BlockName}' set world flag '{flagId}' = {flagValue}.", logContext);
             }
+        }
+    }
+
+    private void InvokeCustomSceneActions(Component logContext, bool logDebug)
+    {
+        if (customSceneActions == null || customSceneActions.GetPersistentEventCount() == 0)
+        {
+            return;
+        }
+
+        if (logDebug)
+        {
+            Debug.Log($"MissionSceneResponseBlock '{BlockName}' invoking {customSceneActions.GetPersistentEventCount()} custom scene action(s).", logContext);
+        }
+
+        try
+        {
+            customSceneActions.Invoke();
+        }
+        catch (Exception exception)
+        {
+            Debug.LogException(exception, logContext);
         }
     }
 
