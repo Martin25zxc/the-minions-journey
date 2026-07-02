@@ -14,14 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::WeaponData
   itemName: Eldsvero_Sword_Legendary
   displayName: Eldsvero
-  description: 
+  description: "Espada de filo ardiente, moldeada con almas de enemigos de la Legi\xF3n
+    de Erebus. No se otorga, se gana.\nSu llama sigue hambrienta."
   icon: {fileID: 21300000, guid: d26bd75cc591ce941807f1d0cf4aac60, type: 3}
-  worldModelPrefab: {fileID: 919132149155446097, guid: 497c2e54cd399a84da0fcf2a8d714dcf, type: 3}
+  worldModelPrefab: {fileID: 8381600336495543522, guid: 6363ac7f62c82a34ea01ae67cdb1e768, type: 3}
   rarity: 4
-  damageBonusMin: 100
-  damageBonusMax: 120
+  damageBonusMin: 60
+  damageBonusMax: 70
   weaponType: 0
-  equippedModelPrefab: {fileID: 919132149155446097, guid: 497c2e54cd399a84da0fcf2a8d714dcf, type: 3}
+  equippedModelPrefab: {fileID: 8381600336495543522, guid: 6363ac7f62c82a34ea01ae67cdb1e768, type: 3}
   equipmentVisualBackLeftPose:
     localPosition: {x: -0.141, y: 0.07, z: 0}
     localEulerAngles: {x: 0, y: -180, z: -45}
